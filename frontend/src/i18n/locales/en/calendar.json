@@ -1,0 +1,68 @@
+{
+  "page": {
+    "title": "Prayer schedule",
+    "italic": "schedule",
+    "eyebrow": "Kaliningrad · local time",
+    "lead": "Prayer times, candle lighting and Shabbat end, the weekly Torah portion and holidays. The Jewish calendar and zmanim are calculated for the synagogue's coordinates.",
+    "upcoming": "Next 14 days",
+    "month": "Month",
+    "year": "Year",
+    "nextDays": "Upcoming days",
+    "list": "List",
+    "table": "Table",
+    "showZmanim": "Show zmanim",
+    "hideZmanim": "Hide zmanim",
+    "today": "Today",
+    "shabbat": "Shabbat",
+    "closed": "Synagogue closed for tours",
+    "empty": "No schedule for these dates",
+    "servicesUnknown": "Please call to check prayer times",
+    "phonePlaceholder": "synagogue phone",
+    "computedNote": "Candle lighting, Shabbat end and zmanim are calculated with hebcal (candles 18 minutes before sunset, Shabbat ends at nightfall)."
+  },
+  "col": {
+    "date": "Date",
+    "hebrew": "Hebrew date",
+    "shacharit": "Shacharit",
+    "mincha": "Mincha",
+    "maariv": "Maariv",
+    "kabbalatShabbat": "Welcoming Shabbat",
+    "candles": "Candles",
+    "havdalah": "Havdalah",
+    "parasha": "Portion",
+    "note": "Note"
+  },
+  "zmanim": {
+    "alot": "Dawn (alot hashachar)",
+    "talit": "Misheyakir (tallit & tefillin)",
+    "sunrise": "Sunrise",
+    "shma": "Latest Shema",
+    "tfila": "Latest Shacharit",
+    "chatzot": "Midday (chatzot)",
+    "shkia": "Sunset",
+    "tzet": "Nightfall"
+  },
+  "widget": {
+    "label": "Today",
+    "clock": "Kaliningrad",
+    "candles": "Candle lighting",
+    "in": "in",
+    "now": "Candles lit",
+    "parasha": "Torah portion",
+    "all": "Full schedule",
+    "d": "d",
+    "h": "h",
+    "m": "m",
+    "s": "s"
+  },
+  "holiday": {
+    "back": "Back to schedule",
+    "eyebrow": "Jewish holiday",
+    "dates": "Dates in {{year}}",
+    "inSynagogue": "At the synagogue",
+    "inSynagogueText": "Holiday services and events are in the schedule and the events calendar.",
+    "events": "Events",
+    "notFound": "This holiday is not in our guide",
+    "computed": "Dates are calculated by the Jewish calendar (hebcal); a holiday begins the evening before."
+  }
+}

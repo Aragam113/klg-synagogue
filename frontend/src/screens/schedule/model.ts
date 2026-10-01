@@ -1,0 +1,94 @@
+import type { Day } from '@/store/api/calendar';
+import type { ApiError } from '@/store/api/http';
+
+/** Чистая логика экрана расписания и виджета «Сегодня» (без React). */
+
+export interface Countdown {
+  d: number;
+  h: number;
+  m: number;
+  s: number;
+}
+
+/** Сколько осталось до момента `atIso`; null — момент прошёл. */
+export function countdown(atIso: string, nowMs: number): Countdown | null {
+  const left = Math.floor((Date.parse(atIso) - nowMs) / 1000);
+  if (!(left > 0)) return null;
+  return {
+    d: Math.floor(left / 86400),
+    h: Math.floor((left % 86400) / 3600),
+    m: Math.floor((left % 3600) / 60),
+    s: left % 60,
+  };
+}
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
+/** Весь месяц `month` (1–12) года `year` — для GET /calendar/days?from&to. */
+export function monthRange(year: number, month: number): { from: string; to: string } {
+  const last = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return { from: `${year}-${pad(month)}-01`, to: `${year}-${pad(month)}-${pad(last)}` };
+}
+
+/** Калининград — UTC+2 круглый год (без перехода на летнее время с 2014). */
+const KLD_OFFSET_MS = 2 * 3600 * 1000;
+
+/** Дата 'YYYY-MM-DD' и часы 'HH:MM:SS' в Калининграде для момента `nowMs`. */
+export function kaliningradNow(nowMs: number): { date: string; time: string } {
+  const iso = new Date(nowMs + KLD_OFFSET_MS).toISOString();
+  return { date: iso.slice(0, 10), time: iso.slice(11, 19) };
+}
+
+const LOCALE: Record<string, string> = { ru: 'ru-RU', en: 'en-GB', he: 'he-IL' };
+
+/** Григорианская дата 'YYYY-MM-DD' прописью на языке сайта (без сдвига часового пояса). */
+export function formatDate(
+  date: string,
+  lang: string,
+  opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' }
+): string {
+  return new Intl.DateTimeFormat(LOCALE[lang] ?? lang, { ...opts, timeZone: 'UTC' }).format(
+    new Date(`${date}T00:00:00Z`)
+  );
+}
+
+/** Названия месяцев 1–12 на языке сайта (именительный падеж). */
+export function monthNames(lang: string): string[] {
+  const f = new Intl.DateTimeFormat(LOCALE[lang] ?? lang, { month: 'long', timeZone: 'UTC' });
+  return Array.from({ length: 12 }, (_, i) => {
+    const s = f.format(new Date(Date.UTC(2026, i, 15)));
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  });
+}
+
+export type Service = 'shacharit' | 'mincha' | 'maariv';
+
+/**
+ * i18n key of the service label. Friday evening is «Встреча Шаббата» (community wording, source in
+ * migration 1790000003000-SeedScheduleTemplate), not a bare «Маарив».
+ */
+export function serviceLabelKey(service: Service, weekday: number): string {
+  return service === 'maariv' && weekday === 5 ? 'col.kabbalatShabbat' : `col.${service}`;
+}
+
+export type ScheduleMode = 'list' | 'table';
+
+/** Props of the /schedule view (filled by model-view). */
+export interface ScheduleViewProps {
+  days: Day[];
+  /** 'YYYY-MM-DD' in Kaliningrad — highlighted in gold. */
+  today: string;
+  loading: boolean;
+  error: ApiError | null;
+  onRetry: () => void;
+  month: string;
+  onMonth: (v: string) => void;
+  year: string;
+  onYear: (v: string) => void;
+  monthOptions: { value: string; label: string }[];
+  yearOptions: { value: string; label: string }[];
+  mode: ScheduleMode;
+  onMode: (m: ScheduleMode) => void;
+  zmanim: boolean;
+  onToggleZmanim: () => void;
+}

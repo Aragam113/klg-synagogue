@@ -1,6 +1,125 @@
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+
+import { useLang } from '@/i18n/use-lang';
+import { countdown, formatDate, kaliningradNow } from '@/screens/schedule/model';
+import '@/screens/schedule/styles';
+import { useGetTodayQuery } from '@/store/api/calendar';
+import { Link } from '@/ui/kit';
+
+/** Ticks every second (live clock + countdown). */
+const useNow = () => {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+};
+
 /**
- * SLOT owned by task 03 (calendar): replace this file's body with the real widget
- * (next candle lighting / countdown). Rendered in the header (variant "header", >=1280px)
- * and in the mobile menu (variant "menu"). Must render nothing while loading or when the API is down.
+ * Host for the bar variant: its own block right after <header class="hdr"> (header layout stays untouched).
  */
-export const TodayWidget = (_props: { variant: 'header' | 'menu' }) => null;
+const useBarHost = (enabled: boolean) => {
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!enabled || typeof document === 'undefined') return;
+    const hdr = document.querySelector('.hdr');
+    if (!hdr?.parentNode) return;
+    const el = document.createElement('div');
+    el.className = 'tw-bar-host';
+    hdr.parentNode.insertBefore(el, hdr.nextSibling);
+    setHost(el);
+    return () => {
+      el.remove();
+      setHost(null);
+    };
+  }, [enabled]);
+  return host;
+};
+
+/**
+ * «Сегодня» (task 03): date by both calendars, Kaliningrad clock, live countdown to the next candle lighting.
+ * Header variant (>=1280px) and bar variant (under the header on inner pages, <1280px) are compact links to /schedule;
+ * menu variant adds the parasha and a «Всё расписание» link.
+ * Renders nothing while loading or when the API is down.
+ */
+export const TodayWidget = ({ variant }: { variant: 'header' | 'menu' | 'bar' }) => {
+  const { t, lang } = useLang('calendar');
+  const now = useNow();
+  const { data } = useGetTodayQuery(undefined, { pollingInterval: 30 * 60 * 1000 });
+  const barHost = useBarHost(variant === 'bar');
+  if (!data) return null;
+
+  const kld = kaliningradNow(now);
+  const next = data.nextCandles.find((c) => countdown(c.at, now));
+  const left = next ? countdown(next.at, now) : null;
+  const cd = left
+    ? [
+        left.d ? `${left.d} ${t('widget.d')}` : '',
+        `${left.h} ${t('widget.h')}`,
+        `${String(left.m).padStart(2, '0')} ${t('widget.m')}`,
+        `${String(left.s).padStart(2, '0')} ${t('widget.s')}`,
+      ]
+        .filter(Boolean)
+        .join(' ')
+    : null;
+
+  const body = (
+    <>
+      <span className="tw__dates">
+        <span>
+          {formatDate(data.today.date, lang, { day: 'numeric', month: 'short' })}
+          {' · '}
+          <span className="tw__clock" title={t('widget.clock')}>
+            {kld.time.slice(0, variant === 'menu' ? 8 : 5)}
+          </span>
+        </span>
+        <span className="tw__heb">{data.today.hebrewDate}</span>
+      </span>
+      {next && cd ? (
+        <span className="tw__candles">
+          <span className="tw__label">
+            {t('widget.candles')} {formatDate(next.date, lang, { day: 'numeric', month: 'short' })}{' '}
+            {next.time}
+          </span>
+          <span className="tw__cd" data-countdown>
+            {t('widget.in')} {cd}
+          </span>
+        </span>
+      ) : null}
+    </>
+  );
+
+  if (variant === 'bar') {
+    return barHost
+      ? createPortal(
+          <Link href="/schedule" className="tw tw--bar">
+            {body}
+          </Link>,
+          barHost
+        )
+      : null;
+  }
+  if (variant === 'header') {
+    return (
+      <Link href="/schedule" className={`tw tw--${variant}`}>
+        {body}
+      </Link>
+    );
+  }
+  return (
+    <div className="tw tw--menu" data-today-widget>
+      {body}
+      {data.nextShabbat.parasha ? (
+        <span className="tw__dates">
+          <span className="tw__label">{t('widget.parasha')}</span>
+          <span>{data.nextShabbat.parasha}</span>
+        </span>
+      ) : null}
+      <Link href="/schedule" className="tw__all">
+        {t('widget.all')}
+      </Link>
+    </div>
+  );
+};

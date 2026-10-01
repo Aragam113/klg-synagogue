@@ -1,9 +1,20 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AdminScheduleController } from './admin-schedule.controller';
+import { CalendarController } from './calendar.controller';
+import { CalendarService } from './calendar.service';
+import { ScheduleOverrideEntity, ScheduleTemplateEntity } from './entities';
 
 /**
- * Модуль «calendar»: еврейский календарь и расписание молитв.
- * Подключён в AppModule; контроллеры, сервисы и TypeOrmModule.forFeature(...)
- * добавляет таск-владелец здесь, не трогая app.module.ts.
+ * Модуль «calendar»: еврейский календарь (@hebcal/core) и расписание молитв.
+ * CalendarService экспортируется — requests (экскурсии, йорцайты) берёт его через DI.
  */
-@Module({})
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([ScheduleTemplateEntity, ScheduleOverrideEntity]),
+  ],
+  controllers: [CalendarController, AdminScheduleController],
+  providers: [CalendarService],
+  exports: [CalendarService],
+})
 export class CalendarModule {}

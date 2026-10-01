@@ -16,7 +16,8 @@ process.env.DB_HOST = local.DB_HOST ?? 'localhost';
 process.env.DB_PORT = local.DB_PORT ?? '5432';
 process.env.DB_USERNAME = local.DB_USERNAME ?? 'synagogue';
 process.env.DB_PASSWORD = local.DB_PASSWORD ?? '';
-process.env.DB_DATABASE = local.TEST_DB_DATABASE || 'synagogue_test';
+process.env.DB_DATABASE =
+  process.env.TEST_DB_DATABASE || local.TEST_DB_DATABASE || 'synagogue_test';
 process.env.JWT_SECRET = 'e2e-only-jwt-secret';
 process.env.JWT_EXPIRES_IN = '1h';
 process.env.ADMIN_USERS = [

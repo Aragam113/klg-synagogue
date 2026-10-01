@@ -124,6 +124,8 @@ export const SiteHeader = () => {
           <LangSwitch className="lang--light" />
         </div>
       </div>
+      {/* task 03: compact "today" bar under the header on inner pages (< 1280px) */}
+      {pathname !== '/' ? <TodayWidget variant="bar" /> : null}
     </header>
   );
 };

@@ -21,9 +21,11 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.ts\"",
-    "admin:hash": "ts-node scripts/admin-hash.ts"
+    "admin:hash": "ts-node scripts/admin-hash.ts",
+    "seed": "ts-node -r tsconfig-paths/register src/shared/database/seeds/content.seed.ts"
   },
   "dependencies": {
+    "@hebcal/core": "5.10.1",
     "@nestjs/bull": "^11.0.4",
     "@nestjs/common": "^11.1.12",
     "@nestjs/config": "^4.0.2",
@@ -50,6 +52,7 @@
     "pg": "^8.17.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
+    "sharp": "^0.35.5",
     "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.28"
   },
