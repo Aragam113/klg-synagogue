@@ -29,6 +29,8 @@ export interface SynagogueScrubProps {
   manifest?: string;
   /** Prefix of the corner attribution, e.g. «Кадры:». */
   creditsLabel?: string;
+  /** Short one-line attribution (i18n) shown instead of the manifest's full credit; the full one is in CREDITS.md. */
+  credit?: string;
   /** Accessible name of the scene. */
   ariaLabel?: string;
 }
@@ -47,6 +49,7 @@ export const SynagogueScrub = ({
   chapters,
   manifest: manifestUrl = DEFAULT_MANIFEST,
   creditsLabel = '',
+  credit,
   ariaLabel,
 }: SynagogueScrubProps) => {
   const root = useRef<HTMLDivElement>(null);
@@ -88,7 +91,7 @@ export const SynagogueScrub = ({
     mode: 'pin',
     onChange: (p) => {
       progress.current = p;
-      setActive(Math.min(n - 1, Math.floor(p * n)));
+      if (motion) setActive(Math.min(n - 1, Math.floor(p * n)));
       draw();
     },
   });
@@ -166,6 +169,20 @@ export const SynagogueScrub = ({
     };
   }, [m, motion, draw]);
 
+  // Touch / reduced motion: the chapters are a swipe ribbon (scroll-snap) and the dots follow it.
+  const ribbon = useRef<HTMLOListElement>(null);
+  const onRibbon = () => {
+    const el = ribbon.current;
+    if (!el || !el.clientWidth) return;
+    setActive(Math.max(0, Math.min(n - 1, Math.round(Math.abs(el.scrollLeft) / el.clientWidth))));
+  };
+  const goTo = (i: number) => {
+    const el = ribbon.current;
+    if (!el) return;
+    const rtl = getComputedStyle(el).direction === 'rtl' ? -1 : 1;
+    el.scrollTo({ left: rtl * i * el.clientWidth, behavior: 'smooth' });
+  };
+
   const poster = m ? m.frames[m.poster] : null;
   return (
     <div
@@ -202,7 +219,26 @@ export const SynagogueScrub = ({
           </span>
           <span className="scrub__total">/ {pad(n)}</span>
         </div>
-        <ol className="scrub__chapters">
+        {!motion && n > 1 ? (
+          <div className="scrub__dots pinned__dots">
+            {chapters.map((c, i) => (
+              <button
+                key={c.id}
+                type="button"
+                className="pinned__dot"
+                aria-label={c.label}
+                aria-current={i === active}
+                onClick={() => goTo(i)}
+              />
+            ))}
+          </div>
+        ) : null}
+        <ol
+          className="scrub__chapters"
+          ref={ribbon}
+          data-ribbon={motion ? undefined : ''}
+          onScroll={motion ? undefined : onRibbon}
+        >
           {chapters.map((c, i) => (
             <li
               key={c.id}
@@ -216,10 +252,9 @@ export const SynagogueScrub = ({
             </li>
           ))}
         </ol>
-        {m?.credits ? (
+        {credit || m?.credits ? (
           <p className="scrub__credits">
-            {creditsLabel ? `${creditsLabel} ` : ''}
-            {m.credits}
+            {credit ?? `${creditsLabel ? `${creditsLabel} ` : ''}${m?.credits}`}
           </p>
         ) : null}
       </div>

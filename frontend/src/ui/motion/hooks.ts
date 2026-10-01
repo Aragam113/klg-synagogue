@@ -1,6 +1,12 @@
-import { type RefObject, useEffect, useRef } from 'react';
+import { type RefObject, useEffect, useRef, useState } from 'react';
 
-import { type MotionEl, registerProgress, registerReveal, type RegisterOptions } from './engine';
+import {
+  motionAllowed,
+  type MotionEl,
+  registerProgress,
+  registerReveal,
+  type RegisterOptions,
+} from './engine';
 
 /**
  * Writes `--p` (0..1) on the element while it is near the viewport. Children inherit it in CSS, e.g.
@@ -29,4 +35,20 @@ export const useReveal = (ref: RefObject<MotionEl | null>): void => {
     if (!el) return;
     return registerReveal(el);
   }, [ref]);
+};
+
+/** Live `motionAllowed()` (fine pointer, no reduced motion): follows the same media queries as the engine. */
+export const useMotionOn = (): boolean => {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const sync = () => setOn(motionAllowed());
+    sync();
+    const mqs = ['(pointer: coarse)', '(prefers-reduced-motion: reduce)'].map((q) =>
+      window.matchMedia(q)
+    );
+    mqs.forEach((q) => q.addEventListener('change', sync));
+    return () => mqs.forEach((q) => q.removeEventListener('change', sync));
+  }, []);
+  return on;
 };

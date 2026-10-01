@@ -2,6 +2,7 @@ import {
   countdown,
   countdownText,
   kaliningradNow,
+  monthOfDay,
   monthRange,
   nextCandle,
   serviceLabelKey,
@@ -65,5 +66,13 @@ describe('nextCandle + countdownText (shared by the home page and TodayWidget)',
     const u = { d: 'д', h: 'ч', m: 'мин', s: 'с' };
     expect(countdownText({ d: 1, h: 2, m: 3, s: 4 }, u)).toBe('1 д 02 ч 03 мин 04 с');
     expect(countdownText({ d: 0, h: 5, m: 0, s: 9 }, u)).toBe('05 ч 00 мин 09 с');
+  });
+});
+
+describe('monthOfDay', () => {
+  it('gives the month as it reads next to a day number (Russian genitive)', () => {
+    expect(monthOfDay('2026-10-01', 'ru')).toBe('октября');
+    expect(monthOfDay('2026-03-08', 'ru')).toBe('марта');
+    expect(monthOfDay('2026-10-01', 'en')).toBe('October');
   });
 });

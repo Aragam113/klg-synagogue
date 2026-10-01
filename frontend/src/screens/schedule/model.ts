@@ -91,6 +91,16 @@ export function formatDate(
   );
 }
 
+/** Месяц так, как он читается рядом с числом дня («1 октября», а не «октябрь»). */
+export function monthOfDay(date: string, lang: string): string {
+  const parts = new Intl.DateTimeFormat(LOCALE[lang] ?? lang, {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  }).formatToParts(new Date(`${date}T00:00:00Z`));
+  return parts.find((x) => x.type === 'month')?.value ?? formatDate(date, lang, { month: 'long' });
+}
+
 /** Названия месяцев 1–12 на языке сайта (именительный падеж). */
 export function monthNames(lang: string): string[] {
   const f = new Intl.DateTimeFormat(LOCALE[lang] ?? lang, { month: 'long', timeZone: 'UTC' });

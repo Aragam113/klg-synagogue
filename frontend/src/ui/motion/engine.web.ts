@@ -6,8 +6,9 @@ import { progressOf } from './progress';
 /**
  * Web scroll engine (reference: halalcash). Lenis (lerp .1) + ONE rAF that writes `--p` (0..1, toFixed(4),
  * change threshold 4e-4) into registered elements. IntersectionObserver switches far-away elements off and sets
- * one-shot `data-revealed`. `html[data-motion]` is "on" only for a fine pointer without reduced motion;
- * all CSS choreography is gated by it, so with "off" everything is static and visible.
+ * one-shot `data-revealed`. `html[data-motion]` is "on" only for a fine pointer without reduced motion and gates
+ * the scroll-scrub choreography; `html[data-anim]` is "on" whenever reduced motion is off (touch included) and
+ * gates the cheap ones (Reveal, marquee, hero entrance). With both "off" everything is static and visible.
  */
 interface Entry {
   el: MotionEl;
@@ -60,14 +61,17 @@ const revealAll = () =>
 
 const applyMode = () => {
   const on = motionAllowed();
+  const anim = !reducedMotion();
   document.documentElement.dataset.motion = on ? 'on' : 'off';
+  // Cheap time/reveal animations (marquee, Reveal, hero words) also run on touch; only reduced motion stops them.
+  document.documentElement.dataset.anim = anim ? 'on' : 'off';
   if (on && !lenis)
     lenis = new Lenis({ lerp: 0.1, autoRaf: false, smoothWheel: true, wheelMultiplier: 1 });
   if (!on && lenis) {
     lenis.destroy();
     lenis = null;
   }
-  if (!on) revealAll();
+  if (!anim) revealAll();
 };
 
 export const startEngine = (): void => {
@@ -135,7 +139,7 @@ export const registerReveal = (el: MotionEl): (() => void) => {
   el.dataset.reveal = '';
   // Before startEngine (child effects run before the provider's) the element is picked up by startEngine itself.
   if (!revealIO) return () => undefined;
-  if (document.documentElement.dataset.motion !== 'on') el.dataset.revealed = 'true';
+  if (document.documentElement.dataset.anim !== 'on') el.dataset.revealed = 'true';
   else revealIO.observe(el);
   return () => revealIO?.unobserve(el);
 };

@@ -1,6 +1,6 @@
 import { type ReactNode, useRef, useState } from 'react';
 
-import { useScrollProgress } from './hooks';
+import { useMotionOn, useScrollProgress } from './hooks';
 
 export interface PinnedProps {
   /** One node per chapter; each takes 100svh of scroll and enters/leaves by `--p`. */
@@ -19,7 +19,8 @@ const pad = (n: number) => String(n).padStart(2, '0');
 /**
  * Pinned chapters as in the reference: height 100svh x (chapters + 1), sticky 100svh viewport, per-chapter
  * `--i` and `--local/--in/--out` CSS math, gold progress line scaleX(var(--p)), drum counter.
- * On touch / reduced motion it becomes a normal flow of stacked chapters.
+ * On touch / reduced motion it becomes a horizontal scroll-snap ribbon (`data-ribbon`) with dots under the aside
+ * (reference 390_scroll_03); the active chapter then follows the ribbon, not the page scroll.
  */
 export const Pinned = ({
   chapters,
@@ -31,10 +32,25 @@ export const Pinned = ({
   const ref = useRef<HTMLDivElement>(null);
   const n = chapters.length;
   const [active, setActive] = useState(0);
+  const motion = useMotionOn();
+  const ribbon = useRef<HTMLDivElement>(null);
   useScrollProgress(ref, {
     mode: 'pin',
-    onChange: (p) => setActive(Math.min(n - 1, Math.floor(p * n))),
+    onChange: (p) => {
+      if (motion) setActive(Math.min(n - 1, Math.floor(p * n)));
+    },
   });
+  const onRibbon = () => {
+    const el = ribbon.current;
+    if (!el || !el.clientWidth) return;
+    setActive(Math.max(0, Math.min(n - 1, Math.round(Math.abs(el.scrollLeft) / el.clientWidth))));
+  };
+  const goTo = (i: number) => {
+    const el = ribbon.current;
+    if (!el) return;
+    const rtl = getComputedStyle(el).direction === 'rtl' ? -1 : 1;
+    el.scrollTo({ left: rtl * i * el.clientWidth, behavior: 'smooth' });
+  };
   return (
     <div
       ref={ref}
@@ -65,7 +81,12 @@ export const Pinned = ({
           </div>
         )}
         <div className="pinned__body">
-          <div className="pinned__stage">
+          <div
+            className="pinned__stage"
+            ref={ribbon}
+            data-ribbon={motion ? undefined : ''}
+            onScroll={motion ? undefined : onRibbon}
+          >
             {chapters.map((c, i) => (
               <div
                 key={i}
@@ -78,6 +99,20 @@ export const Pinned = ({
             ))}
           </div>
           {renderAside && <div className="pinned__aside">{renderAside(active)}</div>}
+          {!motion && n > 1 ? (
+            <div className="pinned__dots">
+              {chapters.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="pinned__dot"
+                  aria-label={`${pad(i + 1)} / ${pad(n)}`}
+                  aria-current={i === active}
+                  onClick={() => goTo(i)}
+                />
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

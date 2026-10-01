@@ -22,7 +22,8 @@
     "smoke:payments": "node e2e/payments-smoke.mjs",
     "build:scrub": "node scripts/build-scrub.mjs",
     "smoke:home": "node e2e/home-smoke.mjs",
-    "smoke:admin": "node e2e/admin-smoke.mjs"
+    "smoke:admin": "node e2e/admin-smoke.mjs",
+    "smoke:mobile": "node e2e/mobile-smoke.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/frank-ruhl-libre": "^0.4.1",

@@ -15,8 +15,8 @@
 .cnt-progress { height: 0.5rem; border-radius: var(--r-pill); background: var(--line); overflow: hidden; margin-block: 1rem; }
 .cnt-progress span { display: block; height: 100%; width: var(--fill); background: var(--gold); border-radius: inherit; transform-origin: left center; }
 [dir='rtl'] .cnt-progress span { transform-origin: right center; }
-html[data-motion='on'] .cnt-progress span { transform: scaleX(0); transition: transform 1.2s var(--ease) 0.2s; }
-html[data-motion='on'] [data-revealed] .cnt-progress span { transform: scaleX(1); }
+html[data-anim='on'] .cnt-progress span { transform: scaleX(0); transition: transform 1.2s var(--ease) 0.2s; }
+html[data-anim='on'] [data-revealed] .cnt-progress span { transform: scaleX(1); }
 .cnt-fund__nums { display: grid; gap: 0.5rem; margin: 0; }
 .cnt-fund__nums div { display: flex; justify-content: space-between; gap: 1rem; }
 .cnt-fund__nums dt { color: var(--fg-mute); font-size: 0.857rem; }
@@ -25,7 +25,8 @@ html[data-motion='on'] [data-revealed] .cnt-progress span { transform: scaleX(1)
 .cnt-back { display: inline-block; margin-block-end: 1.714rem; }
 .cnt-meta { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; font-family: var(--f-ui-md); color: var(--fg-mute); margin-block: 1rem 2rem; }
 .cnt-body p { margin-block: 0 1.143rem; }
-.cnt-body a { color: var(--gold); word-break: break-all; }
+.cnt-body a { color: var(--gold); overflow-wrap: anywhere; }
+.cnt-credits a { overflow-wrap: anywhere; }
 .cnt-ladder { display: grid; gap: 0.5rem; padding: 0; list-style: none; margin-block: 1rem; }
 .cnt-ladder li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.714rem 1rem; border: 1px solid var(--line); border-radius: 0.571rem; }
 .cnt-ladder li[data-state='past'] { opacity: 0.45; text-decoration: line-through; }
@@ -81,3 +82,9 @@ html[data-motion='on'] [data-revealed] .cnt-progress span { transform: scaleX(1)
 .lbx__count { font-family: var(--f-ui-md); opacity: 0.75; }
 .cnt-event-hero--solo { grid-template-columns: 1fr; }
 .cnt-post-gallery { margin-block-start: 2.5rem; }
+
+/* task 12: phones get two photo columns instead of one column of huge photos */
+@media (max-width: 599px) {
+  .cnt-photos { columns: 2; column-gap: 0.571rem; }
+  .cnt-photo { margin-block-end: 0.571rem; }
+}

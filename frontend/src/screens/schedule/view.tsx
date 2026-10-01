@@ -18,7 +18,13 @@ import {
 import { CONTACTS } from '@/ui/layout/slots/contacts';
 import { Reveal } from '@/ui/motion';
 
-import { formatDate, type ScheduleMode, type ScheduleViewProps, serviceLabelKey } from './model';
+import {
+  formatDate,
+  monthOfDay,
+  type ScheduleMode,
+  type ScheduleViewProps,
+  serviceLabelKey,
+} from './model';
 import './styles';
 
 const ZMANIM: (keyof Zmanim)[] = [
@@ -89,7 +95,7 @@ const DayCard = ({
     <div className="sch-day__date">
       <span className="sch-day__wd">{formatDate(d.date, lang, { weekday: 'long' })}</span>
       <span className="sch-day__num">{formatDate(d.date, lang, { day: 'numeric' })}</span>
-      <span className="sch-day__month">{formatDate(d.date, lang, { month: 'long' })}</span>
+      <span className="sch-day__month">{monthOfDay(d.date, lang)}</span>
       {d.date === today ? <span className="sch-tag">{t('page.today')}</span> : null}
     </div>
     <div className="sch-day__main">

@@ -201,6 +201,7 @@ export const HomeView = ({
       <SynagogueScrub
         chapters={chapters}
         creditsLabel={t('scene.credits')}
+        credit={t('scene.credit')}
         ariaLabel={t('scene.aria')}
       />
 
@@ -259,7 +260,7 @@ export const HomeView = ({
               </Reveal>
               <Reveal className="home-tile" delay={0.24}>
                 <span className="home-tile__k">{t('today.parasha')}</span>
-                <span className="home-tile__v">{tb.parasha ?? '—'}</span>
+                <span className="home-tile__v">{tb.parasha ?? t('today.holidayReading')}</span>
               </Reveal>
             </div>
           ) : (

@@ -443,3 +443,8 @@ html[data-motion='on'] .sx-timeline::before {
     flex-wrap: wrap;
   }
 }
+
+/* task 12: the credit is its own line under the caption; on touch the map does not swallow page scroll
+   (the Yandex / Google / OSM buttons under it open a real map) */
+.sx-figure__cap .sx-credit { display: block; margin-top: 0.2rem; }
+@media (pointer: coarse) { .sx-map__frame { pointer-events: none; } }

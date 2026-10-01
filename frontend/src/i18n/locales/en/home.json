@@ -14,7 +14,8 @@
     "todayTitle": "A home for the community",
     "todayItalic": "community",
     "aria": "History of the synagogue: from Königsberg to our days",
-    "credits": "Footage:"
+    "credits": "Footage:",
+    "credit": "Footage: 3D model, kldsynagogue.com"
   },
   "threshold": {
     "eyebrow": "Shalom · ברוכים הבאים",
@@ -32,6 +33,7 @@
     "in": "in",
     "passed": "The next time will appear in the schedule",
     "parasha": "Torah portion",
+    "holidayReading": "Holiday reading",
     "all": "Full schedule",
     "unavailable": "The calendar is unavailable right now — see prayer times and candle lighting on the schedule page."
   },

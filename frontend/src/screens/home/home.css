@@ -1,4 +1,5 @@
-/* Home page (task 08). Motion that depends on scroll lives under html[data-motion='on']; off = static. */
+/* Home page (task 08). Scroll-linked motion lives under html[data-motion='on'], cheap entrance/time animations
+   under html[data-anim='on'] (touch too, task 12); both off (reduced motion) = static. */
 .home { overflow-x: clip; }
 .home-center { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1.2rem; position: relative; z-index: 1; }
 .home-head { display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 2.6rem; max-width: 48rem; }
@@ -25,18 +26,18 @@
 .home-hero__actions { display: flex; gap: 1rem; flex-wrap: wrap; }
 .home-cue { position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 0.6rem; font: 0.72rem/1 var(--f-ui-md); letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-mute); }
 .home-cue i { width: 1px; height: 3.4rem; background: var(--line); position: relative; overflow: hidden; }
-html[data-motion='on'] .home-cue i::after { content: ''; position: absolute; left: 0; right: 0; top: -40%; height: 40%; background: linear-gradient(#0000, var(--gold)); animation: home-cue 2.4s cubic-bezier(0.55, 0, 0.55, 1) infinite; }
+html[data-anim='on'] .home-cue i::after { content: ''; position: absolute; left: 0; right: 0; top: -40%; height: 40%; background: linear-gradient(#0000, var(--gold)); animation: home-cue 2.4s cubic-bezier(0.55, 0, 0.55, 1) infinite; }
 @keyframes home-cue { to { top: 100%; } }
-html[data-motion='on'] .home-word__in { transform: translateY(115%); animation: home-word-rise 0.7s var(--ease) both; animation-delay: calc(0.12s + var(--w) * 0.08s); animation-play-state: paused; }
-html[data-motion='on'] .home-hero__lead,
-html[data-motion='on'] .home-hero__actions,
-html[data-motion='on'] .home-hero__eyebrow { animation: home-fade-up 0.6s var(--ease) both; animation-play-state: paused; }
-html[data-motion='on'] .home-hero__lead { animation-delay: 0.62s; }
-html[data-motion='on'] .home-hero__actions { animation-delay: 0.74s; }
-html[data-app-ready][data-motion='on'] .home-word__in,
-html[data-app-ready][data-motion='on'] .home-hero__lead,
-html[data-app-ready][data-motion='on'] .home-hero__actions,
-html[data-app-ready][data-motion='on'] .home-hero__eyebrow { animation-play-state: running; }
+html[data-anim='on'] .home-word__in { transform: translateY(115%); animation: home-word-rise 0.7s var(--ease) both; animation-delay: calc(0.12s + var(--w) * 0.08s); animation-play-state: paused; }
+html[data-anim='on'] .home-hero__lead,
+html[data-anim='on'] .home-hero__actions,
+html[data-anim='on'] .home-hero__eyebrow { animation: home-fade-up 0.6s var(--ease) both; animation-play-state: paused; }
+html[data-anim='on'] .home-hero__lead { animation-delay: 0.62s; }
+html[data-anim='on'] .home-hero__actions { animation-delay: 0.74s; }
+html[data-app-ready][data-anim='on'] .home-word__in,
+html[data-app-ready][data-anim='on'] .home-hero__lead,
+html[data-app-ready][data-anim='on'] .home-hero__actions,
+html[data-app-ready][data-anim='on'] .home-hero__eyebrow { animation-play-state: running; }
 @keyframes home-word-rise { from { transform: translateY(115%); } to { transform: none; } }
 @keyframes home-fade-up { from { opacity: 0; transform: translateY(1.286rem); } to { opacity: 1; transform: none; } }
 
@@ -57,6 +58,7 @@ html[data-motion='on'] .home-threshold__note { opacity: clamp(0, (var(--p) - 0.4
 .home-clock { font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
 
 /* Community (pinned) */
+html:not([data-motion='on']) .home-community { padding: 6.286rem var(--gutter); }
 .home-chapter { display: flex; flex-direction: column; gap: 1rem; align-items: flex-start; max-width: 32rem; }
 .home-chapter__n { font-size: clamp(3.5rem, 7vw, 6rem); }
 /* G08: a large window. Phone/tablet: the full container width. Desktop: the arch takes the right column for the
@@ -85,13 +87,19 @@ html[data-motion='on'] .home-threshold__note { opacity: clamp(0, (var(--p) - 0.4
 .home-ledger__v { font-family: var(--f-display); font-size: clamp(2.6rem, 6vw, 5.2rem); color: var(--gold); line-height: 1; }
 .home-ledger__v small { font-size: 0.4em; }
 .home-ledger__k { font: 0.95rem/1.5 var(--f-ui); color: var(--light-60); max-width: 14rem; }
-html[data-motion='on'] .home-ledger__cell::before { transform: scaleY(0); transition: transform 0.7s var(--ease) calc(var(--i) * 0.12s); }
-html[data-motion='on'] .home-ledger__k { opacity: 0; transform: translateY(0.6rem); transition: opacity 0.5s var(--ease), transform 0.5s var(--ease); transition-delay: calc(0.2s + var(--i) * 0.08s); }
-html[data-motion='on'] [data-revealed='true'] .home-ledger__cell::before { transform: scaleY(1); }
-html[data-motion='on'] [data-revealed='true'] .home-ledger__k { opacity: 1; transform: none; }
+html[data-anim='on'] .home-ledger__cell::before { transform: scaleY(0); transition: transform 0.7s var(--ease) calc(var(--i) * 0.12s); }
+html[data-anim='on'] .home-ledger__k { opacity: 0; transform: translateY(0.6rem); transition: opacity 0.5s var(--ease), transform 0.5s var(--ease); transition-delay: calc(0.2s + var(--i) * 0.08s); }
+html[data-anim='on'] [data-revealed='true'] .home-ledger__cell::before { transform: scaleY(1); }
+html[data-anim='on'] [data-revealed='true'] .home-ledger__k { opacity: 1; transform: none; }
 
 /* Marquee */
 .home-marquee { padding-top: 2.4rem; padding-bottom: 2.4rem; }
+/* phones (reference §7.6): a gold ribbon turned by -3deg, wider than the screen */
+@media (max-width: 767px) {
+  .home-marquee .marquee { --bg: var(--gold); --fg: var(--light); background: var(--gold); border: 0; width: 112vw; margin-inline: -6vw; rotate: -3deg; padding-block: 1.143rem; }
+  .home-marquee .marquee__item--it, .home-marquee .marquee__sep { color: var(--deeper); }
+  .home-marquee .marquee__item { font-size: 1.429rem; }
+}
 
 /* Visitors */
 .home-visit__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.4rem; }
@@ -131,6 +139,7 @@ html[dir='rtl'] .home-arrow { transform: scaleX(-1); }
 }
 
 /* Dawn */
+.home-dawn .rosette--spin { transform-origin: 50% 50%; }
 .home-dawn { min-height: 90svh; display: flex; align-items: center; position: relative; overflow: hidden; }
 .home-dawn__rosette { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--gold); opacity: 0.3; pointer-events: none; z-index: 0; }
 .home-dawn__note { max-width: 34rem; }
@@ -141,9 +150,23 @@ html[data-motion='on'] .home-dawn__note { opacity: clamp(0.15, (var(--p) - 0.25)
   .home-ledger__row { row-gap: 2rem; }
   .home-slider__track { grid-auto-columns: minmax(16rem, 80%); }
 }
+@media (max-width: 1023px) {
+  /* no empty cream band between the quiet fundraisers block and the news */
+  .home-funds--quiet + .home-news { padding-top: 0; }
+  .home-dawn { min-height: 0; }
+  .home-tile { min-height: 0; }
+}
 @media (max-width: 599px) {
-  .home-today__grid, .home-visit__grid { grid-template-columns: minmax(0, 1fr); }
+  .home-visit__grid { grid-template-columns: minmax(0, 1fr); }
+  .home-tile { padding: 1.429rem 1.143rem; }
+  .home-dawn .home-center .btn { white-space: normal; text-align: center; }
   .home-hero__inner { padding: 3rem 0 6rem; }
   .home-ledger__cell { padding-left: 1rem; padding-right: 1rem; }
   .home-empty { padding: 1.4rem; }
 }
+
+/* Touch: the community arch is a picture above the swipe ribbon, not a full-width wall */
+html:not([data-motion='on']) .home-community .home-arch { width: min(100%, 22rem); }
+/* he: the Hebrew greeting under the title would repeat the title itself */
+:root[lang='he'] .home-threshold__he { display: none; }
+@media (max-width: 599px) { .home-threshold { min-height: 0; } }

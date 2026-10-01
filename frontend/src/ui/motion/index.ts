@@ -1,5 +1,5 @@
 export { ScrollProvider } from './scroll-provider';
-export { useScrollProgress, useReveal } from './hooks';
+export { useMotionOn, useScrollProgress, useReveal } from './hooks';
 export { Reveal, type RevealProps } from './reveal';
 export { Pinned, type PinnedProps } from './pinned';
 export { Marquee, type MarqueeItem, type MarqueeProps } from './marquee';

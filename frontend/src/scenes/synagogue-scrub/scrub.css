@@ -18,7 +18,9 @@
 .scrub__chapter .title { color: var(--light); margin: 0 0 .857rem; }
 .scrub__text { color: var(--light-80); font-size: 1.143rem; line-height: 1.55; margin: 0; }
 .scrub__credits { position: absolute; inset-block-start: .857rem; inset-inline-end: var(--gutter); margin: 0; z-index: 3;
-  font-size: .714rem; letter-spacing: .02em; color: var(--light-60); max-width: 26rem; text-align: end; }
+  font-size: max(11px, .714rem); line-height: 1.5; letter-spacing: .02em; color: var(--light-80); background: #15242b8c;
+  padding: .143rem .571rem; border-radius: var(--r-pill); max-width: calc(100% - 2 * var(--gutter));
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 html[data-motion='on'] .scrub--live { height: calc(100svh * (var(--chapters) + 1)); }
 html[data-motion='on'] .scrub--live .scrub__sticky { position: sticky; top: 0; height: 100svh; }
@@ -58,3 +60,11 @@ html[data-motion='on'] .scrub--live .scrub__text { text-shadow: 0 1px .6rem #152
 @media (min-width: 1440px) {
   html[data-motion='on'] .scrub--live .scrub__chapters { inset-inline-start: calc((100vw - var(--container)) / 2); }
 }
+
+/* Touch / reduced motion (task 12): the chapters under the poster are a swipe ribbon with dots */
+.scrub--static .scrub__dots { padding-top: 1rem; --fg-mute: var(--light-60); }
+.scrub--static .scrub__chapters[data-ribbon] { display: flex; gap: 0; padding: 1.429rem 0 4.286rem; overflow-x: auto;
+  scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
+.scrub--static .scrub__chapters[data-ribbon]::-webkit-scrollbar { display: none; }
+.scrub--static .scrub__chapters[data-ribbon] > .scrub__chapter { flex: 0 0 100%; max-width: none; min-width: 0;
+  padding-inline: var(--gutter); scroll-snap-align: start; scroll-snap-stop: always; }
