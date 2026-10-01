@@ -22,7 +22,7 @@ export const HolidayView = ({ state, holiday: h, error, onRetry }: HolidayViewPr
   const { t, lang } = useLang('calendar');
 
   return (
-    <Page title={`${h?.title ?? t('holiday.eyebrow')} — ${t('common:site.name')}`}>
+    <Page title={`${h?.title ?? t('holiday.eyebrow')}`}>
       <Section tone="cream" pattern>
         <Container size="narrow">
           <Link href="/schedule" className="hol-back">

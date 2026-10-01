@@ -35,7 +35,7 @@ export const SearchView = ({
   const l = lang === 'en' || lang === 'he' ? lang : 'ru';
   const sections = staticPages.filter((p) => SECTIONS.includes(p.path));
   return (
-    <Page title={`${t('search.title')}${q ? `: ${q}` : ''} — ${t('common:site.name')}`}>
+    <Page title={`${t('search.title')}${q ? `: ${q}` : ''}`}>
       <Section tone="cream" pattern className="cnt-head">
         <Container size="narrow">
           <Reveal>

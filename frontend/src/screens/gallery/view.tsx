@@ -21,7 +21,7 @@ import type { GalleryViewProps } from './model';
 export const GalleryView = ({ albums, loading, error, onRetry }: GalleryViewProps) => {
   const { t } = useLang('content');
   return (
-    <Page title={`${t('gallery.eyebrow')} — ${t('common:site.name')}`}>
+    <Page title={`${t('gallery.eyebrow')}`}>
       <Section tone="deep" pattern className="cnt-head">
         <GhostHebrew text="תמונות" />
         <Container>

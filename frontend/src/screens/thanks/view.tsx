@@ -20,7 +20,7 @@ export const ThanksView = ({
   const target = p?.fundraiser?.title ?? p?.event?.title ?? (p ? t(`purpose.${p.purpose}`) : '');
   const sub = p?.subscription;
   return (
-    <Page title={`${t('thanks.pageTitle')} — ${t('common:site.name')}`}>
+    <Page title={`${t('thanks.pageTitle')}`}>
       <Section tone="cream" pattern>
         <Container size="narrow">
           {notFound ? (

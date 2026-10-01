@@ -22,7 +22,7 @@ import type { ProgramsViewProps } from './model';
 export const ProgramsView = ({ programs, loading, error, onRetry }: ProgramsViewProps) => {
   const { t } = useLang('content');
   return (
-    <Page title={`${t('programs.title')} — ${t('common:site.name')}`}>
+    <Page title={`${t('programs.title')}`}>
       <Section tone="deep" pattern className="cnt-head">
         <Container>
           <Reveal className="cnt-head__row">

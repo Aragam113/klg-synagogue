@@ -18,7 +18,7 @@ import { Reveal } from '@/ui/motion';
 
 import { type AlbumViewProps, uniqueCredits } from './model';
 
-const Lightbox = ({
+export const Lightbox = ({
   photos,
   index,
   onClose,
@@ -108,7 +108,7 @@ export const AlbumView = ({
   const photos = album?.photos ?? [];
   const credits = uniqueCredits(photos);
   return (
-    <Page title={`${album?.title ?? t('gallery.eyebrow')} — ${t('common:site.name')}`}>
+    <Page title={`${album?.title ?? t('gallery.eyebrow')}`}>
       <Section tone="cream" pattern>
         <Container>
           <Link href="/gallery" className="cnt-back">

@@ -15,6 +15,9 @@
 .home-hero__inner { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1.6rem; max-width: 62rem; margin-inline: auto; position: relative; z-index: 1; padding: 5rem 0 6rem; }
 .home-hero__actions { justify-content: center; }
 .home-hero__eyebrow { display: flex; align-items: center; gap: 0.7rem; color: var(--gold); }
+/* G04: the star sits on the optical centre of the caps line — no eyebrow margin pulling the text up. */
+.home-hero__eyebrow .eyebrow { margin: 0; }
+.home-hero__eyebrow .magen { flex: none; display: block; position: relative; top: -0.1rem; } /* centre of the caps sits above the line-box centre */
 .home-hero__title { margin: 0; }
 .home-word { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.08em; }
 .home-word__in { display: inline-block; }
@@ -56,7 +59,24 @@ html[data-motion='on'] .home-threshold__note { opacity: clamp(0, (var(--p) - 0.4
 /* Community (pinned) */
 .home-chapter { display: flex; flex-direction: column; gap: 1rem; align-items: flex-start; max-width: 32rem; }
 .home-chapter__n { font-size: clamp(3.5rem, 7vw, 6rem); }
-.home-arch { width: min(26rem, 100%); }
+/* G08: a large window. Phone/tablet: the full container width. Desktop: the arch takes the right column for the
+   whole pinned screen (~72% of its height, ~2× the old area); heading + chapters stay in the left column. */
+.home-arch { width: 100%; margin-inline: auto; }
+@media (min-width: 1024px) {
+  .home-arch { width: min(100%, calc(72svh * 0.75)); }
+  html[data-motion='on'] .home-community .pinned__sticky {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-content: center;
+    column-gap: 3.429rem;
+    row-gap: 2.286rem;
+  }
+  html[data-motion='on'] .home-community .pinned__body { display: contents; }
+  html[data-motion='on'] .home-community .pinned__head { grid-column: 1; grid-row: 1; }
+  html[data-motion='on'] .home-community .pinned__stage { grid-column: 1; grid-row: 2; }
+  html[data-motion='on'] .home-community .pinned__aside { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+}
 
 /* Ledger */
 .home-ledger__row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }

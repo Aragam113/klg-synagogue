@@ -1,1 +1,1 @@
-export { Preloader, PRELOADER_KEY } from './preloader';
+export { DRAW_MS, penKeyframes, Preloader, PRELOADER_KEY, starLinePath } from './preloader';

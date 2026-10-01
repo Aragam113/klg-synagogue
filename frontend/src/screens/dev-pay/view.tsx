@@ -17,7 +17,7 @@ export const DevPayView = ({
   const { t, lang } = useLang('payments');
   const target = p?.fundraiser?.title ?? p?.event?.title ?? (p ? t(`purpose.${p.purpose}`) : '');
   return (
-    <Page title={`${t('devPay.pageTitle')} — ${t('common:site.name')}`}>
+    <Page title={`${t('devPay.pageTitle')}`}>
       <Section tone="deep" grain>
         <Container size="narrow">
           {notFound ? <Empty title={t('devPay.notFound')} /> : null}

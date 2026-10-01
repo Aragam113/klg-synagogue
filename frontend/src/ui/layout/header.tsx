@@ -15,9 +15,12 @@ import { useSiteContacts } from './slots/use-site-contacts';
 export const Logo = ({ light }: { light?: boolean }) => {
   const { t } = useLang();
   return (
-    <Link href="/" className={`logo${light ? ' logo--light' : ''}`} ariaLabel={t('site.name')}>
+    <Link href="/" className={`logo${light ? ' logo--light' : ''}`} ariaLabel={t('site.full')}>
       <MagenDavid size="1.9em" strokeWidth={1.3} className="logo__mark" />
-      <span className="logo__text">{t('site.name')}</span>
+      <span className="logo__text">
+        <span className="logo__name">{t('site.name')}</span>
+        <span className="logo__city">{t('site.city')}</span>
+      </span>
     </Link>
   );
 };

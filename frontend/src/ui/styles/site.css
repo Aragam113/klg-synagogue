@@ -537,8 +537,11 @@ html:not([data-motion='on']) .marquee { overflow-x: auto; scrollbar-width: none;
 }
 .logo { display: inline-flex; align-items: center; gap: 0.643rem; color: var(--ink); text-decoration: none; min-width: 0; }
 .logo__mark { color: var(--gold); }
-.logo__text { font-family: var(--f-display-sb); font-size: 1.286rem; line-height: 1.05; max-width: 9.5em; }
-@media (min-width: 1024px) { .logo__text { font-size: 1.429rem; max-width: none; white-space: nowrap; } }
+.logo__text { display: flex; flex-direction: column; gap: 0.214rem; white-space: nowrap; }
+.logo__name { font-family: var(--f-display-sb); font-size: 1.286rem; line-height: 1; }
+.logo__city { font-family: var(--f-ui-md); font-size: 0.643rem; line-height: 1; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.62; }
+@media (min-width: 1024px) { .logo__name { font-size: 1.429rem; } .logo__city { font-size: 0.714rem; } }
+html[dir='rtl'] .logo__city { letter-spacing: 0.04em; font-size: 0.75rem; }
 .logo--light { color: var(--light); }
 .hdr__nav { display: none; }
 @media (min-width: 1024px) { .hdr__nav { display: flex; gap: 2.286rem; align-items: center; } }

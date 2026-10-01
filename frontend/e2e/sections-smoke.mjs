@@ -122,7 +122,13 @@ try {
           ghost: !!document.querySelector('.sx-hero .ghost-he'),
           tel: [...document.querySelectorAll('.hdr a[href^="tel:"]')].map((a) => a.getAttribute('href')),
           motion: document.documentElement.dataset.motion,
+          title: document.title,
+          old: /Синагога Калининграда|Kaliningrad Synagogue/.test(document.querySelector('.hdr')?.textContent ?? ''),
         }));
+        // G06 (task 10): "<page> — Новая синагога, Калининград"; the header never shows the old name.
+        const FULL = { ru: 'Новая синагога, Калининград', en: 'New Synagogue, Kaliningrad', he: 'בית הכנסת החדש, קלינינגרד' }[lang];
+        check(top.title.endsWith(` — ${FULL}`), `${tag}: <title> ends with the full site name`, top.title);
+        check(!top.old, `${tag}: no old site name in the header`);
         check(top.dir === (lang === 'he' ? 'rtl' : 'ltr'), `${tag}: dir`, top.dir);
         check(top.lang.startsWith(lang), `${tag}: html lang`, top.lang);
         check(top.h1.length > 0, `${tag}: h1`);

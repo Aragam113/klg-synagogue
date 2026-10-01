@@ -1,6 +1,8 @@
 {
   "site": {
-    "name": "Kaliningrad Synagogue",
+    "name": "New Synagogue",
+    "city": "Kaliningrad",
+    "full": "$t(site.name), $t(site.city)",
     "tagline": "The Jewish community of Kaliningrad"
   },
   "nav": {
@@ -57,7 +59,7 @@
     "social": "Follow us",
     "privacy": "Personal data policy",
     "consent": "Consent to data processing",
-    "rights": "© {{year}} Kaliningrad Synagogue"
+    "rights": "© {{year}} New Synagogue, Kaliningrad"
   },
   "cookie": {
     "text": "This site uses cookies and local storage to remember your language and settings.",
@@ -104,7 +106,7 @@
   },
   "home": {
     "eyebrow": "Welcome",
-    "title": "Kaliningrad Synagogue",
+    "title": "New Synagogue",
     "italic": "Synagogue",
     "lead": "The site is being built: sections appear as they are ready."
   }

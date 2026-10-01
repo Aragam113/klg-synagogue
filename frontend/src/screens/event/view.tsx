@@ -35,7 +35,7 @@ export const EventView = ({ event: e, notFound, error, onRetry, onRegister }: Ev
     onRegister();
   };
   return (
-    <Page title={`${e?.title ?? t('events.eyebrow')} — ${t('common:site.name')}`}>
+    <Page title={`${e?.title ?? t('events.eyebrow')}`}>
       <Section tone="ink" grain className="cnt-afisha">
         <HexPattern opacity={0.05} />
         <Container>

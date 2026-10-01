@@ -24,7 +24,7 @@ export const useSections = () => {
 export const SectionPage = ({ titleKey, children }: { titleKey: string; children: ReactNode }) => {
   const { t } = useLang('sections');
   return (
-    <Page title={`${t(`page.${titleKey}`)} — ${t('common:site.name')}`} className="sx">
+    <Page title={`${t(`page.${titleKey}`)}`} className="sx">
       {children}
     </Page>
   );

@@ -23,7 +23,7 @@ import { type DepartmentsViewProps, telHref } from './model';
 export const DepartmentsView = ({ departments, loading, error, onRetry }: DepartmentsViewProps) => {
   const { t } = useLang('content');
   return (
-    <Page title={`${t('departments.title')} — ${t('common:site.name')}`}>
+    <Page title={`${t('departments.title')}`}>
       <Section tone="cream" pattern className="cnt-head">
         <Container>
           <Reveal className="cnt-head__row">

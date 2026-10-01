@@ -1,12 +1,15 @@
 import Head from 'expo-router/head';
 import { type ReactNode, useRef } from 'react';
 
+import { useLang } from '@/i18n/use-lang';
 import { HexPattern } from '@/ui/judaica/hex-pattern';
 import { useScrollProgress } from '@/ui/motion/hooks';
 
+import { pageTitle } from './page-title';
+
 export type Tone = 'cream' | 'canvas' | 'deep' | 'deeper' | 'ink';
 
-/** Page wrapper: sets <title> ("<title> - site name" is up to the caller). */
+/** Page wrapper: sets <title> as "<title> — <full site name>" (common:site.full); no title → just the site name. */
 export const Page = ({
   title,
   children,
@@ -15,16 +18,17 @@ export const Page = ({
   title?: string;
   children: ReactNode;
   className?: string;
-}) => (
-  <div className={`page ${className}`}>
-    {title ? (
+}) => {
+  const { t } = useLang();
+  return (
+    <div className={`page ${className}`}>
       <Head>
-        <title>{title}</title>
+        <title>{pageTitle(title, t('common:site.full'))}</title>
       </Head>
-    ) : null}
-    {children}
-  </div>
-);
+      {children}
+    </div>
+  );
+};
 
 export interface SectionProps {
   /** Background tone: cream (beige) | canvas (light beige) | deep (blue-green) | deeper | ink (almost black). */

@@ -207,7 +207,7 @@ export const ScheduleView = (m: ScheduleViewProps) => {
   const views: ScheduleMode[] = ['list', 'table'];
 
   return (
-    <Page title={`${t('page.title')} — ${t('common:site.name')}`}>
+    <Page title={`${t('page.title')}`}>
       <Section tone="cream" pattern className="sch-hero">
         <Container>
           <Reveal>

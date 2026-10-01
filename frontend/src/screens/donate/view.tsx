@@ -21,7 +21,7 @@ export const DonateView = ({
 }: DonateViewProps) => {
   const { t } = useLang('payments');
   return (
-    <Page title={`${t('donate.pageTitle')} — ${t('common:site.name')}`}>
+    <Page title={`${t('donate.pageTitle')}`}>
       <Section tone="cream" pattern className="don-hero">
         <div className="don-hero__rosette">
           <Rosette size="40rem" spin={120} />

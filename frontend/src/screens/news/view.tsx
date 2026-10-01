@@ -17,7 +17,7 @@ export const NewsView = ({
 }: NewsViewProps) => {
   const { t } = useLang('content');
   return (
-    <Page title={`${t('news.title')} — ${t('common:site.name')}`}>
+    <Page title={`${t('news.title')}`}>
       <Section tone="cream" pattern className="cnt-head">
         <Container>
           <Reveal>

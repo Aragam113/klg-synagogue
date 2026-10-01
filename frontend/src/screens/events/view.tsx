@@ -35,7 +35,7 @@ export const EventsView = ({ upcoming, past }: EventsViewProps) => {
   const { t } = useLang('content');
   const noUpcoming = !upcoming.loading && !upcoming.error && upcoming.items.length === 0;
   return (
-    <Page title={`${t('events.eyebrow')} — ${t('common:site.name')}`}>
+    <Page title={`${t('events.eyebrow')}`}>
       <Section tone="ink" grain className="cnt-afisha">
         <HexPattern opacity={0.05} />
         <Container>

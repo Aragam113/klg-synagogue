@@ -77,7 +77,7 @@ const open = async (path, width, { reduced = false } = {}) => {
   if (reduced) await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   await page.goto(`${WEB}${path}`, { waitUntil: 'networkidle2', timeout: 90000 });
   await page.waitForSelector('[data-home="root"]', { timeout: 60000 });
-  await page.waitForFunction(() => !document.querySelector('[data-preloader]'), { timeout: 5000 });
+  await page.waitForFunction(() => !document.querySelector('[data-preloader]'), { timeout: 8000 });
   return { page, errors };
 };
 
@@ -94,6 +94,36 @@ const sceneY = (page, p) =>
     return Math.round(top + q * (el.offsetHeight - window.innerHeight));
   }, p);
 const frame = (page) => page.$eval('.scrub canvas', (c) => c.dataset.frame ?? null).catch(() => null);
+
+/**
+ * G04: the small star next to the hero eyebrow sits on the optical centre of the caps line. Returns
+ * {dy: star centre − cap-height centre (px), side: 'start'|'end'} — the cap centre comes from the font metrics
+ * (canvas measureText of the eyebrow font) and the baseline of the text's line box.
+ */
+const eyebrowAlign = (page) =>
+  page.evaluate(() => {
+    const box = document.querySelector('.home-hero__eyebrow');
+    const svg = box.querySelector('svg');
+    const eb = box.querySelector('.eyebrow');
+    const range = document.createRange();
+    range.selectNodeContents(eb);
+    const tr = range.getBoundingClientRect();
+    const cs = getComputedStyle(eb);
+    const ctx = document.createElement('canvas').getContext('2d');
+    ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const m = ctx.measureText(eb.textContent.toUpperCase());
+    const cap = ctx.measureText('H').actualBoundingBoxAscent;
+    const baseline = tr.top + (tr.height - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2 + m.fontBoundingBoxAscent;
+    const sr = svg.getBoundingClientRect();
+    const rtl = getComputedStyle(box).direction === 'rtl';
+    const before = rtl ? sr.left >= tr.right - 1 : sr.right <= tr.left + 1;
+    return { dy: +(sr.top + sr.height / 2 - (baseline - cap / 2)).toFixed(2), before };
+  });
+const checkEyebrow = async (page, label) => {
+  const a = await eyebrowAlign(page);
+  check(Math.abs(a.dy) <= 1.5, `${label}: hero star centred on the eyebrow caps`, `dy=${a.dy}px`);
+  check(a.before, `${label}: hero star before the eyebrow text (mirrored in RTL)`);
+};
 
 const walk = async (page, prefix) => {
   const H = await page.evaluate(() => document.documentElement.scrollHeight);
@@ -117,16 +147,29 @@ try {
     await page.goto(`${WEB}/?lang=ru`, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await page.waitForSelector('[data-preloader] path', { timeout: 60000 });
     const t0 = Date.now();
-    for (const [name, at] of [['start', 250], ['middle', 800], ['star', 1350], ['exit', 1850]]) {
+    // G09: quick leads, slow star (~0.4–2.6 s of the 3 s stroke at 1440×900).
+    for (const [name, at] of [['start', 250], ['middle', 900], ['star', 1500], ['star_late', 2200], ['exit', 2850]]) {
       await sleep(Math.max(0, at - (Date.now() - t0)));
       await page.screenshot({ path: join(SHOTS, `home_loader_${name}.png`) });
     }
-    await page.waitForFunction(() => !document.querySelector('[data-preloader]'), { timeout: 4000 });
-    check(Date.now() - t0 < 3200, 'preloader: gone within ~2.5 s + .6 s leave', `${Date.now() - t0} ms`);
+    await page.waitForFunction(() => !document.querySelector('[data-preloader]'), { timeout: 6000 });
+    check(Date.now() - t0 < 4400, 'preloader: gone within ~3.2 s + .6 s leave', `${Date.now() - t0} ms`);
     check(await page.evaluate(() => document.documentElement.dataset.appReady === 'true'), 'preloader: html[data-app-ready]');
+    // G05: the preloader shows on every load — a reload in the same tab (same session) shows it again.
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
+    check(
+      await page.waitForSelector('[data-preloader] path', { timeout: 30000 }).then(() => true, () => false),
+      'preloader: shown again after reload in the same session'
+    );
+    await page.waitForFunction(() => !document.querySelector('[data-preloader]'), { timeout: 6000 }).catch(() => undefined);
+    // G06: brand «Новая синагога» + «Калининград» in the logo, full name in <title>.
+    check((await page.title()) === 'Новая синагога, Калининград', 'home <title> = full site name', await page.title());
+    const logo = await page.$eval('.hdr .logo', (a) => [a.querySelector('.logo__name')?.textContent, a.querySelector('.logo__city')?.textContent]).catch(() => []);
+    check(logo[0] === 'Новая синагога' && logo[1] === 'Калининград', 'header logo: name + city line', logo.join(' / '));
+    check(!(await page.evaluate(() => document.body.innerText.includes('Синагога Калининграда'))), 'home: no old name «Синагога Калининграда»');
     await page.close();
   }
-  // 390 with touch: the preloader is shown on phones too (only reduced motion / repeat visit skip it).
+  // 390 with touch: the preloader is shown on phones too (only reduced motion skips it).
   {
     const page = await browser.newPage();
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
@@ -135,10 +178,10 @@ try {
     await page.waitForSelector('[data-preloader] path', { timeout: 60000 });
     const t0 = Date.now();
     check(await page.evaluate(() => matchMedia('(pointer: coarse)').matches), '390 touch: coarse pointer emulated');
-    await sleep(1300);
+    await sleep(1500);
     await page.screenshot({ path: join(SHOTS, 'home_loader_390_star.png') });
-    await page.waitForFunction(() => !document.querySelector('[data-preloader]'), { timeout: 4000 });
-    check(Date.now() - t0 < 3200, '390 touch: preloader shown and gone', `${Date.now() - t0} ms`);
+    await page.waitForFunction(() => !document.querySelector('[data-preloader]'), { timeout: 6000 });
+    check(Date.now() - t0 < 4400, '390 touch: preloader shown and gone', `${Date.now() - t0} ms`);
     check(await page.evaluate(() => document.documentElement.dataset.appReady === 'true'), '390 touch: html[data-app-ready]');
     await page.close();
   }
@@ -147,6 +190,7 @@ try {
     const { page, errors } = await open('/?lang=ru', 1440);
     await sleep(1800); // hero words rise + lead/buttons fade in
     await page.screenshot({ path: join(SHOTS, 'home_1440_top.png') });
+    await checkEyebrow(page, '1440 ru');
     check(await page.evaluate(() => document.documentElement.dataset.appReady === 'true'), '1440: preloader done, html[data-app-ready]');
     for (const s of SECTIONS) check(!!(await page.$(s)), `1440: section ${s}`);
     check(!!(await page.$('.scrub--live canvas[data-frames]')), '1440: live scene canvas');
@@ -177,6 +221,8 @@ try {
   {
     const { page, errors } = await open('/?lang=ru', 390);
     check(!!(await page.$('.scrub--static')), '390: scene is static on touch');
+    await sleep(1500);
+    await checkEyebrow(page, '390 ru');
     await walk(page, 'home_390');
     check(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), '390: no horizontal scroll');
     check(errors.length === 0, '390: no console errors', errors.slice(0, 3).join(' | '));
@@ -186,6 +232,7 @@ try {
   {
     const { page, errors } = await open('/?lang=en', 1440, { reduced: true });
     check(!!(await page.$('.scrub--static .scrub__poster')), 'reduced: static poster frame');
+    await checkEyebrow(page, '1440 en');
     check(await page.evaluate(() => document.documentElement.dataset.motion !== 'on'), 'reduced: motion off');
     await page.screenshot({ path: join(SHOTS, 'home_1440_reduced.png') });
     check(errors.length === 0, 'reduced: no console errors', errors.slice(0, 3).join(' | '));
@@ -195,6 +242,8 @@ try {
   {
     const { page, errors } = await open('/?lang=he', 1440);
     check(await page.evaluate(() => document.documentElement.dir === 'rtl'), 'he: html dir=rtl');
+    await sleep(1500);
+    await checkEyebrow(page, '1440 he');
     await scrollTo(page, await sceneY(page, 0.5));
     await sleep(1200);
     check((await frame(page)) !== null, 'he: scene draws a frame');
