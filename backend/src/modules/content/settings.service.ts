@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LangCode, LocalizedString, localize } from '@common/localization';
 import { SiteSettingEntity } from './entities';
 import { UpdateSettingsDto } from './dto/content.dto';
+import { PaymentsService } from '@modules/payments/payments.service';
 
 export interface SiteSettings {
   supporters_offset: number;
@@ -29,7 +30,9 @@ const KEYS = Object.keys(SETTINGS_DEFAULTS) as (keyof SiteSettings)[];
 export class SettingsService {
   constructor(
     @InjectRepository(SiteSettingEntity)
-    private readonly repo: Repository<SiteSettingEntity>
+    private readonly repo: Repository<SiteSettingEntity>,
+    @Inject(forwardRef(() => PaymentsService))
+    private readonly payments: PaymentsService
   ) {}
 
   /** Все настройки; незаданные — значения по умолчанию. */
@@ -54,10 +57,7 @@ export class SettingsService {
 
   /** «Общину поддержали N раз»: оплаченные пожертвования + смещение из админки. */
   async supportersCount(offset: number): Promise<number> {
-    const [{ n }]: { n: string }[] = await this.repo.query(
-      `SELECT count(*) AS n FROM payments WHERE purpose = 'donation' AND status = 'paid'`
-    );
-    return Number(n) + offset;
+    return (await this.payments.countPaidDonations()) + offset;
   }
 
   /** GET /settings/public — только то, что можно показывать посетителю. */

@@ -1,4 +1,4 @@
-import { Module, NotFoundException } from '@nestjs/common';
+import { Module, NotFoundException, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   AlbumEntity,
@@ -18,6 +18,7 @@ import {
 import { ContentService } from './content.service';
 import { SettingsService } from './settings.service';
 import { UploadsController } from './uploads/uploads.controller';
+import { PaymentsModule } from '@modules/payments/payments.module';
 import {
   CreateAlbumDto,
   CreateDepartmentDto,
@@ -133,6 +134,8 @@ const adminControllers = [
  */
 @Module({
   imports: [
+    // Счётчик «Общину поддержали N раз» — PaymentsService.countPaidDonations().
+    forwardRef(() => PaymentsModule),
     TypeOrmModule.forFeature([
       NewsEntity,
       EventEntity,

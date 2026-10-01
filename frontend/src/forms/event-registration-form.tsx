@@ -19,13 +19,20 @@ export interface EventRegistrationFormProps {
   eventId?: string;
   /** Paid event → «Заявка принята» shows task 07's payment slot `{purpose:'event', registrationId, eventId, seats}`. */
   isPaid?: boolean;
+  /** Today's ticket price — the payment slot shows «seats × price» before checkout. */
+  priceRub?: number | null;
 }
 
 /**
  * Registration for an event (story 49): name, phone, e-mail, seats, consent.
  * After success — «Вы зарегистрированы» with the number; for a paid event — the payment slot below it.
  */
-export const EventRegistrationForm = ({ slug, eventId, isPaid }: EventRegistrationFormProps) => {
+export const EventRegistrationForm = ({
+  slug,
+  eventId,
+  isPaid,
+  priceRub,
+}: EventRegistrationFormProps) => {
   const { t } = useLang('forms');
   const form = useSubmitForm<RegistrationValues>({
     path: `/events/${slug}/register`,
@@ -46,7 +53,12 @@ export const EventRegistrationForm = ({ slug, eventId, isPaid }: EventRegistrati
           registered
           payment={
             paid
-              ? { purpose: 'event', eventId: result.eventId ?? eventId, seats: result.seats }
+              ? {
+                  purpose: 'event',
+                  eventId: result.eventId ?? eventId,
+                  seats: result.seats,
+                  priceRub,
+                }
               : undefined
           }
           onAgain={form.reset}
