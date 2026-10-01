@@ -12,3 +12,4 @@ coverage/
 # загруженные через админку файлы
 /uploads/
 /backend/uploads/
+.autopilot/ref/kld-video/*.mp4
