@@ -94,12 +94,7 @@ html[data-anim='on'] [data-revealed='true'] .home-ledger__k { opacity: 1; transf
 
 /* Marquee */
 .home-marquee { padding-top: 2.4rem; padding-bottom: 2.4rem; }
-/* phones (reference §7.6): a gold ribbon turned by -3deg, wider than the screen */
-@media (max-width: 767px) {
-  .home-marquee .marquee { --bg: var(--gold); --fg: var(--light); background: var(--gold); border: 0; width: 112vw; margin-inline: -6vw; rotate: -3deg; padding-block: 1.143rem; }
-  .home-marquee .marquee__item--it, .home-marquee .marquee__sep { color: var(--deeper); }
-  .home-marquee .marquee__item { font-size: 1.429rem; }
-}
+/* G11: same flat ribbon on every width (no gold tilted band on phones); it only moves there too (data-anim) */
 
 /* Visitors */
 .home-visit__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.4rem; }

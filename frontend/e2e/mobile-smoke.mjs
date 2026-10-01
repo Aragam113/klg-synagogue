@@ -218,6 +218,13 @@ try {
     await sleep(1200);
     const b = await ty();
     check(Math.abs(a - b) > 3, '390: marquee moves', `${a} → ${b}`);
+    // G11: the phone marquee looks like the desktop one — flat, on the section background, not a gold tilted band
+    const look = await page.evaluate(() => {
+      const m = document.querySelector('.home-marquee .marquee');
+      const cs = getComputedStyle(m);
+      return { rotate: cs.rotate, bg: cs.backgroundColor, w: Math.round(m.getBoundingClientRect().width), vw: innerWidth };
+    });
+    check(look.rotate === 'none' && look.bg === 'rgba(0, 0, 0, 0)' && look.w <= look.vw, '390: marquee is flat, no gold band', JSON.stringify(look));
 
     await scrollTo(page, 0);
     await sleep(300);
