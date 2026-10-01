@@ -2,20 +2,16 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useLang } from '@/i18n/use-lang';
-import { countdown, formatDate, kaliningradNow } from '@/screens/schedule/model';
+import {
+  countdownText,
+  formatDate,
+  kaliningradNow,
+  nextCandle,
+  useNow,
+} from '@/screens/schedule/model';
 import '@/screens/schedule/styles';
 import { useGetTodayQuery } from '@/store/api/calendar';
 import { Link } from '@/ui/kit';
-
-/** Ticks every second (live clock + countdown). */
-const useNow = () => {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  return now;
-};
 
 /**
  * Host for the bar variant: its own block right after <header class="hdr"> (header layout stays untouched).
@@ -52,17 +48,14 @@ export const TodayWidget = ({ variant }: { variant: 'header' | 'menu' | 'bar' })
   if (!data) return null;
 
   const kld = kaliningradNow(now);
-  const next = data.nextCandles.find((c) => countdown(c.at, now));
-  const left = next ? countdown(next.at, now) : null;
-  const cd = left
-    ? [
-        left.d ? `${left.d} ${t('widget.d')}` : '',
-        `${left.h} ${t('widget.h')}`,
-        `${String(left.m).padStart(2, '0')} ${t('widget.m')}`,
-        `${String(left.s).padStart(2, '0')} ${t('widget.s')}`,
-      ]
-        .filter(Boolean)
-        .join(' ')
+  const next = nextCandle(data.nextCandles, now);
+  const cd = next
+    ? countdownText(next.left, {
+        d: t('widget.d'),
+        h: t('widget.h'),
+        m: t('widget.m'),
+        s: t('widget.s'),
+      })
     : null;
 
   const body = (

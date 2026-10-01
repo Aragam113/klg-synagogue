@@ -4,4 +4,11 @@ export { Reveal, type RevealProps } from './reveal';
 export { Pinned, type PinnedProps } from './pinned';
 export { Marquee, type MarqueeItem, type MarqueeProps } from './marquee';
 export { HandStroke, STROKE_STRIKE, STROKE_UNDERLINE, type HandStrokeProps } from './hand-stroke';
-export { lockScroll, motionAllowed, scrollToTop, type MotionEl, type ProgressMode } from './engine';
+export {
+  lockScroll,
+  motionAllowed,
+  reducedMotion,
+  scrollToTop,
+  type MotionEl,
+  type ProgressMode,
+} from './engine';

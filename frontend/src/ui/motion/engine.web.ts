@@ -27,10 +27,13 @@ const mqs: MediaQueryList[] = [];
 
 export { progressOf } from './progress';
 
+/** The visitor asked the OS for reduced motion (one-off animations such as the preloader check only this). */
+export const reducedMotion = (): boolean =>
+  typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** Scroll-driven motion: fine pointer and no reduced motion. */
 export const motionAllowed = (): boolean =>
-  typeof window !== 'undefined' &&
-  !window.matchMedia('(pointer: coarse)').matches &&
-  !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  !reducedMotion() && !window.matchMedia('(pointer: coarse)').matches;
 
 const write = (e: Entry, vh: number) => {
   const p = progressOf(e.el.getBoundingClientRect(), vh, e.mode);

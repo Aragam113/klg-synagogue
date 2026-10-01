@@ -13,3 +13,4 @@ coverage/
 /uploads/
 /backend/uploads/
 .autopilot/ref/kld-video/*.mp4
+frontend/e2e/shots/

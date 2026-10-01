@@ -8,6 +8,7 @@ export interface RegisterOptions {
   onChange?: (p: number) => void;
 }
 export { progressOf } from './progress';
+export const reducedMotion = (): boolean => true;
 export const motionAllowed = (): boolean => false;
 export const startEngine = (): void => undefined;
 export const stopEngine = (): void => undefined;
