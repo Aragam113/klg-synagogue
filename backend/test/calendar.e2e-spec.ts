@@ -153,4 +153,26 @@ describe('Календарь и расписание (e2e)', () => {
     );
     expect(after.body.data[0].services.shacharit).toBe('08:30');
   });
+
+  // Белые ночи: с середины мая до конца июля алот а-шахар (16.1°) не наступает —
+  // раньше hhmm(Invalid Date) ронял весь диапазон в 500.
+  it('GET /calendar/days: 01.05–31.08.2027 окнами по 62 дня — 200, ненаступивший зман = null', async () => {
+    const windows: [string, string][] = [
+      ['2027-05-01', '2027-07-01'],
+      ['2027-07-02', '2027-08-31'],
+    ];
+    const days: { date: string; zmanim: Record<string, string | null> }[] = [];
+    for (const [from, to] of windows) {
+      const res = await http
+        .get(`/api/v1/calendar/days?from=${from}&to=${to}&lang=ru`)
+        .expect(200);
+      days.push(...res.body.data);
+    }
+    expect(days).toHaveLength(123);
+    expect(days[0].date).toBe('2027-05-01');
+    expect(days[122].date).toBe('2027-08-31');
+    const solstice = days.find((d) => d.date === '2027-06-21')!;
+    expect(solstice.zmanim.alot).toBeNull();
+    expect(solstice.zmanim.tzet).toMatch(/^\d{2}:\d{2}$/);
+  });
 });

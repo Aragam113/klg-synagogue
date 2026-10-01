@@ -24,6 +24,7 @@ import {
   CANDLE_LIGHTING_MINUTES,
   DEFAULT_RANGE_DAYS,
   HAVDALAH_DEGREES,
+  HAVDALAH_FALLBACK_MINUTES,
   MAX_RANGE_DAYS,
   SYNAGOGUE_LOCATION,
 } from './calendar.config';
@@ -46,15 +47,16 @@ export interface DayHoliday {
   yomTov: boolean;
 }
 
+/** 'HH:MM' по Калининграду; null — в этот день зман не наступает (белые ночи). */
 export interface Zmanim8 {
-  alot: string;
-  talit: string;
-  sunrise: string;
-  shma: string;
-  tfila: string;
-  chatzot: string;
-  shkia: string;
-  tzet: string;
+  alot: string | null;
+  talit: string | null;
+  sunrise: string | null;
+  shma: string | null;
+  tfila: string | null;
+  chatzot: string | null;
+  shkia: string | null;
+  tzet: string | null;
 }
 
 export interface Day {
@@ -198,6 +200,30 @@ function isHolidayEvent(ev: HEvent): boolean {
 function eventTime(ev: HEvent): Date | null {
   const t = (ev as HEvent & { eventTime?: Date }).eventTime;
   return t instanceof Date ? t : null;
+}
+
+function validDate(d: Date | null | undefined): Date | null {
+  return d instanceof Date && !Number.isNaN(d.getTime()) ? d : null;
+}
+
+/** 'HH:MM' или null, если hebcal вернул Invalid Date (солнце не дошло до угла). */
+function hhmmOrNull(d: Date | null | undefined): string | null {
+  const v = validDate(d);
+  return v ? hhmm(v) : null;
+}
+
+/**
+ * Выход звёзд для исхода Шаббата/праздника: солнце на HAVDALAH_DEGREES,
+ * а если в эту ночь угол не достигается — закат + HAVDALAH_FALLBACK_MINUTES
+ * (обоснование в calendar.config.ts). null — нет и заката (полярный день).
+ */
+export function nightfall(z: Zmanim): Date | null {
+  const tzeit = validDate(z.tzeit(HAVDALAH_DEGREES));
+  if (tzeit) return tzeit;
+  const sunset = validDate(z.shkiah());
+  return sunset
+    ? new Date(sunset.getTime() + HAVDALAH_FALLBACK_MINUTES * 60_000)
+    : null;
 }
 
 function moment(at: Date | null): Moment | null {
@@ -385,7 +411,8 @@ export class CalendarService {
       (await this.listOverrides(from, to)).map((o) => [o.date, o] as const)
     );
     const byDate = new Map<string, HEvent[]>();
-    for (const ev of hebcalEvents(from, to)) {
+    // +1 день: нужен, чтобы понять, кончается ли сегодня Шаббат/праздник.
+    for (const ev of hebcalEvents(from, addDays(to, 1))) {
       const key = fromLocal(ev.getDate().greg());
       byDate.set(key, [...(byDate.get(key) ?? []), ev]);
     }
@@ -439,6 +466,17 @@ export class CalendarService {
         : parasha;
 
       const z = new Zmanim(location, local, false);
+      const closed = weekday === 6 || holidays.some((h) => h.yomTov);
+      // hebcal молча выкидывает события «на выход звёзд», если солнце не дошло
+      // до угла: исход (и свечи на исходе Шаббата перед йом-товом) — по nightfall.
+      if (closed && !havdalahAt && !candleAt) {
+        const next = addDays(date, 1);
+        const nextClosed =
+          toLocal(next).getDay() === 6 ||
+          (byDate.get(next) ?? []).some(isYomTov);
+        if (nextClosed) candleAt = nightfall(z);
+        else havdalahAt = nightfall(z);
+      }
       out.push({
         candleAt,
         havdalahAt,
@@ -452,17 +490,17 @@ export class CalendarService {
           parasha,
           holidays,
           zmanim: {
-            alot: hhmm(z.alotHaShachar()),
-            talit: hhmm(z.misheyakir()),
-            sunrise: hhmm(z.sunrise()),
-            shma: hhmm(z.sofZmanShma()),
-            tfila: hhmm(z.sofZmanTfilla()),
-            chatzot: hhmm(z.chatzot()),
-            shkia: hhmm(z.shkiah()),
-            tzet: hhmm(z.tzeit(HAVDALAH_DEGREES)),
+            alot: hhmmOrNull(z.alotHaShachar()),
+            talit: hhmmOrNull(z.misheyakir()),
+            sunrise: hhmmOrNull(z.sunrise()),
+            shma: hhmmOrNull(z.sofZmanShma()),
+            tfila: hhmmOrNull(z.sofZmanTfilla()),
+            chatzot: hhmmOrNull(z.chatzot()),
+            shkia: hhmmOrNull(z.shkiah()),
+            tzet: hhmmOrNull(nightfall(z)),
           },
           note: overrideNote || autoNote || null,
-          closed: weekday === 6 || holidays.some((h) => h.yomTov),
+          closed,
         },
       });
     }

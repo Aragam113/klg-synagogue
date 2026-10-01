@@ -1,5 +1,13 @@
-import { CalendarService } from './calendar.service';
+import { Location, Zmanim } from '@hebcal/core';
+import { CalendarService, nightfall } from './calendar.service';
+import { HAVDALAH_FALLBACK_MINUTES } from './calendar.config';
 import type { ServiceTimes } from './entities';
+
+function minutesApart(a: string | null, b: string): number {
+  if (!a) return Infinity;
+  const m = (t: string) => +t.slice(0, 2) * 60 + +t.slice(3, 5);
+  return Math.abs(m(a) - m(b));
+}
 
 const EMPTY: ServiceTimes = { shacharit: null, mincha: null, maariv: null };
 
@@ -124,5 +132,36 @@ describe('CalendarService — Калининград', () => {
     });
     expect(fri.note).toBe('Пост');
     expect(sat.services).toEqual(shabbat);
+  });
+
+  /*
+   * Белые ночи: на 54.7° солнце летом не опускается на 16.1° (алот а-шахар),
+   * но 8.5° достигает всегда (max погружение 90 − 54.7 − 23.44 ≈ 11.9°).
+   * hebcal.com /shabbat … gy=2027&gm=6&gd=18 → «Candle lighting: 8:59pm» 2027-06-18,
+   *   «Havdalah: 10:51pm» 2027-06-19 (UTC+2).
+   */
+  it('19.06.2027 (белые ночи): алот null, свечи 20:59, исход 22:51', async () => {
+    const [fri, sat] = await makeService().getDays(
+      '2027-06-18',
+      '2027-06-19',
+      'ru'
+    );
+    // hebcal.com (core 6.x) и закреплённый 5.10.1 расходятся в округлении на минуту.
+    expect(minutesApart(fri.candleLighting, '20:59')).toBeLessThanOrEqual(1);
+    expect(minutesApart(sat.havdalah, '22:51')).toBeLessThanOrEqual(1);
+    expect(sat.zmanim.alot).toBeNull();
+    expect(sat.zmanim.tzet).toBe(sat.havdalah);
+    expect(sat.zmanim.sunrise).toMatch(/^\d{2}:\d{2}$/);
+  });
+
+  // Санкт-Петербург 59.94°: в июне солнце не уходит на 8.5° — выход звёзд по запасному правилу.
+  it('nightfall: где 8.5° не наступает — закат + запасной интервал', () => {
+    const spb = new Location(59.94, 30.31, false, 'Europe/Moscow', 'SPb', 'RU');
+    const z = new Zmanim(spb, new Date(2027, 5, 19), false);
+    expect(Number.isNaN(z.tzeit(8.5).getTime())).toBe(true);
+    const at = nightfall(z);
+    expect(at).not.toBeNull();
+    expect((at!.getTime() - z.shkiah().getTime()) / 60_000).toBe(72);
+    expect(HAVDALAH_FALLBACK_MINUTES).toBe(72);
   });
 });

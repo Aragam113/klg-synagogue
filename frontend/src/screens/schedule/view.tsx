@@ -108,7 +108,7 @@ const DayCard = ({
           {ZMANIM.map((k) => (
             <div key={k}>
               <dt>{t(`zmanim.${k}`)}</dt>
-              <dd>{d.zmanim[k]}</dd>
+              <dd>{d.zmanim[k] ?? '—'}</dd>
             </div>
           ))}
         </dl>
@@ -193,7 +193,7 @@ const DayTable = ({
               <Holidays d={d} />
               {extraNote(d) ? <span> {extraNote(d)}</span> : null}
             </td>
-            {zmanim ? ZMANIM.map((k) => <td key={k}>{d.zmanim[k]}</td>) : null}
+            {zmanim ? ZMANIM.map((k) => <td key={k}>{d.zmanim[k] ?? '—'}</td>) : null}
           </tr>
         ))}
       </tbody>
