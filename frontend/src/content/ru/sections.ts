@@ -3,6 +3,8 @@
  * источник в комментарии `src:` у блока. Телефоны, часы и цены — не здесь, а в `src/config/site.ts`.
  * Общие сведения об иудаизме (Шаббат, кашрут, правила в синагоге в общем виде) — без источника.
  */
+import { SITE } from '@/config/site';
+
 import type { SectionsContent } from '../types';
 
 export const content: SectionsContent = {
@@ -540,37 +542,37 @@ export const content: SectionsContent = {
     // src: OF-home, FEOR, GOTOV, GOTOV-kolel, OLD-n23, JM-cont
     people: [
       {
-        name: 'Давид Шведик',
+        name: SITE.people.rabbi.value.ru,
         role: 'Главный раввин Калининграда и Калининградской области',
         note: 'Представитель Главного раввината России; возглавляет общину с 1998 года.',
         href: 'https://gotov.org/organizations/evreyskaya-obshchina-kaliningrada',
       },
       {
-        name: 'Авраам Борух Дайч',
+        name: SITE.people.rabbiDeitch.value.ru,
         role: 'Раввин',
         note: 'Посланник Любавичского Ребе, в Калининграде с 2020 года.',
         href: 'https://gotov.org/organizations/evreyskaya-obshchina-kaliningrada',
       },
       {
-        name: 'Хая Мушка Дайч',
+        name: SITE.people.rebbetzin.value.ru,
         role: 'Рабанит',
         note: 'Ведёт женский Колель Тора.',
         href: 'https://gotov.org/programs/kolel-tora-dlya-zhenshchin-12',
       },
       {
-        name: 'Леонид Плитман',
+        name: SITE.people.chairman.value.ru,
         role: 'Председатель Еврейской общины г. Калининграда',
         note: 'Председатель иудейской религиозной организации.',
         href: 'https://gotov.org/organizations/evreyskaya-obshchina-kaliningrada',
       },
       {
-        name: 'Владимир Кацман',
+        name: SITE.people.trustees.value.ru,
         role: 'Председатель попечительского совета',
         note: 'Главный меценат строительства синагоги.',
         href: 'https://gotov.org/organizations/evreyskaya-obshchina-kaliningrada',
       },
       {
-        name: 'Рут Лейзеровиц',
+        name: SITE.people.museumCurator.value.ru,
         role: 'Куратор музея «Новая синагога»',
         note: 'Ассоциация «Евреи в Восточной Пруссии», Берлин.',
         href: 'https://jmkaliningrad.org/%d0%ba%d0%be%d0%bd%d1%82%d0%b0%d0%ba%d1%82%d1%8b/',

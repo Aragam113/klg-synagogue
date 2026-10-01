@@ -1,11 +1,11 @@
 import { useEffect, useMemo } from 'react';
 
-import { todayInKaliningrad } from '@/forms/form-model';
 import { ConsentField, FormBanner, FormPage, RequestAccepted, SubmitRow } from '@/forms/ui';
 import { useNearestYizkor } from '@/forms/use-nearest-yizkor';
 import { useSubmitForm } from '@/forms/use-submit-form';
 import { useLang } from '@/i18n/use-lang';
 import { Button, Checkbox, Field, Form, Select } from '@/ui/kit';
+import { kaliningradToday } from '@/utils/kld-time';
 
 export const PRAYER_TYPES = ['misheberah', 'kaddish', 'yahrzeit', 'yizkor'] as const;
 export type PrayerType = (typeof PRAYER_TYPES)[number];
@@ -101,7 +101,7 @@ export const PrayerScreen = ({ type }: { type: PrayerType }) => {
   }, [nearest, v.yizkor, setYizkor]);
   const p = `prayer.types.${type}`;
   const title = t(`${p}.title`);
-  const today = todayInKaliningrad(new Date());
+  const today = kaliningradToday();
 
   const aside = (
     <>

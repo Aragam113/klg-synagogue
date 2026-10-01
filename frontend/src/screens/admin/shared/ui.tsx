@@ -281,18 +281,5 @@ export const CsvButton = ({ path, filename }: { path: string; filename: string }
   );
 };
 
-/** Дата-время ISO → '01.10.2026, 14:05' (по Калининграду). */
-export const fmtDateTime = (iso: string | null | undefined): string =>
-  iso
-    ? new Date(iso).toLocaleString('ru-RU', {
-        timeZone: 'Europe/Kaliningrad',
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : '—';
-
 export const fmtDate = (d: string | null | undefined): string =>
   d ? d.slice(0, 10).split('-').reverse().join('.') : '—';

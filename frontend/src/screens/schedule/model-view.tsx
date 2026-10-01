@@ -3,8 +3,9 @@ import { useMemo, useState } from 'react';
 import { useLang } from '@/i18n/use-lang';
 import { asApiError } from '@/store';
 import { useGetDaysQuery } from '@/store/api/calendar';
+import { kaliningradNow, monthNames } from '@/utils/kld-time';
 
-import { kaliningradNow, monthNames, monthRange, type ScheduleMode } from './model';
+import { monthRange, type ScheduleMode } from './model';
 import { ScheduleView } from './view';
 
 /** /schedule — контейнер: период (14 дней или месяц/год), вид, зманим → ScheduleView. */

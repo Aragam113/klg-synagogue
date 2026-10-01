@@ -8,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, MoreThan, Repository } from 'typeorm';
 import { createIdempotent } from '@common/forms';
 import { VALIDATION_MESSAGE } from '@common/pipes/field-validation.pipe';
-import { CalendarService } from '@modules/calendar';
+import { CalendarService, addDays, kaliningradDate } from '@modules/calendar';
 import { EventEntity } from '@modules/content/entities/event.entity';
 import {
   EventRegistrationEntity,
@@ -32,7 +32,6 @@ import {
   PatchRegistrationDto,
   PatchRequestDto,
 } from './dto/admin-requests.dto';
-import { addDays, kaliningradToday } from './requests-calendar';
 
 /** Экскурсию можно заказать не раньше чем через столько дней (история 43). */
 export const EXCURSION_MIN_DAYS_AHEAD = 3;
@@ -127,7 +126,7 @@ export class RequestsService {
   }
 
   async createExcursion(dto: ExcursionRequestDto, key: string | null) {
-    const earliest = addDays(kaliningradToday(), EXCURSION_MIN_DAYS_AHEAD);
+    const earliest = addDays(kaliningradDate(), EXCURSION_MIN_DAYS_AHEAD);
     if (dto.date < earliest) throw fieldError('date', 'date_too_soon');
     if (this.calendar.isClosedForVisits(dto.date)) {
       throw fieldError('date', 'date_closed');
@@ -306,7 +305,7 @@ export class RequestsService {
     days = 30,
     now = new Date()
   ): Promise<UpcomingYahrzeit[]> {
-    const today = kaliningradToday(now);
+    const today = kaliningradDate(now);
     const until = addDays(today, days);
     const year = Number(today.slice(0, 4));
     const rows = await this.reminders.find();

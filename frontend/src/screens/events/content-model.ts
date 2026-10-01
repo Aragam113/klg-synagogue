@@ -1,6 +1,5 @@
 import type { PriceTier } from '@/store/api/content';
-
-const TZ = 'Europe/Kaliningrad';
+import { localeOf } from '@/utils/kld-time';
 
 /** Прогресс сбора: процент 0…100 (целый) и сколько осталось собрать. */
 export const fundraiserProgress = ({
@@ -66,39 +65,8 @@ export const splitLinks = (text: string): { text: string; href?: string }[] => {
   return out;
 };
 
-const locale = (lang: string) => (lang === 'he' ? 'he-IL' : lang === 'en' ? 'en-GB' : 'ru-RU');
-
-/** Дата по Калининграду: «12 октября 2026». */
-export const formatDay = (iso: string, lang: string, opts: Intl.DateTimeFormatOptions = {}) =>
-  new Intl.DateTimeFormat(locale(lang), {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: TZ,
-    ...opts,
-  }).format(new Date(iso));
-
-/** Время по Калининграду 'HH:MM'. */
-export const formatTime = (iso: string, lang: string) =>
-  new Intl.DateTimeFormat(locale(lang), {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: TZ,
-  }).format(new Date(iso));
-
-/** Бейдж даты события: число и короткий месяц. */
-export const dateBadge = (iso: string, lang: string) => ({
-  day: new Intl.DateTimeFormat(locale(lang), { day: 'numeric', timeZone: TZ }).format(
-    new Date(iso)
-  ),
-  month: new Intl.DateTimeFormat(locale(lang), { month: 'short', timeZone: TZ })
-    .format(new Date(iso))
-    .replace('.', ''),
-});
-
 export const formatRub = (n: number, lang: string) =>
-  `${new Intl.NumberFormat(locale(lang)).format(n)} ₽`;
+  `${new Intl.NumberFormat(localeOf(lang)).format(n)} ₽`;
 
 /** Тело новости/события → абзацы. */
 export const paragraphs = (body: string | null | undefined) =>

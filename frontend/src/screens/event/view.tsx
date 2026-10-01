@@ -2,7 +2,7 @@ import { type MouseEvent } from 'react';
 
 import { useLang } from '@/i18n/use-lang';
 import { EventPrice } from '@/screens/events/cards';
-import { formatDay, formatRub, formatTime, ticketLadder } from '@/screens/events/content-model';
+import { formatRub, ticketLadder } from '@/screens/events/content-model';
 import { RichText } from '@/screens/events/rich-text';
 import '@/screens/events/styles';
 import { mediaUrl } from '@/store/api/content';
@@ -21,6 +21,7 @@ import {
   Title,
 } from '@/ui/kit';
 import { Reveal } from '@/ui/motion';
+import { formatDay, formatTime } from '@/utils/kld-time';
 
 import { type EventViewProps, registerHref } from './model';
 import { EventRegisterSlot } from './register-slot';

@@ -1,8 +1,9 @@
 import { useLang } from '@/i18n/use-lang';
 import { type EventItem, type Fundraiser, mediaUrl, type NewsItem } from '@/store/api/content';
 import { Button, Card, FallbackBadge } from '@/ui/kit';
+import { dateBadge, formatDay, formatTime } from '@/utils/kld-time';
 
-import { dateBadge, formatDay, formatRub, formatTime, fundraiserProgress } from './content-model';
+import { formatRub, fundraiserProgress } from './content-model';
 import './styles';
 
 /** Цена события на сегодня: «Вход свободный» | «700 ₽». */

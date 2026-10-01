@@ -1,11 +1,12 @@
 import { useAdminT } from '@/screens/admin/shared/gate';
-import { AdmError, Chip, CsvButton, fmtDateTime } from '@/screens/admin/shared/ui';
+import { AdmError, Chip, CsvButton } from '@/screens/admin/shared/ui';
 import {
   type RegistrationStatus,
   useAdminPatchRegistrationMutation,
   useAdminRegistrationsQuery,
 } from '@/store/api/admin-requests';
 import { Select } from '@/ui/kit';
+import { fmtDateTime } from '@/utils/kld-time';
 
 const STATUSES: RegistrationStatus[] = ['new', 'confirmed', 'canceled'];
 

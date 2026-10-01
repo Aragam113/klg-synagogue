@@ -1,8 +1,6 @@
 import {
   countdown,
   countdownText,
-  kaliningradNow,
-  monthOfDay,
   monthRange,
   nextCandle,
   serviceLabelKey,
@@ -24,21 +22,6 @@ describe('monthRange', () => {
   it('covers the whole month, including February of a leap year', () => {
     expect(monthRange(2026, 11)).toEqual({ from: '2026-11-01', to: '2026-11-30' });
     expect(monthRange(2028, 2)).toEqual({ from: '2028-02-01', to: '2028-02-29' });
-  });
-});
-
-describe('kaliningradNow', () => {
-  it('gives the date and wall clock in Kaliningrad (UTC+2, no DST)', () => {
-    // 22:30:07 UTC 1 Oct = 00:30:07 2 Oct in Kaliningrad
-    expect(kaliningradNow(Date.parse('2026-10-01T22:30:07Z'))).toEqual({
-      date: '2026-10-02',
-      time: '00:30:07',
-    });
-    // winter: still +2
-    expect(kaliningradNow(Date.parse('2027-01-15T09:05:00Z'))).toEqual({
-      date: '2027-01-15',
-      time: '11:05:00',
-    });
   });
 });
 
@@ -66,13 +49,5 @@ describe('nextCandle + countdownText (shared by the home page and TodayWidget)',
     const u = { d: 'д', h: 'ч', m: 'мин', s: 'с' };
     expect(countdownText({ d: 1, h: 2, m: 3, s: 4 }, u)).toBe('1 д 02 ч 03 мин 04 с');
     expect(countdownText({ d: 0, h: 5, m: 0, s: 9 }, u)).toBe('05 ч 00 мин 09 с');
-  });
-});
-
-describe('monthOfDay', () => {
-  it('gives the month as it reads next to a day number (Russian genitive)', () => {
-    expect(monthOfDay('2026-10-01', 'ru')).toBe('октября');
-    expect(monthOfDay('2026-03-08', 'ru')).toBe('марта');
-    expect(monthOfDay('2026-10-01', 'en')).toBe('October');
   });
 });

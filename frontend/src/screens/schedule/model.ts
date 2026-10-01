@@ -69,47 +69,6 @@ export function monthRange(year: number, month: number): { from: string; to: str
   return { from: `${year}-${pad(month)}-01`, to: `${year}-${pad(month)}-${pad(last)}` };
 }
 
-/** Калининград — UTC+2 круглый год (без перехода на летнее время с 2014). */
-const KLD_OFFSET_MS = 2 * 3600 * 1000;
-
-/** Дата 'YYYY-MM-DD' и часы 'HH:MM:SS' в Калининграде для момента `nowMs`. */
-export function kaliningradNow(nowMs: number): { date: string; time: string } {
-  const iso = new Date(nowMs + KLD_OFFSET_MS).toISOString();
-  return { date: iso.slice(0, 10), time: iso.slice(11, 19) };
-}
-
-const LOCALE: Record<string, string> = { ru: 'ru-RU', en: 'en-GB', he: 'he-IL' };
-
-/** Григорианская дата 'YYYY-MM-DD' прописью на языке сайта (без сдвига часового пояса). */
-export function formatDate(
-  date: string,
-  lang: string,
-  opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' }
-): string {
-  return new Intl.DateTimeFormat(LOCALE[lang] ?? lang, { ...opts, timeZone: 'UTC' }).format(
-    new Date(`${date}T00:00:00Z`)
-  );
-}
-
-/** Месяц так, как он читается рядом с числом дня («1 октября», а не «октябрь»). */
-export function monthOfDay(date: string, lang: string): string {
-  const parts = new Intl.DateTimeFormat(LOCALE[lang] ?? lang, {
-    day: 'numeric',
-    month: 'long',
-    timeZone: 'UTC',
-  }).formatToParts(new Date(`${date}T00:00:00Z`));
-  return parts.find((x) => x.type === 'month')?.value ?? formatDate(date, lang, { month: 'long' });
-}
-
-/** Названия месяцев 1–12 на языке сайта (именительный падеж). */
-export function monthNames(lang: string): string[] {
-  const f = new Intl.DateTimeFormat(LOCALE[lang] ?? lang, { month: 'long', timeZone: 'UTC' });
-  return Array.from({ length: 12 }, (_, i) => {
-    const s = f.format(new Date(Date.UTC(2026, i, 15)));
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  });
-}
-
 export type Service = 'shacharit' | 'mincha' | 'maariv';
 
 /**

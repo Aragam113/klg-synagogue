@@ -1,3 +1,4 @@
+import { telHref } from '@/config/site';
 import { LEADERS, RECEPTION, nameIn } from '@/forms/facts';
 import { ConsentField, FormBanner, FormPage, RequestAccepted, SubmitRow } from '@/forms/ui';
 import { type SubmitForm, useSubmitForm } from '@/forms/use-submit-form';
@@ -15,7 +16,6 @@ interface ContactQuestion {
 }
 
 const MARK = '\u0001';
-const tel = (phone: string) => `tel:${phone.replace(/[^\d+]/g, '')}`;
 
 /** Translated sentence with a tel: link in place of {{phone}}. */
 const WithPhone = ({ text, phone }: { text: string; phone: string }) => {
@@ -23,7 +23,7 @@ const WithPhone = ({ text, phone }: { text: string; phone: string }) => {
   return (
     <>
       {before}
-      <Link href={tel(phone)}>{phone}</Link>
+      <Link href={telHref(phone)}>{phone}</Link>
       {after}
     </>
   );

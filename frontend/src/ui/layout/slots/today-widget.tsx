@@ -2,16 +2,11 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useLang } from '@/i18n/use-lang';
-import {
-  countdownText,
-  formatDate,
-  kaliningradNow,
-  nextCandle,
-  useNow,
-} from '@/screens/schedule/model';
+import { countdownText, nextCandle, useNow } from '@/screens/schedule/model';
 import '@/screens/schedule/styles';
 import { useGetTodayQuery } from '@/store/api/calendar';
 import { Link } from '@/ui/kit';
+import { formatDate, kaliningradNow } from '@/utils/kld-time';
 
 /**
  * Host for the bar variant: its own block right after <header class="hdr"> (header layout stays untouched).

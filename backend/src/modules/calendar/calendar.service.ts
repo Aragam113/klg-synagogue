@@ -34,6 +34,7 @@ import {
   holidayKey,
   holidayNameRu,
 } from './hebrew-names';
+import { kaliningradDate, kaliningradTime as hhmm } from './kaliningrad-time';
 
 export interface DayHoliday {
   /** Ключ страницы /holidays/:key */
@@ -119,29 +120,6 @@ const location = new Location(
   SYNAGOGUE_LOCATION.name,
   SYNAGOGUE_LOCATION.countryCode
 );
-
-const timeFmt = new Intl.DateTimeFormat('en-GB', {
-  timeZone: SYNAGOGUE_LOCATION.tzid,
-  hour: '2-digit',
-  minute: '2-digit',
-  hourCycle: 'h23',
-});
-const dateFmt = new Intl.DateTimeFormat('en-CA', {
-  timeZone: SYNAGOGUE_LOCATION.tzid,
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-});
-
-/** 'HH:MM' по Калининграду. */
-function hhmm(d: Date): string {
-  return timeFmt.format(d);
-}
-
-/** Календарная дата в Калининграде для момента времени. */
-export function kaliningradDate(at: Date): string {
-  return dateFmt.format(at);
-}
 
 /** 'YYYY-MM-DD' → Date с теми же локальными полями (так hebcal читает дни). */
 function toLocal(date: string): Date {

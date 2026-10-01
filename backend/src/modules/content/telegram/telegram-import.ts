@@ -1,9 +1,13 @@
 import { Between, DataSource, IsNull, Not } from 'typeorm';
+import {
+  kaliningradDate,
+  kaliningradDayStart,
+} from '../../calendar/kaliningrad-time';
 import { NewsEntity, NewsImage } from '../entities';
 import { MAX_UPLOAD_BYTES, saveImageAsWebp } from '../uploads/image';
 import { slugify, uniqueSlug } from '../slug';
 import { parseChannelPage, TgPost } from './telegram-parser';
-import { PhotoPart, kldDay, postsToNews } from './telegram-news';
+import { PhotoPart, postsToNews } from './telegram-news';
 import {
   FetchFailed,
   FetchRejected,
@@ -94,7 +98,7 @@ export async function importTelegram(
   const fetchText = opts.fetchText ?? defaultFetchText;
   const fetchBytes = opts.fetchBytes ?? defaultFetchBytes;
   const log = opts.log ?? (() => undefined);
-  const since = new Date(`${opts.since}T00:00:00+02:00`).getTime();
+  const since = kaliningradDayStart(opts.since).getTime();
   const base = `https://t.me/s/${opts.channel}`;
 
   const posts = new Map<number, TgPost>();
@@ -208,10 +212,10 @@ export async function importTelegram(
 
   // Посты только с фото без соседа в выборке → к последней новости канала того же дня.
   for (const o of orphans) {
-    const day = kldDay(o.publishedAt.toISOString());
+    const day = kaliningradDate(o.publishedAt);
     const [target] = await repo.find({
       where: {
-        publishedAt: Between(new Date(`${day}T00:00:00+02:00`), o.publishedAt),
+        publishedAt: Between(kaliningradDayStart(day), o.publishedAt),
         // только новости канала: новость из админки (без sourceUrl) не перехватывает фото
         sourceUrl: Not(IsNull()),
       },

@@ -1,6 +1,5 @@
 import { useLang } from '@/i18n/use-lang';
 import { Lightbox, PhotoGrid } from '@/screens/album/lightbox';
-import { formatDay } from '@/screens/events/content-model';
 import { RichText } from '@/screens/events/rich-text';
 import '@/screens/events/styles';
 import { mediaUrl } from '@/store/api/content';
@@ -19,6 +18,7 @@ import {
   Title,
 } from '@/ui/kit';
 import { Reveal } from '@/ui/motion';
+import { formatDay } from '@/utils/kld-time';
 
 import {
   type NewsItemViewProps,

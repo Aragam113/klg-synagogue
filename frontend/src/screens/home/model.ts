@@ -1,5 +1,6 @@
-import { formatDate, kaliningradNow, nextCandle, type Countdown } from '@/screens/schedule/model';
+import { nextCandle, type Countdown } from '@/screens/schedule/model';
 import type { TodayInfo } from '@/store/api/calendar';
+import { formatDate, kaliningradNow } from '@/utils/kld-time';
 
 export * from './home-model';
 

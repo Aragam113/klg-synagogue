@@ -1,8 +1,9 @@
 /**
  * Формы сущностей админки (истории 64, 66): описание полей → форма (строки для инпутов) → тело для API.
  * Локализуемые поля — {ru,en,he}, RU обязателен; пустые en/he не отправляются.
- * Время — по Калининграду (UTC+2 круглый год, без перехода на летнее).
+ * Время — по Калининграду (`@/utils/kld-time`).
  */
+import { formatLocal, isoToLocal, localToIso } from '@/utils/kld-time';
 
 export type Loc = { ru: string; en: string; he: string };
 export type Tier = { until: string; price: string };
@@ -49,34 +50,6 @@ export interface EntitySpec {
   /** Колонки списка: заголовок всегда первым. */
   listMeta: (row: Record<string, unknown>) => string[];
 }
-
-const TZ_OFFSET_MIN = 120;
-const TZ_SUFFIX = '+02:00';
-const pad = (n: number) => String(n).padStart(2, '0');
-
-/** ISO → 'YYYY-MM-DDTHH:mm' по Калининграду. */
-export const isoToLocal = (iso: unknown): string => {
-  if (typeof iso !== 'string' || !iso) return '';
-  const ms = Date.parse(iso);
-  if (Number.isNaN(ms)) return '';
-  const d = new Date(ms + TZ_OFFSET_MIN * 60_000);
-  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(
-    d.getUTCHours()
-  )}:${pad(d.getUTCMinutes())}`;
-};
-
-/** 'YYYY-MM-DDTHH:mm' (Калининград) → ISO с +02:00. */
-export const localToIso = (v: string): string | null =>
-  v ? `${v.length === 16 ? `${v}:00` : v}${TZ_SUFFIX}` : null;
-
-/** Человеческая дата для списков: '14.12.2026 17:00'. */
-export const formatLocal = (iso: unknown): string => {
-  const v = isoToLocal(iso);
-  if (!v) return '';
-  const [d, t] = v.split('T');
-  const [y, m, day] = d.split('-');
-  return `${day}.${m}.${y} ${t}`;
-};
 
 const str = (v: unknown): string => (typeof v === 'string' ? v : v == null ? '' : String(v));
 

@@ -2,6 +2,8 @@
  * Section texts (task 06), English. Translation of `../ru/sections.ts` — same facts, same sources
  * (see `src:` comments there and in `.autopilot/ref/kld-content.md`).
  */
+import { SITE } from '@/config/site';
+
 import type { SectionsContent } from '../types';
 
 export const content: SectionsContent = {
@@ -510,37 +512,37 @@ export const content: SectionsContent = {
     },
     people: [
       {
-        name: 'David Shvedik',
+        name: SITE.people.rabbi.value.en,
         role: 'Chief Rabbi of Kaliningrad and the Kaliningrad Region',
         note: 'Representative of the Chief Rabbinate of Russia; has led the community since 1998.',
         href: 'https://gotov.org/organizations/evreyskaya-obshchina-kaliningrada',
       },
       {
-        name: 'Avraham Boruch Deitch',
+        name: SITE.people.rabbiDeitch.value.en,
         role: 'Rabbi',
         note: 'Emissary of the Lubavitcher Rebbe, in Kaliningrad since 2020.',
         href: 'https://gotov.org/organizations/evreyskaya-obshchina-kaliningrada',
       },
       {
-        name: 'Chaya Mushka Deitch',
+        name: SITE.people.rebbetzin.value.en,
         role: 'Rebbetzin',
         note: 'Leads the women’s Kollel Torah.',
         href: 'https://gotov.org/programs/kolel-tora-dlya-zhenshchin-12',
       },
       {
-        name: 'Leonid Plitman',
+        name: SITE.people.chairman.value.en,
         role: 'Chairman of the Jewish Community of Kaliningrad',
         note: 'Chairman of the Jewish religious organization.',
         href: 'https://gotov.org/organizations/evreyskaya-obshchina-kaliningrada',
       },
       {
-        name: 'Vladimir Katsman',
+        name: SITE.people.trustees.value.en,
         role: 'Chairman of the Board of Trustees',
         note: 'The main patron of the synagogue’s construction.',
         href: 'https://gotov.org/organizations/evreyskaya-obshchina-kaliningrada',
       },
       {
-        name: 'Ruth Leiserowitz',
+        name: SITE.people.museumCurator.value.en,
         role: 'Curator of the New Synagogue Museum',
         note: 'Jews in East Prussia association, Berlin.',
         href: 'https://jmkaliningrad.org/%d0%ba%d0%be%d0%bd%d1%82%d0%b0%d0%ba%d1%82%d1%8b/',

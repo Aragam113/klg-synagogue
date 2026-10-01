@@ -1,5 +1,4 @@
 import { useLang } from '@/i18n/use-lang';
-import { formatDate } from '@/screens/schedule/model';
 import '@/screens/schedule/styles';
 import {
   Button,
@@ -14,6 +13,7 @@ import {
   Title,
 } from '@/ui/kit';
 import { Reveal } from '@/ui/motion';
+import { formatDate } from '@/utils/kld-time';
 
 import type { HolidayViewProps } from './model';
 

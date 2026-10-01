@@ -1,35 +1,32 @@
 /**
- * Facts for the forms. Source of every value: .autopilot/ref/kld-content.md (section named in the comment).
- * null = not found in the sources → the screen shows a visible <Placeholder>.
+ * Факты для форм — только ссылки на `@/config/site` (единственный источник, R20i): своих телефонов,
+ * цен, времени и имён здесь нет. null = не найдено в источниках → на экране видимая <Placeholder>.
  */
+import { SITE } from '@/config/site';
 
-/** §4 «Экскурсия в синагогу» (OF-tour, снимок 16.06.2026, дословно). */
+/** §4 «Экскурсия в синагогу». */
 export const EXCURSION = {
-  priceStandardRub: 300,
-  priceReducedRub: 200,
+  priceStandardRub: SITE.prices.excursion.value.standard,
+  priceReducedRub: SITE.prices.excursion.value.reduced,
   /** Зеркалит backend/src/modules/requests/dto/request-forms.dto.ts → EXCURSION_TIMES: меняешь здесь — поменяй и там. */
-  times: ['11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'],
-  /**
-   * Языки экскурсии — §4 (VK-mus: «на русском, немецком и английском»); иврита в источнике нет.
-   * Зеркалит backend/src/modules/requests/dto/request-forms.dto.ts → EXCURSION_LANGS.
-   */
-  languages: ['ru', 'de', 'en'],
-  departmentPhone: '+79097918178',
+  times: SITE.hours.excursionSlots.value,
+  /** Зеркалит backend/src/modules/requests/dto/request-forms.dto.ts → EXCURSION_LANGS. */
+  languages: SITE.excursionLanguages.value,
+  departmentPhone: SITE.phones.excursions.value,
 } as const;
 
-/** §3 «Приёмная раввина» / «Приёмная синагоги» (TL-recep). */
+/** §3 «Приёмная раввина» / «Приёмная синагоги» (TL-recep): номера совпадают с общинным и секретарём. */
 export const RECEPTION = {
-  rabbiPhone: '+7 (4012) 46-43-45',
-  synagoguePhone: '+7 909 777-12-30',
-  /** Часы приёма — НЕ НАЙДЕНО в kld-content. */
-  hours: null as string | null,
+  rabbiPhone: SITE.phones.community.value,
+  synagoguePhone: SITE.phones.secretary.value,
+  hours: SITE.unknown.receptionHours as string | null,
 };
 
-/** §3 «Руководство»: раввин — OF-home; председатель — GOTOV. */
+/** §3 «Руководство». */
 export const LEADERS = {
-  rabbi: { ru: 'Давид Шведик', en: 'David Shvedik' },
-  chairman: { ru: 'Леонид Плитман', en: 'Leonid Plitman' },
+  rabbi: SITE.people.rabbi.value,
+  chairman: SITE.people.chairman.value,
 } as const;
 
-export const nameIn = (n: { ru: string; en: string }, lang: string) =>
-  lang === 'ru' ? n.ru : n.en;
+export const nameIn = (n: { ru: string; en: string; he: string }, lang: string) =>
+  lang === 'en' ? n.en : lang === 'he' ? n.he : n.ru;

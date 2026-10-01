@@ -1,7 +1,8 @@
 import { useAdminT } from '@/screens/admin/shared/gate';
-import { AdmError, Chip, fmtDateTime, Head, Pager } from '@/screens/admin/shared/ui';
+import { AdmError, Chip, Head, Pager } from '@/screens/admin/shared/ui';
 import type { AdminPayment, AdminRecurring } from '@/store/api/admin-payments';
 import { Empty, Select } from '@/ui/kit';
+import { fmtDateTime } from '@/utils/kld-time';
 
 export const PURPOSES = ['donation', 'prayer', 'event'] as const;
 export const PAY_STATUSES = ['pending', 'paid', 'canceled', 'failed'] as const;

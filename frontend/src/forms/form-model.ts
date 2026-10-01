@@ -1,3 +1,5 @@
+import { addDays, kaliningradToday } from '@/utils/kld-time';
+
 /** Pure helpers of the request forms (no React): error keys, dates. */
 
 export interface ErrorMessageKey {
@@ -41,20 +43,7 @@ export function nearestYizkor(
   return best?.day ?? null;
 }
 
-const DAY_MS = 86_400_000;
-
-/** Сегодня по Калининграду, YYYY-MM-DD. */
-export function todayInKaliningrad(now: Date): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/Kaliningrad',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(now);
-}
-
 /** Ранняя дата экскурсии: сегодня (Калининград) + 3 дня (история 43). */
 export function minExcursionDate(now: Date): string {
-  const today = Date.parse(`${todayInKaliningrad(now)}T00:00:00Z`);
-  return new Date(today + 3 * DAY_MS).toISOString().slice(0, 10);
+  return addDays(kaliningradToday(now), 3);
 }

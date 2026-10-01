@@ -17,14 +17,9 @@ import {
 } from '@/ui/kit';
 import { CONTACTS } from '@/ui/layout/slots/contacts';
 import { Reveal } from '@/ui/motion';
+import { formatDate, monthOfDay } from '@/utils/kld-time';
 
-import {
-  formatDate,
-  monthOfDay,
-  type ScheduleMode,
-  type ScheduleViewProps,
-  serviceLabelKey,
-} from './model';
+import { type ScheduleMode, type ScheduleViewProps, serviceLabelKey } from './model';
 import './styles';
 
 const ZMANIM: (keyof Zmanim)[] = [

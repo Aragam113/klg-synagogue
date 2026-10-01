@@ -1,9 +1,10 @@
 import { type FormEvent } from 'react';
 
 import { AdmLink, useAdminT } from '@/screens/admin/shared/gate';
-import { AdmError, Chip, fmtDateTime, Head, Pager } from '@/screens/admin/shared/ui';
+import { AdmError, Chip, Head, Pager } from '@/screens/admin/shared/ui';
 import type { AdminRequest, RequestStatus } from '@/store/api/admin-requests';
 import { Empty, Field, Select } from '@/ui/kit';
+import { fmtDateTime } from '@/utils/kld-time';
 
 import { payloadEntries, REQUEST_STATUSES, REQUEST_TYPES, type RequestFilters } from './model';
 

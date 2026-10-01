@@ -2,6 +2,8 @@
  * Section texts (task 06), Hebrew — MACHINE TRANSLATION of `../ru/sections.ts`, needs proofreading
  * by a native speaker (see ./README.md). Same facts and sources as the ru file.
  */
+import { SITE } from '@/config/site';
+
 import type { SectionsContent } from '../types';
 
 export const content: SectionsContent = {
@@ -459,37 +461,37 @@ export const content: SectionsContent = {
     },
     people: [
       {
-        name: 'דוד שבדיק',
+        name: SITE.people.rabbi.value.he,
         role: 'הרב הראשי של קלינינגרד ומחוז קלינינגרד',
         note: 'נציג הרבנות הראשית של רוסיה; עומד בראש הקהילה מאז 1998.',
         href: 'https://gotov.org/organizations/evreyskaya-obshchina-kaliningrada',
       },
       {
-        name: 'אברהם ברוך דייטש',
+        name: SITE.people.rabbiDeitch.value.he,
         role: 'רב',
         note: 'שליח הרבי מליובאוויטש, בקלינינגרד מאז 2020.',
         href: 'https://gotov.org/organizations/evreyskaya-obshchina-kaliningrada',
       },
       {
-        name: 'חיה מושקא דייטש',
+        name: SITE.people.rebbetzin.value.he,
         role: 'רבנית',
         note: 'מנחה את כולל התורה לנשים.',
         href: 'https://gotov.org/programs/kolel-tora-dlya-zhenshchin-12',
       },
       {
-        name: 'לאוניד פליטמן',
+        name: SITE.people.chairman.value.he,
         role: 'יו״ר הקהילה היהודית של קלינינגרד',
         note: 'יו״ר הארגון הדתי היהודי.',
         href: 'https://gotov.org/organizations/evreyskaya-obshchina-kaliningrada',
       },
       {
-        name: 'ולדימיר קצמן',
+        name: SITE.people.trustees.value.he,
         role: 'יו״ר חבר הנאמנים',
         note: 'התורם המרכזי לבניית בית הכנסת.',
         href: 'https://gotov.org/organizations/evreyskaya-obshchina-kaliningrada',
       },
       {
-        name: 'רות לייזרוביץ',
+        name: SITE.people.museumCurator.value.he,
         role: 'אוצרת מוזיאון «בית הכנסת החדש»',
         note: 'אגודת «יהודים בפרוסיה המזרחית», ברלין.',
         href: 'https://jmkaliningrad.org/%d0%ba%d0%be%d0%bd%d1%82%d0%b0%d0%ba%d1%82%d1%8b/',

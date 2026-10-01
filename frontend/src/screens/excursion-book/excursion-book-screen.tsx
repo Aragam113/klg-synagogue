@@ -1,3 +1,4 @@
+import { telHref } from '@/config/site';
 import { EXCURSION } from '@/forms/facts';
 import { minExcursionDate } from '@/forms/form-model';
 import { ConsentField, FormBanner, FormPage, RequestAccepted, SubmitRow } from '@/forms/ui';
@@ -37,7 +38,7 @@ const ExcursionFacts = () => {
       <li>{t('excursion.times', { times: EXCURSION.times.join(', ') })}</li>
       <li>
         {before}
-        <Link href={`tel:${EXCURSION.departmentPhone}`}>{EXCURSION.departmentPhone}</Link>
+        <Link href={telHref(EXCURSION.departmentPhone)}>{EXCURSION.departmentPhone}</Link>
         {after}
       </li>
     </ul>

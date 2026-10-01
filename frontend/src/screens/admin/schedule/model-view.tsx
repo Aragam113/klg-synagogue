@@ -11,6 +11,7 @@ import {
   usePutScheduleTemplateMutation,
 } from '@/store/api/calendar';
 import { asApiError } from '@/store/api/http';
+import { kaliningradToday } from '@/utils/kld-time';
 
 import {
   emptyOverride,
@@ -26,13 +27,11 @@ import {
 } from './model';
 import { ScheduleView } from './view';
 
-const kldToday = () => new Date(Date.now() + 2 * 3600_000).toISOString().slice(0, 10);
-
 /** /admin/schedule — шаблон и исключения (эндпоинты таска 03). */
 export const ScheduleAdminScreen = () => {
   const t = useAdminT();
   const tq = useGetScheduleTemplateQuery();
-  const today = useMemo(kldToday, []);
+  const today = useMemo(() => kaliningradToday(), []);
   const [page, setPage] = useState(0);
   const range = useMemo(() => overrideWindow(today, page), [today, page]);
   const oq = useGetScheduleOverridesQuery(range);

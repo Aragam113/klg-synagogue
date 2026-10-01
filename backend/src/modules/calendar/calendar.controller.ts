@@ -7,8 +7,8 @@ import {
   Day,
   HolidayPage,
   TodayInfo,
-  kaliningradDate,
 } from './calendar.service';
+import { kaliningradDate } from './kaliningrad-time';
 
 @ApiTags('Calendar')
 @Controller('calendar')

@@ -27,6 +27,7 @@ export const SRC = {
   tlRecep: 'https://web.archive.org/web/20241217010445/http://sinagoga39.tilda.ws/reception',
   feor: 'https://feor.ru/administrative-units/kaliningrad/',
   gotov: 'https://gotov.org/organizations/evreyskaya-obshchina-kaliningrada',
+  gotovKolel: 'https://gotov.org/programs/kolel-tora-dlya-zhenshchin-12',
   jmInfo: 'https://jmkaliningrad.org/%d0%b8%d0%bd%d1%84%d0%b0/',
   jmCont: 'https://jmkaliningrad.org/%d0%ba%d0%be%d0%bd%d1%82%d0%b0%d0%ba%d1%82%d1%8b/',
   jmFirst:
@@ -127,6 +128,40 @@ export const SITE = {
     shabbat: { value: { kabbalat: '19:00', shacharit: '10:00' }, src: SRC.tlComm },
   },
 
+  /** Языки экскурсии (VK-mus: «на русском, немецком и английском»); иврита в источнике нет. */
+  excursionLanguages: { value: ['ru', 'de', 'en'], src: SRC.vkMus },
+
+  /**
+   * Руководство и люди общины (kld-content §3) — единственный источник имён:
+   * «Об общине» (`content.about.people`) и формы (приёмная раввина).
+   */
+  people: {
+    rabbi: {
+      value: { ru: 'Давид Шведик', en: 'David Shvedik', he: 'דוד שבדיק' },
+      src: SRC.ofHome,
+    }, // src: OF-home, FEOR, GOTOV
+    rabbiDeitch: {
+      value: { ru: 'Авраам Борух Дайч', en: 'Avraham Boruch Deitch', he: 'אברהם ברוך דייטש' },
+      src: SRC.gotov,
+    }, // src: GOTOV
+    rebbetzin: {
+      value: { ru: 'Хая Мушка Дайч', en: 'Chaya Mushka Deitch', he: 'חיה מושקא דייטש' },
+      src: SRC.gotovKolel,
+    }, // src: GOTOV-kolel
+    chairman: {
+      value: { ru: 'Леонид Плитман', en: 'Leonid Plitman', he: 'לאוניד פליטמן' },
+      src: SRC.gotov,
+    }, // src: GOTOV
+    trustees: {
+      value: { ru: 'Владимир Кацман', en: 'Vladimir Katsman', he: 'ולדימיר קצמן' },
+      src: SRC.gotov,
+    }, // src: GOTOV, OLD-n23
+    museumCurator: {
+      value: { ru: 'Рут Лейзеровиц', en: 'Ruth Leiserowitz', he: 'רות לייזרוביץ' },
+      src: SRC.jmCont,
+    }, // src: JM-cont
+  } satisfies Record<string, Fact<L10n>>,
+
   prices: {
     excursion: { value: { standard: 300, reduced: 200, couponPercent: 10 }, src: SRC.ofTour }, // src: OF-tour 16.06.2026, руб.
     /** Билеты музея: самое свежее — 2ГИС (обновлено 01.12.2025); сайт музея — 500/400. */
@@ -158,6 +193,8 @@ export const SITE = {
   unknown: {
     parking: null,
     excursionDuration: null,
+    /** Часы приёма раввина / синагоги. */
+    receptionHours: null,
     telegram: null,
     operator: null,
   },

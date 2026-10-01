@@ -1,3 +1,4 @@
+import { kaliningradDate } from '../../calendar/kaliningrad-time';
 import type { TgPost } from './telegram-parser';
 
 /** Пост канала → черновик новости сайта (до скачивания картинок). */
@@ -88,9 +89,6 @@ function notes(post: TgPost): string[] {
   return out;
 }
 
-export const kldDay = (iso: string) =>
-  new Date(new Date(iso).getTime() + 2 * 3600_000).toISOString().slice(0, 10);
-
 /**
  * Посты → новости. Пост без своего текста (только фото/видео с подписью канала)
  * приклеивается к предыдущему посту того же дня; без такого соседа в выборке —
@@ -107,7 +105,8 @@ export function postsToNews(
     if (!hasOwnText(post, channel)) {
       if (!post.images.length) continue;
       const part = { sourceUrl: post.url, imageUrls: [...post.images] };
-      if (prev && prev.day === kldDay(post.date)) prev.draft.parts.push(part);
+      if (prev && prev.day === kaliningradDate(new Date(post.date)))
+        prev.draft.parts.push(part);
       else orphans.push({ ...part, publishedAt: new Date(post.date) });
       continue;
     }
@@ -121,7 +120,7 @@ export function postsToNews(
       parts: [{ sourceUrl: post.url, imageUrls: [...post.images] }],
     };
     drafts.push(draft);
-    prev = { draft, day: kldDay(post.date) };
+    prev = { draft, day: kaliningradDate(new Date(post.date)) };
   }
   return { drafts, orphans };
 }
