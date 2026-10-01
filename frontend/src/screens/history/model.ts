@@ -1,6 +1,6 @@
 import type { SectionsContent } from '@/content';
 
-/** /history — главы, оглавление-якоря, таймлайн (история 47). */
+/** /history — главы, оглавление-якоря, таймлайн. */
 export interface HistoryViewProps {
   content: SectionsContent['history'];
   /** Пункты оглавления: якорь глав + «Хронология». */

@@ -1,7 +1,7 @@
 import { type Fact, SITE, SRC } from '@/config/site';
 import type { SectionsContent } from '@/content';
 
-/** /visit/kosher — кошерное питание (история 46). */
+/** /visit/kosher — кошерное питание. */
 export interface KosherViewProps {
   content: SectionsContent['visit']['kosher'];
   aboutSrcs: string[];

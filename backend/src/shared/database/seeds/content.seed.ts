@@ -20,7 +20,7 @@ import { ALBUMS, DEPARTMENTS, NEWS, PROGRAMS, SETTINGS } from './content.data';
 
 export interface SeedOptions {
   uploadDir: string;
-  /** Папка с фото и `_sources.txt`; по умолчанию `.autopilot/ref/kld-img`. */
+  /** Папка с фото и `_sources.txt`; по умолчанию `backend/seed-assets/photos`. */
   imgDir?: string;
 }
 
@@ -28,10 +28,7 @@ export interface SeedSummary {
   created: Record<string, number>;
 }
 
-const DEFAULT_IMG_DIR = resolve(
-  __dirname,
-  '../../../../../.autopilot/ref/kld-img'
-);
+const DEFAULT_IMG_DIR = resolve(__dirname, '../../../../seed-assets/photos');
 const CREDIT_MAX = 300;
 
 /** `_sources.txt`: «файл | лицензия | автор | дата | страница | описание» → атрибуция. */

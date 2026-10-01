@@ -26,7 +26,7 @@ export interface ScrubChapter {
 
 export interface SynagogueScrubProps {
   chapters: ScrubChapter[];
-  /** manifest.json of the frames (spec R05); frames resolve relative to its folder. */
+  /** manifest.json of the frames; frames resolve relative to its folder. */
   manifest?: string;
   /** Prefix of the corner attribution, e.g. «Кадры:». */
   creditsLabel?: string;
@@ -40,10 +40,10 @@ const DEFAULT_MANIFEST = assetUrl('/media/scrub/manifest.json');
 const pad = (n: number) => String(n).padStart(2, '0');
 
 /**
- * Pinned scroll scene (spec R04, «Решение 4»): a sticky 100svh canvas inside a (chapters + 1) × 100svh runway;
+ * Pinned scroll scene: a sticky 100svh canvas inside a (chapters + 1) × 100svh runway;
  * the frame is round(p·(N−1)) of the manifest — strictly by scroll, forward and back. The first frame loads at
  * once, the rest are preloaded after the first paint; until a frame arrives the nearest loaded one is drawn.
- * Chapters enter/leave by `--p` in CSS. Touch scrubs too (native scroll, task 15); reduced motion: static poster
+ * Chapters enter/leave by `--p` in CSS. Touch scrubs too (native scroll); reduced motion: static poster
  * frame + chapters as a swipe ribbon.
  * `data-frame` on the canvas = the frame drawn (used by the smoke test).
  */

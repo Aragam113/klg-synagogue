@@ -1,6 +1,6 @@
 import { DRAW_MS, penKeyframes } from './pen';
 
-/** G09 (task 10): fast along the straight leads, ≈2–2.5× slower while the star is drawn, smooth in between. */
+/** Pen timing: fast along the straight leads, ≈2–2.5× slower while the star is drawn, smooth in between. */
 describe('penKeyframes', () => {
   const frames = penKeyframes(1440, 900);
   // drawn fraction of the path (0..1) at a time fraction, by linear interpolation between keyframes

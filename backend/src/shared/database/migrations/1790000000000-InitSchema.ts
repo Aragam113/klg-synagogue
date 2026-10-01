@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 /**
- * Вся схема сайта (interfaces.md → «Схема данных»).
+ * Вся схема сайта (сущности — `src/modules/<модуль>/entities`).
  * Перечислимые поля — varchar + CHECK; локализуемые — jsonb {ru, en?, he?}.
  * Строка schedule_template id=1 создаётся пустой (время служб вписывает редактор).
  */

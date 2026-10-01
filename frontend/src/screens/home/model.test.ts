@@ -16,7 +16,7 @@ const day = (date: string) => ({
   closed: false,
 });
 
-describe('todayBlock — живой блок «Сегодня» на главной (R15.3)', () => {
+describe('todayBlock — живой блок «Сегодня» на главной', () => {
   const now = Date.parse('2026-10-01T10:00:00Z');
   const info: TodayInfo = {
     today: day('2026-10-01'),

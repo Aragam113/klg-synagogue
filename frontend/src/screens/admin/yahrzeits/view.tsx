@@ -44,7 +44,7 @@ export const YahrzeitsView = (p: {
   );
 };
 
-/** Подписчики рассылки + CSV (история 68). */
+/** Подписчики рассылки + CSV. */
 export const SubscribersView = (p: {
   items: Subscriber[];
   loading: boolean;

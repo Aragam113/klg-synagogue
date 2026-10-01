@@ -74,7 +74,7 @@ export class RequestsController {
     return this.service.createVolunteer(dto, key);
   }
 
-  /** → `{id, eventId, isPaid, seats}`; платное событие: статус new, payment_id null (оплата — таск 07). */
+  /** → `{id, eventId, isPaid, seats}`; платное событие: статус new, payment_id null (оплату создаёт модуль payments). */
   @Post('events/:slug/register')
   register(
     @Param('slug') slug: string,

@@ -1,7 +1,7 @@
 import { SRC } from '@/config/site';
 import type { SectionsContent } from '@/content';
 
-/** /visit/rules — правила посещения, Шаббат (история 41). */
+/** /visit/rules — правила посещения, Шаббат. */
 export interface RulesViewProps {
   content: SectionsContent['visit']['rules'];
   shabbatSrc: string;

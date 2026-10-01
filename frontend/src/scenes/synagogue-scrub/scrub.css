@@ -1,7 +1,7 @@
 /*
- * Synagogue scroll scene (task 08). Runway = (chapters + 1) x 100svh, sticky 100svh viewport.
+ * Synagogue scroll scene. Runway = (chapters + 1) x 100svh, sticky 100svh viewport.
  * Choreography from --p (written by the scroll engine, mode 'pin'), same maths as .pinned in site.css.
- * Static (reduced motion only — touch scrubs too since task 15): poster frame on top, chapters below it.
+ * Static (reduced motion only — touch scrubs too): poster frame on top, chapters below it.
  */
 .scrub { position: relative; background: var(--deeper); color: var(--light); }
 .scrub__sticky { position: relative; overflow: clip; }
@@ -57,7 +57,7 @@ html[dir='rtl'][data-motion='on'] .scrub--live .scrub__shade { background:
   linear-gradient(270deg, #15242bb8 0%, #15242b66 35%, #15242b00 60%); }
 html[data-motion='on'] .scrub--live .scrub__year { font-size: 7.143rem; text-shadow: 0 0 2rem #15242b80; }
 html[data-motion='on'] .scrub--live .scrub__text { text-shadow: 0 1px .6rem #15242bcc; }
-/* Phones (task 15): the live scene scrubs on touch too — smaller year, no blur filter (cheap compositing) */
+/* Phones: the live scene scrubs on touch too — smaller year, no blur filter (cheap compositing) */
 @media (max-width: 599px) {
   html[data-motion='on'] .scrub--live .scrub__year { font-size: 4.571rem; }
 }
@@ -68,7 +68,7 @@ html[data-motion='on'] .scrub--live .scrub__text { text-shadow: 0 1px .6rem #152
   html[data-motion='on'] .scrub--live .scrub__chapters { inset-inline-start: calc((100vw - var(--container)) / 2); }
 }
 
-/* Reduced motion (task 12; touch is live since task 15): the chapters under the poster are a swipe ribbon */
+/* Reduced motion (touch is live): the chapters under the poster are a swipe ribbon */
 .scrub--static .scrub__dots { padding-top: 1rem; --fg-mute: var(--light-60); }
 .scrub--static .scrub__chapters[data-ribbon] { display: flex; gap: 0; padding: 1.429rem 0 4.286rem; overflow-x: auto;
   scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }

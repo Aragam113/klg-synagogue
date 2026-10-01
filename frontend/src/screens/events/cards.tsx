@@ -18,7 +18,7 @@ export const EventPrice = ({ event }: { event: Pick<EventItem, 'isPaid' | 'price
   );
 };
 
-/** Карточка события для афиши и главной (история 25). */
+/** Карточка события для афиши и главной. */
 export const EventCard = ({ event }: { event: EventItem }) => {
   const { t, lang } = useLang('content');
   const badge = dateBadge(event.startsAt, lang);
@@ -51,7 +51,7 @@ export const EventCard = ({ event }: { event: EventItem }) => {
   );
 };
 
-/** Карточка новости для ленты и главной (истории 27, 50). */
+/** Карточка новости для ленты и главной. */
 export const NewsCard = ({ item }: { item: NewsItem }) => {
   const { t, lang } = useLang('content');
   return (
@@ -78,7 +78,7 @@ export const NewsCard = ({ item }: { item: NewsItem }) => {
   );
 };
 
-/** Карточка сбора с прогрессом (история 26); кнопка «Помочь» → /fundraisers/<slug> (таск 07). */
+/** Карточка сбора с прогрессом; кнопка «Помочь» → /fundraisers/<slug> (страница сбора с формой оплаты). */
 export const FundraiserCard = ({ fundraiser: f }: { fundraiser: Fundraiser }) => {
   const { t, lang } = useLang('content');
   const { percent, leftRub } = fundraiserProgress(f);

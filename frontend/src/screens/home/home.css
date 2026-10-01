@@ -1,5 +1,5 @@
-/* Home page (task 08). Scroll-linked motion lives under html[data-motion='on'], cheap entrance/time animations
-   under html[data-anim='on'] (touch too, task 12); both off (reduced motion) = static. */
+/* Home page. Scroll-linked motion lives under html[data-motion='on'], cheap entrance/time animations
+   under html[data-anim='on'] (touch too); both off (reduced motion) = static. */
 .home { overflow-x: clip; }
 .home-center { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1.2rem; position: relative; z-index: 1; }
 .home-head { display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 2.6rem; max-width: 48rem; }
@@ -16,7 +16,7 @@
 .home-hero__inner { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1.6rem; max-width: 62rem; margin-inline: auto; position: relative; z-index: 1; padding: 5rem 0 6rem; }
 .home-hero__actions { justify-content: center; }
 .home-hero__eyebrow { display: flex; align-items: center; gap: 0.7rem; color: var(--gold); }
-/* G04: the star sits on the optical centre of the caps line — no eyebrow margin pulling the text up. */
+/* The star sits on the optical centre of the caps line — no eyebrow margin pulling the text up. */
 .home-hero__eyebrow .eyebrow { margin: 0; }
 .home-hero__eyebrow .magen { flex: none; display: block; position: relative; top: -0.1rem; } /* centre of the caps sits above the line-box centre */
 .home-hero__title { margin: 0; }
@@ -61,7 +61,7 @@ html[data-motion='on'] .home-threshold__note { opacity: clamp(0, (var(--p) - 0.4
 html:not([data-pin='on']) .home-community { padding: 6.286rem var(--gutter); }
 .home-chapter { display: flex; flex-direction: column; gap: 1rem; align-items: flex-start; max-width: 32rem; }
 .home-chapter__n { font-size: clamp(3.5rem, 7vw, 6rem); }
-/* G08: a large window. Phone/tablet: the full container width. Desktop: the arch takes the right column for the
+/* A large window. Phone/tablet: the full container width. Desktop: the arch takes the right column for the
    whole pinned screen (~72% of its height, ~2× the old area); heading + chapters stay in the left column. */
 .home-arch { width: 100%; margin-inline: auto; }
 @media (min-width: 1024px) {
@@ -94,7 +94,7 @@ html[data-anim='on'] [data-revealed='true'] .home-ledger__k { opacity: 1; transf
 
 /* Marquee */
 .home-marquee { padding-top: 2.4rem; padding-bottom: 2.4rem; }
-/* G11: same flat ribbon on every width (no gold tilted band on phones); it only moves there too (data-anim) */
+/* Same flat ribbon on every width (no gold tilted band on phones); it only moves there too (data-anim) */
 
 /* Visitors */
 .home-visit__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.4rem; }
@@ -137,7 +137,7 @@ html[dir='rtl'] .home-arrow { transform: scaleX(-1); }
 .home-dawn .rosette--spin { transform-origin: 50% 50%; }
 .home-dawn { min-height: 90svh; display: flex; align-items: center; position: relative; overflow: hidden; }
 .home-dawn__rosette { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--gold); opacity: 0.3; pointer-events: none; z-index: 0; }
-/* G13: one slow, endless idle turn (75 s, linear) on every device; scroll adds --p × 45° on the rosette itself
+/* One slow, endless idle turn (75 s, linear) on every device; scroll adds --p × 45° on the rosette itself
    (motion engine). Only reduced motion (data-anim off) stops it. */
 .home-dawn__spin { display: block; line-height: 0; transform-origin: 50% 50%; }
 html[data-anim='on'] .home-dawn__spin { animation: rosette-turn 75s linear infinite; will-change: transform; }
@@ -153,7 +153,7 @@ html[data-motion='on'] .home-dawn__note { opacity: clamp(0.15, (var(--p) - 0.25)
   /* no empty cream band between the quiet fundraisers block and the news */
   .home-funds--quiet + .home-news { padding-top: 0; }
   .home-dawn { min-height: 0; }
-  /* G13: the 140vw rosette on a phone was ~8% gold behind the text — too faint to notice it turning */
+  /* The 140vw rosette on a phone was ~8% gold behind the text — too faint to notice it turning */
   .home-dawn__rosette { opacity: 0.6; }
   .home-dawn .rosette { stroke-width: 0.9; }
   .home-tile { min-height: 0; }

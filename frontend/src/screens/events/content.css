@@ -1,4 +1,4 @@
-/* Task 04: afisha, news, fundraisers, programs, departments, gallery, search. Logical properties only (RTL). */
+/* Afisha, news, fundraisers, programs, departments, gallery, search. Logical properties only (RTL). */
 .cnt-grid { display: grid; gap: 1.429rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); }
 .cnt-card { position: relative; height: 100%; transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease); }
 .cnt-card:hover { transform: translateY(-4px); }
@@ -83,7 +83,7 @@ html[data-anim='on'] [data-revealed] .cnt-progress span { transform: scaleX(1); 
 .cnt-event-hero--solo { grid-template-columns: 1fr; }
 .cnt-post-gallery { margin-block-start: 2.5rem; }
 
-/* task 12: phones get two photo columns instead of one column of huge photos */
+/* Phones get two photo columns instead of one column of huge photos */
 @media (max-width: 599px) {
   .cnt-photos { columns: 2; column-gap: 0.571rem; }
   .cnt-photo { margin-block-end: 0.571rem; }

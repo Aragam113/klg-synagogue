@@ -1,7 +1,7 @@
 import type { NewsItem } from '@/store/api/content';
 import type { ApiError } from '@/store/api/http';
 
-/** Лента новостей и анонсов (история 50): по 9, «Загрузить ещё». */
+/** Лента новостей и анонсов: по 9, «Загрузить ещё». */
 export interface NewsViewProps {
   items: NewsItem[];
   /** Первая загрузка — ещё нечего показать. */

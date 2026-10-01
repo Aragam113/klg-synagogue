@@ -30,7 +30,7 @@ const useBarHost = (enabled: boolean) => {
 };
 
 /**
- * «Сегодня» (task 03): date by both calendars, Kaliningrad clock, live countdown to the next candle lighting.
+ * «Сегодня»: date by both calendars, Kaliningrad clock, live countdown to the next candle lighting.
  * Header variant (>=1280px) and bar variant (under the header on inner pages, <1280px) are compact links to /schedule;
  * menu variant adds the parasha and a «Всё расписание» link.
  * Renders nothing while loading or when the API is down.

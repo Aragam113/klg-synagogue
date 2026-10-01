@@ -91,7 +91,7 @@ export const SiteHeader = () => {
         <div className="hdr__today">
           <TodayWidget variant="header" />
         </div>
-        {/* task 06: phone from /settings/public, fallback src/config/site.ts */}
+        {/* phone from /settings/public, fallback src/config/site.ts */}
         {phone ? (
           <Link href={telHref(phone)} className="hdr__icon" ariaLabel={phone}>
             <PhoneIcon />
@@ -158,7 +158,7 @@ export const SiteHeader = () => {
           <LangSwitch className="lang--light" />
         </div>
       </div>
-      {/* task 03: compact "today" bar under the header on inner pages (< 1280px) */}
+      {/* compact "today" bar under the header on inner pages (< 1280px) */}
       {pathname !== '/' ? <TodayWidget variant="bar" /> : null}
     </header>
   );

@@ -1,4 +1,4 @@
-/* Task 03: /schedule, /holidays/[key], TodayWidget. Logical properties only (RTL). */
+/* /schedule, /holidays/[key], TodayWidget. Logical properties only (RTL). */
 
 /* ---------- controls ---------- */
 .sch-controls { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1.143rem; margin-bottom: 2.286rem; }

@@ -1,4 +1,4 @@
-/* Preloader (R11.1): beige layer over everything; one thin line draws across it with a Star of David in the
+/* Preloader: beige layer over everything; one thin line draws across it with a Star of David in the
    middle (stroke-dashoffset, pathLength=1), then the layer leaves by opacity/visibility .6s. */
 .preloader {
   position: fixed;

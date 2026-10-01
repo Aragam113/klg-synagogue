@@ -49,7 +49,7 @@ export const newsPhotos = (images: NewsImage[] | undefined): Photo[] =>
     fallback: false,
   }));
 
-/** Карточка новости (история 50): обложка, дата, текст; перевод с фолбэком на ru (история 10). */
+/** Карточка новости: обложка, дата, текст; перевод с фолбэком на ru. */
 export interface NewsItemViewProps {
   item: NewsItem | undefined;
   notFound: boolean;

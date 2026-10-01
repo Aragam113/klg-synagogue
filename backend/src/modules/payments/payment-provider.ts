@@ -19,7 +19,7 @@ export interface CreatePaymentResult {
 
 export type ProviderStatus = 'pending' | 'paid' | 'canceled' | 'failed';
 
-/** Касса за интерфейсом (Решение 7). Итог оплаты — только через PaymentsService.applyNotification. */
+/** Касса за интерфейсом PaymentProvider (fake | real). Итог оплаты — только через PaymentsService.applyNotification. */
 export interface PaymentProvider {
   readonly mode: PaymentMode;
   /** Повтор с тем же paymentId даёт тот же результат (повтор запроса по Idempotency-Key). */

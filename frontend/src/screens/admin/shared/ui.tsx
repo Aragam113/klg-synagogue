@@ -17,7 +17,7 @@ import { uploadError, UPLOAD_TYPES } from './upload-model';
 export const LANG_TABS = ['ru', 'en', 'he'] as const;
 
 /**
- * Машинный ключ ошибки поля (`required`, `seats_left:3`) → текст: разбор через errorMessageKey (05),
+ * Машинный ключ ошибки поля (`required`, `seats_left:3`) → текст: разбор через errorMessageKey (`@/forms/form-model`),
  * перевод — admin:errors.*, затем common:fieldErrors.* (админка всегда на русском).
  */
 export const fieldError = (apiKey?: string | null): string | undefined => {

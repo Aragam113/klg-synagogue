@@ -19,7 +19,7 @@ export interface SettingsViewProps {
   onSave: () => void;
 }
 
-/** История 71: счётчик, тариф Кадиша, реквизиты, оператор ПДн, соцсети, телефоны шапки. */
+/** Счётчик, тариф Кадиша, реквизиты, оператор ПДн, соцсети, телефоны шапки. */
 export const SettingsView = (p: SettingsViewProps) => {
   const t = useAdminT();
   const submit = (e: FormEvent) => {

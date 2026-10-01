@@ -1,6 +1,6 @@
 import type { PaymentPurpose, PaymentStatus } from '@/store/api/payments';
 
-/** Пресеты пожертвования (история 51): кратные «хай», 18. */
+/** Пресеты пожертвования: кратные «хай», 18. */
 export const PRESETS = [180, 360, 540, 1800, 3600, 18000] as const;
 
 export const MIN_AMOUNT = 100;

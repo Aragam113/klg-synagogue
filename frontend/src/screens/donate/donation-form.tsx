@@ -21,7 +21,7 @@ export interface DonationFormProps {
 }
 
 /**
- * Payment form (stories 51, 33, 49): presets 180…18000 ₽ or own amount, once / monthly (donation only),
+ * Payment form: presets 180…18000 ₽ or own amount, once / monthly (donation only),
  * anonymously / in own name, dedication, comment, e-mail*, phone, consent → the checkout.
  */
 export const DonationForm = ({ ctx, fixed, initialAmount = 1800 }: DonationFormProps) => {

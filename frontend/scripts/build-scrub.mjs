@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Frames for the home-page synagogue scroll scene (task 08, spec R05 / «Решение 4»).
+ * Frames for the home-page synagogue scroll scene.
  *
  *   npm run build:scrub -- <video file | folder of photos> [options]
  *

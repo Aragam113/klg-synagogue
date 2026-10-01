@@ -2,7 +2,7 @@ import { type Paged } from '@/store/api/admin';
 import type { PaymentPurpose, PaymentStatus } from '@/store/api/payments';
 import { emptyApi } from '@/store/empty-api';
 
-/** Админка: платежи, ежемесячные подписки, модерация посвящений (бэкенд — таск 07). */
+/** Админка: платежи, ежемесячные подписки, модерация посвящений (бэкенд — модуль payments). */
 export interface AdminPayment {
   id: string;
   purpose: PaymentPurpose;

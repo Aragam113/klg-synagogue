@@ -1,7 +1,7 @@
 /**
- * Данные сидов контента. Каждый факт о синагоге/общине — только из
- * `.autopilot/ref/kld-content.md`; код источника — из его «Ключа источников»
- * (`// src: <код>`). Чего в источниках нет — видимая заглушка `[ВПИШИ: …]`.
+ * Данные сидов контента. Каждый факт о синагоге/общине — только с источником:
+ * `// src: <код>` — метка опубликованного источника (OF-home → `SRC.ofHome`
+ * во `frontend/src/config/site.ts`). Чего в источниках нет — видимая заглушка `[ВПИШИ: …]`.
  * Строка с телефоном, ценой, e-mail или ссылкой без `// src:` роняет
  * test/content-seed.e2e-spec.ts.
  *
@@ -25,7 +25,7 @@ export interface SeedProgram {
 
 export const PROGRAMS: SeedProgram[] = [
   {
-    // kld-content §3 «Программы»: FEOR, TL-comm
+    // Программы общины; источники — FEOR, TL-comm
     title: { ru: 'Колель Тора', en: 'Kollel Torah', he: 'כולל תורה' },
     audience: { ru: 'Для мужчин', en: 'For men', he: 'לגברים' },
     schedule: {
@@ -179,13 +179,13 @@ export interface SeedNews {
   lead: LocalizedString;
   body: LocalizedString;
   publishedAt: string;
-  /** Обложка — одно из уже засеянных Commons-фото альбомов (файл из kld-img); атрибуция дописывается в текст. */
+  /** Обложка — одно из уже засеянных Commons-фото альбомов (файл из `seed-assets/photos`); атрибуция дописывается в текст. */
   coverPhoto: string;
 }
 
 export const NEWS: SeedNews[] = [
   {
-    // kld-content §2.5; источник — GOTOV-130
+    // источник — GOTOV-130
     title: {
       ru: 'Синагога отпраздновала 130-летний юбилей',
       en: 'The synagogue celebrated its 130th anniversary',
@@ -204,7 +204,7 @@ export const NEWS: SeedNews[] = [
     coverPhoto: 'commons_Синагога_Калининград_.jpg',
   },
   {
-    // kld-content §2.5; источники — OLD-n22, WIKI, RIA, MJCC
+    // источники — OLD-n22, WIKI, RIA, MJCC
     title: {
       ru: 'Открытие синагоги 8 ноября 2018 года',
       en: 'Opening of the synagogue on 8 November 2018',
@@ -225,7 +225,7 @@ export const NEWS: SeedNews[] = [
 ];
 
 export interface SeedPhoto {
-  /** Имя файла в `.autopilot/ref/kld-img/`; лицензия и автор — из `_sources.txt`. */
+  /** Имя файла в `backend/seed-assets/photos/`; лицензия и автор — из `_sources.txt`. */
   file: string;
   caption: LocalizedString;
 }
@@ -404,7 +404,7 @@ export const ALBUMS: SeedAlbum[] = [
 export const SETTINGS: Record<string, unknown> = {
   supporters_offset: 0,
   kaddish_month_rub: null, // тариф не найден — фронт показывает заглушку
-  requisites: { ru: '[ВПИШИ: реквизиты для перевода пожертвований]' }, // kld-content §6: актуальных реквизитов НЕ НАЙДЕНО
+  requisites: { ru: '[ВПИШИ: реквизиты для перевода пожертвований]' }, // актуальные реквизиты в источниках НЕ НАЙДЕНЫ
   operator: {
     ru: '[ВПИШИ: оператор персональных данных — наименование, ИНН, адрес]',
   },

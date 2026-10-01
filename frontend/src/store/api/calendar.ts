@@ -94,7 +94,7 @@ export const calendarApi = emptyApi
           params: year ? { year } : {},
         }),
       }),
-      // админка (экран — таск 09)
+      // админка (экран /admin/schedule)
       getScheduleTemplate: b.query<ScheduleTemplate, void>({
         query: () => '/admin/schedule/template',
         providesTags: ['Schedule'],

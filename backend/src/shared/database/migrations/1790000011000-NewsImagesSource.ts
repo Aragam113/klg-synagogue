@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-/** Новости: галерея картинок поста и ссылка на исходный пост (импорт из Telegram, таск 11). */
+/** Новости: галерея картинок поста и ссылка на исходный пост (импорт из Telegram). */
 export class NewsImagesSource1790000011000 implements MigrationInterface {
   name = 'NewsImagesSource1790000011000';
 

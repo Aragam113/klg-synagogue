@@ -3,7 +3,7 @@ import type { SectionsContent } from '@/content';
 
 import { slotRange } from '../visit-shared/model';
 
-/** /visit/hours — часы синагоги, музея, столовой; Шаббат (история 41). */
+/** /visit/hours — часы синагоги, музея, столовой; Шаббат. */
 export interface HoursViewProps {
   content: SectionsContent['visit']['hours'];
   slots: readonly string[];

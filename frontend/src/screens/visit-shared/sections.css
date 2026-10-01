@@ -1,4 +1,4 @@
-/* Разделы (06): общие стили страниц «Общине», «Туристам», история, об общине, контакты, правовые. */
+/* Статические разделы: общие стили страниц «Общине», «Туристам», история, об общине, контакты, правовые. */
 .sx-hero {
   padding-block: clamp(7rem, 12vw, 10rem) clamp(4rem, 8vw, 7rem);
   overflow: hidden;
@@ -444,7 +444,7 @@ html[data-motion='on'] .sx-timeline::before {
   }
 }
 
-/* task 12: the credit is its own line under the caption; on touch the map does not swallow page scroll
+/* The credit is its own line under the caption; on touch the map does not swallow page scroll
    (the Yandex / Google / OSM buttons under it open a real map) */
 .sx-figure__cap .sx-credit { display: block; margin-top: 0.2rem; }
 @media (pointer: coarse) { .sx-map__frame { pointer-events: none; } }

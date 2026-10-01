@@ -1,7 +1,7 @@
 import type { Department } from '@/store/api/content';
 import type { ApiError } from '@/store/api/http';
 
-/** Подразделения и услуги (история 39): адрес, телефон, часы, описание. */
+/** Подразделения и услуги: адрес, телефон, часы, описание. */
 export interface DepartmentsViewProps {
   departments: Department[];
   loading: boolean;

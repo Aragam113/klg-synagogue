@@ -1,7 +1,7 @@
 import { type Paged } from '@/store/api/admin';
 import { emptyApi } from '@/store/empty-api';
 
-/** Админка: заявки, годовщины, подписчики, регистрации на события (бэкенд — таск 05). */
+/** Админка: заявки, годовщины, подписчики, регистрации на события (бэкенд — модуль requests). */
 export type RequestType =
   | 'prayer'
   | 'excursion'

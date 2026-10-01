@@ -1,6 +1,6 @@
 import type { SectionsContent } from '@/content';
 
-/** /visit — хаб «Туристам» (истории 24, R07). */
+/** /visit — хаб «Туристам». */
 export interface VisitViewProps {
   content: Pick<SectionsContent['visit'], 'hero' | 'intro' | 'cards'>;
   /** Ключи PHOTOS для галереи внизу. */

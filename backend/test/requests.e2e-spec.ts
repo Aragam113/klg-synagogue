@@ -201,7 +201,7 @@ describe('Заявки форм (e2e)', () => {
         .expect(400);
       expect(res.body.fields).toEqual({ date: 'date' });
     });
-    it('язык экскурсии — только ru/de/en (kld-content §4): he → invalid_choice', async () => {
+    it('язык экскурсии — только ru/de/en (как в источниках): he → invalid_choice', async () => {
       const res = await http
         .post(`${API}/requests/excursion`)
         .send({ ...base, language: 'he' })

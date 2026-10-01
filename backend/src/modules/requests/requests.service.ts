@@ -33,7 +33,7 @@ import {
   PatchRequestDto,
 } from './dto/admin-requests.dto';
 
-/** Экскурсию можно заказать не раньше чем через столько дней (история 43). */
+/** Экскурсию можно заказать не раньше чем через столько дней. */
 export const EXCURSION_MIN_DAYS_AHEAD = 3;
 
 interface Contact {

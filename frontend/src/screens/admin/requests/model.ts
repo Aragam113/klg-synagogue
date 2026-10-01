@@ -10,7 +10,7 @@ export const REQUEST_TYPES: RequestType[] = [
 ];
 export const REQUEST_STATUSES: RequestStatus[] = ['new', 'in_progress', 'done', 'rejected'];
 
-/** История 67: единый список заявок с фильтром по типу и статусу, карточка, заметка. */
+/** Единый список заявок с фильтром по типу и статусу, карточка, заметка. */
 export interface RequestFilters {
   type: string;
   status: string;

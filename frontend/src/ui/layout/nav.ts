@@ -1,4 +1,4 @@
-/** Main menu (story 1): Общине / Туристам / Расписание / Афиша / Новости / Поддержать. Labels: common:nav.<key>. */
+/** Main menu: Общине / Туристам / Расписание / Афиша / Новости / Поддержать. Labels: common:nav.<key>. */
 export const MAIN_NAV = [
   { key: 'community', href: '/community' },
   { key: 'visit', href: '/visit' },

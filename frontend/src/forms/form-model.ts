@@ -43,7 +43,7 @@ export function nearestYizkor(
   return best?.day ?? null;
 }
 
-/** Ранняя дата экскурсии: сегодня (Калининград) + 3 дня (история 43). */
+/** Ранняя дата экскурсии: сегодня (Калининград) + 3 дня. */
 export function minExcursionDate(now: Date): string {
   return addDays(kaliningradToday(now), 3);
 }

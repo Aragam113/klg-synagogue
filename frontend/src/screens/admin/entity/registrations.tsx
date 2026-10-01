@@ -10,7 +10,7 @@ import { fmtDateTime } from '@/utils/kld-time';
 
 const STATUSES: RegistrationStatus[] = ['new', 'confirmed', 'canceled'];
 
-/** История 72: вкладка «Регистрации» в карточке события + CSV. */
+/** Вкладка «Регистрации» в карточке события + CSV. */
 export const EventRegistrations = ({ eventId, slug }: { eventId: string; slug: string }) => {
   const t = useAdminT();
   const q = useAdminRegistrationsQuery(eventId);

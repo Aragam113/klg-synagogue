@@ -18,7 +18,7 @@ import {
 } from 'class-validator';
 import type { PaymentPurpose, PaymentStatus } from '../entities';
 
-/** Диапазон суммы, которую вводит посетитель (история 51). */
+/** Диапазон суммы, которую вводит посетитель. */
 export const MIN_AMOUNT_RUB = 100;
 export const MAX_AMOUNT_RUB = 1_000_000;
 

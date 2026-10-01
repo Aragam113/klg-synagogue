@@ -1,7 +1,7 @@
 import { emptyApi } from '@/store/empty-api';
 
 /**
- * Админка (таск 09): вход, CRUD контента, настройки, загрузка файлов.
+ * Админка: вход, CRUD контента, настройки, загрузка файлов.
  * Bearer для /admin/* ставит baseQuery; ответ 401 → экран выходит на логин (AdminGate).
  */
 export type Row = Record<string, unknown> & { id: string };

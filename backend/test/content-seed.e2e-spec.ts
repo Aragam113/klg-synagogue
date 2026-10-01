@@ -49,7 +49,7 @@ describe('Сиды контента (npm run seed)', () => {
     const museum = deps.find((d: { title: string }) =>
       d.title.includes('Музей')
     );
-    // kld-content.md §1, JM-info
+    // источник — JM-info
     expect(museum.phones).toContain('+7 921 008-25-00');
     expect(museum.email).toBe('visitor@jmkaliningrad.org');
 

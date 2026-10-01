@@ -6,7 +6,7 @@ import type { EventItem } from '@/store/api/content';
 import { Text, Title } from '@/ui/kit';
 
 /**
- * Registration on the event card (story 49), inside the `#register` anchor: free → registration only;
+ * Registration on the event card, inside the `#register` anchor: free → registration only;
  * paid → registration, then payment of today's ticket price × seats (the amount is counted by the server).
  */
 export const EventRegisterSlot = ({ event }: { event: EventItem }) => {

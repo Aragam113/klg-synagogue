@@ -1,7 +1,7 @@
 import { type Fact, SITE, SRC } from '@/config/site';
 import type { SectionsContent } from '@/content';
 
-/** /community — хаб «Общине» (история 30). */
+/** /community — хаб «Общине». */
 export interface CommunityViewProps {
   content: SectionsContent['community'];
   /** Телефон к каждому блоку «приёма» по порядку: община, секретарь. */

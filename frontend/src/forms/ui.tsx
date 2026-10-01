@@ -57,7 +57,7 @@ export const FormBanner = ({ text }: { text?: string }) =>
     </div>
   ) : null;
 
-/** Mandatory personal-data consent (story 62). Value key: `consent`. */
+/** Mandatory personal-data consent. Value key: `consent`. */
 export const ConsentField = <V extends { consent: boolean }>({ form }: { form: SubmitForm<V> }) => {
   const { t } = useLang('forms');
   return (
@@ -99,7 +99,7 @@ export const SubmitRow = ({ busy, label }: { busy: boolean; label?: string }) =>
 export const requestNumber = (id: string) => id.replace(/-/g, '').slice(0, 8).toUpperCase();
 
 /**
- * «Заявка принята» with the request number. `payment` → task 07's <PaymentSlot> below the number
+ * «Заявка принята» with the request number. `payment` → the <PaymentSlot> below the number
  * (prayers and paid events only).
  */
 export const RequestAccepted = ({

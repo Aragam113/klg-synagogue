@@ -29,7 +29,7 @@ const SOCIAL_SHORT: Record<SocialKind, string> = {
 
 export const SiteFooter = () => {
   const { t, lang } = useLang();
-  const site = useSiteContacts(); // task 06: settings first, site.ts fallback
+  const site = useSiteContacts(); // settings first, site.ts fallback
   const address = CONTACTS.address ? (CONTACTS.address[lang] ?? CONTACTS.address.ru) : null;
   return (
     <footer className="ftr tone-deep">

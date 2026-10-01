@@ -14,7 +14,7 @@ interface VolunteerValues {
   consent: boolean;
 }
 
-/** «Стать волонтёром» (story 37). */
+/** «Стать волонтёром». */
 export const VolunteerScreen = () => {
   const { t } = useLang('forms');
   const form = useSubmitForm<VolunteerValues>({

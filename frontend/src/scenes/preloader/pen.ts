@@ -1,9 +1,9 @@
 /**
  * The preloader's pen: one line from the left edge to the right one that draws a Star of David in the middle,
- * and the timing of the stroke (G09, owner's request: quick along the straight leads, slow while the star forms).
+ * and the timing of the stroke (quick along the straight leads, slow while the star forms).
  */
 
-/** Whole stroke, ms (G09: ≤ ~3.2 s); then a short hold and the layer leaves in .6 s. */
+/** Whole stroke, ms (≤ ~3.2 s); then a short hold and the layer leaves in .6 s. */
 export const DRAW_MS = 3000;
 /** How much slower the pen moves around the star than along the straight leads. */
 export const STAR_SLOWDOWN = 2.25;

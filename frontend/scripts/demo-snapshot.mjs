@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Snapshot of the public API for the GitHub Pages demo (task 16): `npm run demo:snapshot [-- <api-url>]`.
+ * Snapshot of the public API for the GitHub Pages demo: `npm run demo:snapshot [-- <api-url>]`.
  * Walks a running API (default http://localhost:3000/api/v1, or DEMO_API_URL) and writes every public GET
  * the site needs, on ru/en/he, into `public/demo-data/` (layout — `src/store/demo/demo-model.ts`).
  * Images `/media/*` referenced by the data are copied to `public/demo-data/media/` and the URLs rewritten to

@@ -1,6 +1,6 @@
 /**
- * Section texts (task 06), English. Translation of `../ru/sections.ts` — same facts, same sources
- * (see `src:` comments there and in `.autopilot/ref/kld-content.md`).
+ * Section texts, English. Translation of `../ru/sections.ts` — same facts, same sources
+ * (see the `src:` comments there).
  */
 import { SITE } from '@/config/site';
 

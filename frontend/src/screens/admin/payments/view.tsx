@@ -28,7 +28,7 @@ export interface PaymentsViewProps {
   pendingId?: string;
 }
 
-/** История 68: платежи (статус, сумма, сбор, посвящение + модерация) и ежемесячные подписки. */
+/** Платежи (статус, сумма, сбор, посвящение + модерация) и ежемесячные подписки. */
 export const PaymentsView = (p: PaymentsViewProps) => {
   const t = useAdminT();
   const any = { value: '', label: t('common.all') };

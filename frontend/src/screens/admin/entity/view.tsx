@@ -43,7 +43,7 @@ export interface EntityListViewProps {
   deleting?: string;
 }
 
-/** Список: заголовок, дата/статус, «Изменить», «Удалить»; пусто — «Создать» (история 70). */
+/** Список: заголовок, дата/статус, «Изменить», «Удалить»; пусто — «Создать». */
 export const EntityListView = (p: EntityListViewProps) => {
   const t = useAdminT();
   const base = adminBase(p.spec);

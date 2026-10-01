@@ -50,7 +50,7 @@ const Cell = ({
 );
 
 /**
- * Footer subscription (story 57): name, e-mail, «живу в Калининграде», consent → `POST /subscribe`.
+ * Footer subscription: name, e-mail, «живу в Калининграде», consent → `POST /subscribe`.
  * The server answers the same for a repeated e-mail, so the form just says «Спасибо».
  */
 export const SubscribeForm = () => {

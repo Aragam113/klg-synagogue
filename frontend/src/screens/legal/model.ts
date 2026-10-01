@@ -3,7 +3,7 @@ import type { LegalDoc } from '@/content/types';
 
 export type LegalKind = 'privacy' | 'consent';
 
-/** /privacy, /consent — правовые страницы с заглушками оператора (история 62). */
+/** /privacy, /consent — правовые страницы с заглушками оператора. */
 export interface LegalViewProps {
   kind: LegalKind;
   doc: LegalDoc;

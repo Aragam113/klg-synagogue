@@ -1,7 +1,7 @@
 /*
- * Site styles (web). Tokens = spec "Решение 12" + .autopilot/ref/halalcash-style.md.
+ * Site styles (web). Design tokens of the site come first.
  * Scroll-driven `--p` choreography is gated by html[data-motion='on'] (no reduced motion, touch included — native
- * scroll there, task 15); the pinned chapters by html[data-pin='on'] (fine pointer only: phones keep the swipe
+ * scroll there); the pinned chapters by html[data-pin='on'] (fine pointer only: phones keep the swipe
  * ribbon); cheap reveal/time animations (Reveal, marquee, hero entrance) by html[data-anim='on'] (no reduced
  * motion). Without them everything is static and visible.
  * Layout uses logical properties (inline/block) so dir=rtl mirrors it.

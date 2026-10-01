@@ -2,7 +2,7 @@ import { type Fact, SITE } from '@/config/site';
 import type { SectionsContent } from '@/content';
 import { formatRub } from '@/screens/events/content-model';
 
-/** /visit/excursions — виды, цены, правила, запись (история 43). */
+/** /visit/excursions — виды, цены, правила, запись. */
 export interface ExcursionsViewProps {
   content: SectionsContent['visit']['excursions'];
   prices: { standard: string; reduced: string; coupon: string; combo: string; walking: string };

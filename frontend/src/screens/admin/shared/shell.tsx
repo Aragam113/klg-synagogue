@@ -6,7 +6,7 @@ import { MagenDavid } from '@/ui/judaica/magen-david';
 
 import { AdmLink, useAdminGate, useAdminT } from './gate';
 
-/** Боковое меню админки (порядок — из таска 09). */
+/** Боковое меню админки (порядок пунктов задан намеренно). */
 export const ADMIN_NAV = [
   'requests',
   'yahrzeits',

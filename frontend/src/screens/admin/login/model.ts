@@ -1,4 +1,4 @@
-/** История 63: вход по email и паролю. */
+/** Вход по email и паролю. */
 export interface LoginValues {
   email: string;
   password: string;

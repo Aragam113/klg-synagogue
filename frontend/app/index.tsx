@@ -3,7 +3,7 @@ import { Preloader } from '@/scenes/preloader';
 import { HomeScreen } from '@/screens/home/model-view';
 import { Page } from '@/ui/kit';
 
-/** `/` — the home page (task 08): preloader, scroll scene of the synagogue and the live sections. */
+/** `/` — the home page: preloader, scroll scene of the synagogue and the live sections. */
 export default function Home() {
   const { t } = useLang('home');
   return (

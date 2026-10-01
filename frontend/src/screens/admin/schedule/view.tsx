@@ -44,7 +44,7 @@ export interface ScheduleViewProps {
 const times = (o: ScheduleOverride, t: (k: string) => string) =>
   SERVICES.map((s) => `${t(`service.${s}`)} ${o[s] ?? '—'}`).join(' · ');
 
-/** История 65: недельный шаблон + исключения на даты; правки видны на /schedule. */
+/** Недельный шаблон + исключения на даты; правки видны на /schedule. */
 export const ScheduleView = (p: ScheduleViewProps) => {
   const t = useAdminT();
   const submitTemplate = (e: FormEvent) => {

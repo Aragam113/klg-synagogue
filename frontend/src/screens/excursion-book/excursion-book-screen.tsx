@@ -22,7 +22,7 @@ interface ExcursionValues {
   consent: boolean;
 }
 
-/** Facts of the tour — kld-content §4 (OF-tour), see forms/facts.ts. */
+/** Facts of the tour (source OF-tour), see forms/facts.ts. */
 const ExcursionFacts = () => {
   const { t } = useLang('forms');
   const [before, after] = t('excursion.department', { phone: MARK }).split(MARK);
@@ -45,7 +45,7 @@ const ExcursionFacts = () => {
   );
 };
 
-/** Online tour booking (stories 43, 44): date ≥ today+3 (Kaliningrad), not on Shabbat/holidays (API checks). */
+/** Online tour booking: date ≥ today+3 (Kaliningrad), not on Shabbat/holidays (API checks). */
 export const ExcursionBookScreen = () => {
   const { t, lang } = useLang('forms');
   const form = useSubmitForm<ExcursionValues>({

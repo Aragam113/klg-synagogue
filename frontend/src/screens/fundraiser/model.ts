@@ -1,7 +1,7 @@
 import type { Fundraiser } from '@/store/api/content';
 import type { ApiError } from '@/store/api/http';
 
-/** /fundraisers/[slug] (story 52): goal, raised, %, supporters, text, donation into this fundraiser. */
+/** /fundraisers/[slug]: goal, raised, %, supporters, text, donation into this fundraiser. */
 export interface FundraiserViewProps {
   fundraiser: Fundraiser | undefined;
   notFound: boolean;

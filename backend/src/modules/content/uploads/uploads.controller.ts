@@ -18,7 +18,7 @@ import appConfig from '@config/app.config';
 import { AdminOnly } from '@modules/admin';
 import { ALLOWED_MIME, MAX_UPLOAD_BYTES, saveImageAsWebp } from './image';
 
-/** multer отвечает 413 на превышение лимита — по спецификации это 400 с ключом поля. */
+/** multer отвечает 413 на превышение лимита — по контракту API это 400 с ключом поля. */
 class TooLargeAs400 implements NestInterceptor {
   intercept(_ctx: ExecutionContext, next: CallHandler): Observable<unknown> {
     return next.handle().pipe(

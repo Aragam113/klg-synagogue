@@ -2,7 +2,7 @@ import { type Fact, SITE, SRC } from '@/config/site';
 import type { SectionsContent } from '@/content';
 import { formatRub } from '@/screens/events/content-model';
 
-/** /visit/museum — музей «Новая синагога» (история 45). */
+/** /visit/museum — музей «Новая синагога». */
 export interface MuseumViewProps {
   content: SectionsContent['visit']['museum'];
   aboutSrc: string;

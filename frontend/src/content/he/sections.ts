@@ -1,5 +1,5 @@
 /**
- * Section texts (task 06), Hebrew — MACHINE TRANSLATION of `../ru/sections.ts`, needs proofreading
+ * Section texts, Hebrew — MACHINE TRANSLATION of `../ru/sections.ts`, needs proofreading
  * by a native speaker (see ./README.md). Same facts and sources as the ru file.
  */
 import { SITE } from '@/config/site';

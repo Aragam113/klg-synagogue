@@ -17,14 +17,14 @@ export interface EventRegistrationFormProps {
   slug: string;
   /** Event id (for the payment slot of a paid event; the server answer wins). */
   eventId?: string;
-  /** Paid event → «Заявка принята» shows task 07's payment slot `{purpose:'event', registrationId, eventId, seats}`. */
+  /** Paid event → «Заявка принята» shows the payment slot `{purpose:'event', registrationId, eventId, seats}`. */
   isPaid?: boolean;
   /** Today's ticket price — the payment slot shows «seats × price» before checkout. */
   priceRub?: number | null;
 }
 
 /**
- * Registration for an event (story 49): name, phone, e-mail, seats, consent.
+ * Registration for an event: name, phone, e-mail, seats, consent.
  * After success — «Вы зарегистрированы» with the number; for a paid event — the payment slot below it.
  */
 export const EventRegistrationForm = ({

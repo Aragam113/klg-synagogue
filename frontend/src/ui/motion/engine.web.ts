@@ -4,8 +4,8 @@ import type { MotionEl, ProgressMode, RegisterOptions } from './engine';
 import { progressOf } from './progress';
 
 /**
- * Web scroll engine (reference: halalcash). ONE rAF writes `--p` (0..1, toFixed(4), change threshold 4e-4) into
- * registered elements. Fine pointer: Lenis (lerp .1) driven by a continuous rAF loop. Touch (task 15): NATIVE
+ * Web scroll engine. ONE rAF writes `--p` (0..1, toFixed(4), change threshold 4e-4) into
+ * registered elements. Fine pointer: Lenis (lerp .1) driven by a continuous rAF loop. Touch: NATIVE
  * scroll — no Lenis, nothing intercepts the finger; passive scroll/resize listeners schedule a single rAF.
  * IntersectionObserver switches far-away elements off and sets one-shot `data-revealed`.
  * `html[data-motion]` (scroll-driven `--p` CSS, the scroll scene) and `html[data-anim]` (Reveal, marquee, hero

@@ -1,6 +1,6 @@
 import { fromLoc, type Loc, toLoc } from '@/screens/admin/entity/entity-model';
 
-/** GET|PUT /admin/settings — snake_case ключи (история 71). */
+/** GET|PUT /admin/settings — snake_case ключи. */
 export interface AdminSettings {
   supporters_offset: number;
   kaddish_month_rub: number | null;

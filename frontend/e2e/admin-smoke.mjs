@@ -1,5 +1,5 @@
 /**
- * Smoke of the admin UI (task 09) in real Chrome:
+ * Smoke of the admin UI in real Chrome:
  *   unauthenticated /admin/news -> login; expired token -> login; login form -> back to /admin/news;
  *   create a published news item through the form -> visible on /news -> delete it from the list;
  *   a request from the public form API -> visible in /admin/requests -> status + note saved;

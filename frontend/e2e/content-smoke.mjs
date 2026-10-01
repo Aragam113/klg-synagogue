@@ -1,5 +1,5 @@
 /**
- * Smoke of content pages (task 04) in real Chrome: news -> news item, events -> event (#register),
+ * Smoke of content pages in real Chrome: news -> news item, events -> event (#register),
  * gallery -> album -> lightbox, search, empty states, he/RTL. Needs the backend with the seeded DB (`npm run seed`).
  *
  *   npm run smoke:content
@@ -155,7 +155,7 @@ try {
   await sleep(800);
   check((await count('.empty')) === 1, 'news item: 404 -> empty state');
 
-  // --- news feed "load more" + Telegram post: gallery, lightbox, source (task 11) ---
+  // --- news feed "load more" + Telegram post: gallery, lightbox, source ---
   const feed = await api('/news?limit=50');
   if (feed.data?.total > 9) {
     await open('/news?lang=ru');

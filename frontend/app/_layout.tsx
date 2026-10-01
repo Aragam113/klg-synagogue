@@ -12,7 +12,7 @@ import { ScrollProvider } from '@/ui/motion';
 
 /**
  * Root: store, fonts (non-blocking), scroll engine, public chrome (header/footer/cookie).
- * Routes are files in app/ owned by their tasks (see interfaces.md); screens live in src/screens/<name>/.
+ * Routes are thin files in app/; screens live in src/screens/<name>/.
  * Slot (not Stack) so the document itself scrolls - needed for Lenis, sticky and --p.
  */
 export default function RootLayout() {

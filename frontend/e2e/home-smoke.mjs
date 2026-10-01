@@ -1,5 +1,5 @@
 /**
- * Smoke of the home page (task 08) in real Chrome.
+ * Smoke of the home page in real Chrome.
  *
  *   npm run smoke:home            (WEB_URL=http://localhost:8121 by default; starts Expo there if it is down)
  *
@@ -66,7 +66,7 @@ const open = async (path, width, { reduced = false } = {}) => {
   page.on('console', (m) => {
     if (m.type() !== 'error') return;
     const url = m.location()?.url ?? '';
-    // GET /dedications is owned by task 07; a 404 there just hides the ribbon.
+    // GET /dedications lives in the payments module; a 404 there just hides the ribbon.
     if (url.includes('/dedications')) return;
     errors.push(`${m.text()} ${url}`.trim());
   });
@@ -96,7 +96,7 @@ const sceneY = (page, p) =>
 const frame = (page) => page.$eval('.scrub canvas', (c) => c.dataset.frame ?? null).catch(() => null);
 
 /**
- * G04: the small star next to the hero eyebrow sits on the optical centre of the caps line. Returns
+ * The small star next to the hero eyebrow sits on the optical centre of the caps line. Returns
  * {dy: star centre − cap-height centre (px), side: 'start'|'end'} — the cap centre comes from the font metrics
  * (canvas measureText of the eyebrow font) and the baseline of the text's line box.
  */
@@ -139,7 +139,7 @@ const walk = async (page, prefix) => {
 };
 
 try {
-  // Preloader: one line left → right drawing a Star of David in the middle; frames for the owner, then it leaves.
+  // Preloader: one line left → right drawing a Star of David in the middle; screenshot frames, then it leaves.
   {
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
@@ -147,7 +147,7 @@ try {
     await page.goto(`${WEB}/?lang=ru`, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await page.waitForSelector('[data-preloader] path', { timeout: 60000 });
     const t0 = Date.now();
-    // G09: quick leads, slow star (~0.4–2.6 s of the 3 s stroke at 1440×900).
+    // Pen timing: quick leads, slow star (~0.4–2.6 s of the 3 s stroke at 1440×900).
     for (const [name, at] of [['start', 250], ['middle', 900], ['star', 1500], ['star_late', 2200], ['exit', 2850]]) {
       await sleep(Math.max(0, at - (Date.now() - t0)));
       await page.screenshot({ path: join(SHOTS, `home_loader_${name}.png`) });
@@ -155,14 +155,14 @@ try {
     await page.waitForFunction(() => !document.querySelector('[data-preloader]'), { timeout: 6000 });
     check(Date.now() - t0 < 4400, 'preloader: gone within ~3.2 s + .6 s leave', `${Date.now() - t0} ms`);
     check(await page.evaluate(() => document.documentElement.dataset.appReady === 'true'), 'preloader: html[data-app-ready]');
-    // G05: the preloader shows on every load — a reload in the same tab (same session) shows it again.
+    // The preloader shows on every load — a reload in the same tab (same session) shows it again.
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
     check(
       await page.waitForSelector('[data-preloader] path', { timeout: 30000 }).then(() => true, () => false),
       'preloader: shown again after reload in the same session'
     );
     await page.waitForFunction(() => !document.querySelector('[data-preloader]'), { timeout: 6000 }).catch(() => undefined);
-    // G06: brand «Новая синагога» + «Калининград» in the logo, full name in <title>.
+    // Brand «Новая синагога» + «Калининград» in the logo, full name in <title>.
     check((await page.title()) === 'Новая синагога, Калининград', 'home <title> = full site name', await page.title());
     const logo = await page.$eval('.hdr .logo', (a) => [a.querySelector('.logo__name')?.textContent, a.querySelector('.logo__city')?.textContent]).catch(() => []);
     check(logo[0] === 'Новая синагога' && logo[1] === 'Калининград', 'header logo: name + city line', logo.join(' / '));
@@ -217,10 +217,10 @@ try {
     check(errors.length === 0, '1440: no console errors', errors.slice(0, 3).join(' | '));
     await page.close();
   }
-  // 390 touch: the scene scrubs by native scroll too (task 15), no horizontal scroll.
+  // 390 touch: the scene scrubs by native scroll too, no horizontal scroll.
   {
     const { page, errors } = await open('/?lang=ru', 390);
-    check(!!(await page.$('.scrub--live canvas[data-frames]')), '390: live scene on touch (task 15)');
+    check(!!(await page.$('.scrub--live canvas[data-frames]')), '390: live scene on touch');
     await sleep(1500);
     await checkEyebrow(page, '390 ru');
     await walk(page, 'home_390');

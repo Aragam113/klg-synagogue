@@ -1,7 +1,7 @@
 import { useLang } from '@/i18n/use-lang';
 import { Placeholder, Text, Title } from '@/ui/kit';
 
-/** «Перевод по реквизитам» (story 55): requisites from site settings, otherwise the visible placeholder. */
+/** «Перевод по реквизитам»: requisites from site settings, otherwise the visible placeholder. */
 export const Requisites = ({ requisites }: { requisites: string | null | undefined }) => {
   const { t } = useLang('payments');
   const real = requisites && !requisites.includes('[ВПИШИ') ? requisites : null;

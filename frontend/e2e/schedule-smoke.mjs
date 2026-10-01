@@ -1,5 +1,5 @@
 /**
- * Smoke of the calendar (task 03) in real Chrome: /schedule, /holidays/[key], TodayWidget. Needs the backend.
+ * Smoke of the calendar in real Chrome: /schedule, /holidays/[key], TodayWidget. Needs the backend.
  *
  *   npm run smoke:schedule
  *
@@ -220,7 +220,7 @@ try {
     check(r.oneRow && r.below && r.sw <= w, `${w}px ${lang}: header row intact, «Сегодня» bar below it`, JSON.stringify(r));
   }
   await open(page, '/', { w: 390, h: 844 });
-  check((await count(page, '.tw--bar')) === 0, 'home has no today bar (own block, task 08)');
+  check((await count(page, '.tw--bar')) === 0, 'home has no today bar (own block)');
   await open(page, '/schedule?lang=ru', { w: 390, h: 844 });
   await page.click('.hdr__burger');
   await sleep(500);

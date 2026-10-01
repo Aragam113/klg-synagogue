@@ -1,5 +1,5 @@
 /**
- * Smoke of payments (task 07) in real Chrome against the fake checkout:
+ * Smoke of payments in real Chrome against the fake checkout:
  * donation (preset, anonymous, dedication) -> /dev-pay -> «Оплатить» -> /thanks «paid», counter +1;
  * donation -> «Отменить» -> «canceled», counter unchanged; monthly -> paid -> cancel the subscription;
  * free event (created through the admin API, deleted at the end) -> registration accepted;

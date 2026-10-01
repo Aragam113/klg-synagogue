@@ -27,7 +27,7 @@ import {
 } from './model';
 import { ScheduleView } from './view';
 
-/** /admin/schedule — шаблон и исключения (эндпоинты таска 03). */
+/** /admin/schedule — шаблон и исключения (эндпоинты /admin/schedule/* модуля calendar). */
 export const ScheduleAdminScreen = () => {
   const t = useAdminT();
   const tq = useGetScheduleTemplateQuery();

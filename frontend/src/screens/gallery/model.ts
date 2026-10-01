@@ -1,7 +1,7 @@
 import type { Album } from '@/store/api/content';
 import type { ApiError } from '@/store/api/http';
 
-/** Галерея (история 48): альбомы с обложкой и числом фото. */
+/** Галерея: альбомы с обложкой и числом фото. */
 export interface GalleryViewProps {
   albums: Album[];
   loading: boolean;

@@ -1,8 +1,8 @@
 /**
- * SLOT owned by task 06: contacts for the header/footer/pages.
+ * SLOT: contacts for the header/footer/pages.
  * Editable facts (`/settings/public`: headerPhones, socials, operator, requisites) belong to the admin
- * settings; `src/config/site.ts` (every value with a source URL from kld-content.md) is only the fallback
- * while settings are empty, still placeholders, or the API is unreachable (story 71).
+ * settings; `src/config/site.ts` (every value with a source URL) is only the fallback
+ * while settings are empty, still placeholders, or the API is unreachable.
  * null = not known yet -> a visible [ВПИШИ: ...] placeholder. Labels for placeholders: common:footer.<field>.
  */
 import { MAPS, SITE } from '@/config/site';

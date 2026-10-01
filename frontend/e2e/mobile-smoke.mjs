@@ -1,5 +1,5 @@
 /**
- * Mobile smoke (task 12): phones 360/390/414 (isMobile + hasTouch), ru and he.
+ * Mobile smoke: phones 360/390/414 (isMobile + hasTouch), ru and he.
  *
  *   npm run smoke:mobile        (WEB_URL=http://localhost:8150 by default; starts Expo there if it is down)
  *   SHOT_PREFIX=m12_after       screenshot name prefix (e2e/shots/<prefix>_*.png)
@@ -8,7 +8,7 @@
  * the mobile menu is above the cookie banner; touch targets ≥ 44px (header icons, burger, menu languages,
  * close, checkbox label); the marquee moves; Reveal fires on scroll; the community chapters ribbon swipes
  * (scroll-snap, dots follow); the scene credit is one short line; with reduced motion nothing moves.
- * Task 15 (G12/G13): on touch the synagogue scene scrubs by native scroll (frame at p≈0.1 ≠ p≈0.9 and back,
+ * On touch the synagogue scene scrubs by native scroll (frame at p≈0.1 ≠ p≈0.9 and back,
  * sticky 100svh), the Dawn rosette turns by itself (two marks 3 s apart) and with scroll, the hexagram
  * background parallaxes — at 390×844 and 360×740; shots e2e/shots/g12_*.
  */
@@ -29,7 +29,7 @@ mkdirSync(SHOTS, { recursive: true });
 
 const SECTIONS = ['#hero', '.scrub', '#welcome', '#today', '#community', '#ledger', '.home-marquee', '#visit', '#events', '#funds', '#news', '#dawn'];
 
-const ONLY = process.env.G12_ONLY === '1'; // task-15 checks only (4b, 5)
+const ONLY = process.env.G12_ONLY === '1'; // touch-scene checks only (4b, 5)
 const failures = [];
 const check = (ok, what, extra = '') => {
   console.log(`${ok ? 'OK  ' : 'FAIL'} ${what}${extra ? ` (${extra})` : ''}`);
@@ -223,7 +223,7 @@ try {
     await sleep(1200);
     const b = await ty();
     check(Math.abs(a - b) > 3, '390: marquee moves', `${a} → ${b}`);
-    // G11: the phone marquee looks like the desktop one — flat, on the section background, not a gold tilted band
+    // The phone marquee looks like the desktop one — flat, on the section background, not a gold tilted band
     const look = await page.evaluate(() => {
       const m = document.querySelector('.home-marquee .marquee');
       const cs = getComputedStyle(m);
@@ -273,7 +273,7 @@ try {
     await page.close();
   }
 
-  // ---- 4b. G13 + G12 (task 15): Dawn rosette, scroll scene, parallax on phones (native scroll, real heights)
+  // ---- 4b. Dawn rosette, scroll scene, parallax on phones (native scroll, real heights)
   for (const [w, h] of [[390, 844], [360, 740]]) {
     const page = await open('/?lang=ru', w, { height: h });
     const tag = `${w}×${h}`;

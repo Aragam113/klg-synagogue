@@ -29,7 +29,7 @@ const WithPhone = ({ text, phone }: { text: string; phone: string }) => {
   );
 };
 
-/** Leaders and offices (kld-content §3) + reception hours (not found → placeholder). */
+/** Leaders and offices (sourced, from config/site.ts) + reception hours (not found → placeholder). */
 export const ReceptionFacts = () => {
   const { t, lang } = useLang('forms');
   return (
@@ -56,7 +56,7 @@ export const ReceptionFacts = () => {
   );
 };
 
-/** Name*, phone*, e-mail, topic*, text* — shared by the appointment and «ask the rabbi» (story 35). */
+/** Name*, phone*, e-mail, topic*, text* — shared by the appointment and «ask the rabbi». */
 const ContactQuestionFields = ({ form }: { form: SubmitForm<ContactQuestion> }) => {
   const { t } = useLang('forms');
   const { values: v, set, error: e } = form;

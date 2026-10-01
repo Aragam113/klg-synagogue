@@ -1,7 +1,7 @@
 import type { ApiError } from '@/store/api/http';
 import type { PaymentInfo } from '@/store/api/payments';
 
-/** /dev-pay/[id]?token (story 54): test checkout «Тестовая оплата: Оплатить / Отменить». */
+/** /dev-pay/[id]?token: test checkout «Тестовая оплата: Оплатить / Отменить». */
 export interface DevPayViewProps {
   payment: PaymentInfo | undefined;
   notFound: boolean;

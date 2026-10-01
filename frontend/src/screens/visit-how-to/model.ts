@@ -1,7 +1,7 @@
 import { MAPS, SITE, SRC } from '@/config/site';
 import type { SectionsContent } from '@/content';
 
-/** /visit/how-to-get — адрес, карта OSM, Яндекс/Google, транспорт (история 42). */
+/** /visit/how-to-get — адрес, карта OSM, Яндекс/Google, транспорт. */
 export interface HowToViewProps {
   content: SectionsContent['visit']['howTo'];
   address: string;

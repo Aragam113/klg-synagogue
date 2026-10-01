@@ -42,7 +42,7 @@ export interface HomeViewProps {
   news: { state: BlockState; items: NewsItem[] };
 }
 
-/** Marquee words (R15.5): greetings in the three languages of the site. */
+/** Marquee words: greetings in the three languages of the site. */
 const MARQUEE = [
   { text: 'Шалом' },
   { text: 'Shalom', italic: true },
@@ -150,7 +150,7 @@ const Slider = ({ children, t }: { children: React.ReactNode; t: T }) => {
   );
 };
 
-/** The home page (spec «Анимации»): 12 sections top to bottom; every section «lives» in its own way. */
+/** The home page: 12 sections top to bottom; every section «lives» in its own way. */
 export const HomeView = ({
   t,
   lang,
@@ -461,7 +461,7 @@ export const HomeView = ({
       {/* 12. Dawn */}
       <Section tone="canvas" className="home-dawn" id="dawn">
         <div className="home-dawn__rosette" aria-hidden>
-          {/* G13: the wrapper turns slowly by itself (every device), the rosette inside adds the scroll turn */}
+          {/* The wrapper turns slowly by itself (every device), the rosette inside adds the scroll turn */}
           <span className="home-dawn__spin">
             <Rosette size="min(64.286rem, 140vw)" spin={45} />
           </span>

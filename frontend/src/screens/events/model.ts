@@ -12,7 +12,7 @@ export interface EventFeed {
   onRetry: () => void;
 }
 
-/** Афиша (история 49): ближайшие события + прошедшие. */
+/** Афиша: ближайшие события + прошедшие. */
 export interface EventsViewProps {
   upcoming: EventFeed;
   past: EventFeed;

@@ -2,7 +2,7 @@ import { getContent } from '@/content';
 
 import { blockState, sceneChapters } from './home-model';
 
-describe('sceneChapters — 4 главы истории поверх сцены (R04.1)', () => {
+describe('sceneChapters — 4 главы истории поверх сцены', () => {
   it('1896 / 1938 / 2018 / Сегодня — из текстов раздела «История», без выдуманных дат', () => {
     const ch = sceneChapters(getContent('ru').history, 'Сегодня');
     expect(ch.map((c) => c.label)).toEqual(['1896', '1938', '2018', 'Сегодня']);
@@ -20,7 +20,7 @@ describe('sceneChapters — 4 главы истории поверх сцены 
     expect(ch.map((c) => c.id)).toEqual(['koenigsberg', 'opening', 'today']);
     expect(ch[2].label).toBe('Today');
   });
-  it('глава «Сегодня — дом общины»: метка «Сегодня», заголовок не повторяет метку (spec, история 13)', () => {
+  it('глава «Сегодня — дом общины»: метка «Сегодня», заголовок не повторяет метку', () => {
     const ch = sceneChapters(getContent('ru').history, 'Сегодня', {
       title: 'Дом общины',
       italic: 'общины',

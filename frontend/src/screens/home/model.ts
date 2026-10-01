@@ -4,7 +4,7 @@ import { formatDate, kaliningradNow } from '@/utils/kld-time';
 
 export * from './home-model';
 
-/** Live «Today» block of the home page (R15.3): both dates, Kaliningrad clock, countdown to the next candles. */
+/** Live «Today» block of the home page: both dates, Kaliningrad clock, countdown to the next candles. */
 export interface TodayBlock {
   gregorian: string;
   hebrew: string;
@@ -32,21 +32,21 @@ export const todayBlock = (info: TodayInfo, nowMs: number, lang: string): TodayB
 };
 
 /**
- * «Ledger» — figures of the synagogue's history (R15.4). Only facts found in `.autopilot/ref/kld-content.md`;
+ * «Ledger» — figures of the synagogue's history. Only facts with a source;
  * the captions are i18n keys `home:ledger.<id>`.
  */
 export const LEDGER = [
-  // src: kld-content §2.1 — освящение 25 августа 1896 (OLD-hist, WIKI)
+  // src: OLD-hist, WIKI — освящение 25 августа 1896
   { id: 'consecrated', value: '1896', unit: '' },
-  // src: kld-content §2.1 — высота 46 м (OLD-hist, WIKI, GAKO)
+  // src: OLD-hist, WIKI, GAKO — высота 46 м
   { id: 'height', value: '46', unit: 'm' },
-  // src: kld-content §2.2 — сожжена в ночь с 9 на 10 ноября 1938 (OLD-hist, WIKI, RIA)
+  // src: OLD-hist, WIKI, RIA — сожжена в ночь с 9 на 10 ноября 1938
   { id: 'burned', value: '1938', unit: '' },
-  // src: kld-content §2.5 — открытие 8 ноября 2018 (OLD-n22, WIKI)
+  // src: OLD-n22, WIKI — открытие 8 ноября 2018
   { id: 'reopened', value: '2018', unit: '' },
 ] as const;
 
-/** «Community life» pinned chapters (R06, R15.6): texts in `home:community.<id>`, photos from PHOTOS (06). */
+/** «Community life» pinned chapters: texts in `home:community.<id>`, photos from PHOTOS. */
 export const COMMUNITY = [
   { id: 'prayer', href: '/schedule', photo: 'facade2019' },
   { id: 'holidays', href: '/schedule', photo: 'evening2024' },
@@ -54,7 +54,7 @@ export const COMMUNITY = [
   { id: 'help', href: '/help', photo: 'orphanage2025' },
 ] as const;
 
-/** «For visitors» cards (R07): links into the visit section; texts in `home:visit.<id>`. */
+/** «For visitors» cards: links into the visit section; texts in `home:visit.<id>`. */
 export const VISIT = [
   { id: 'hours', href: '/visit/hours', photo: 'facade2019b' },
   { id: 'howTo', href: '/visit/how-to-get', photo: 'eve2018' },

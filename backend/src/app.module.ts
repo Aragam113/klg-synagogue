@@ -11,7 +11,7 @@ import { RequestsModule } from './modules/requests';
 import { PaymentsModule } from './modules/payments';
 
 // Redis, очереди, почта, nestjs-i18n и FileStorage шаблона намеренно не подключены
-// (решение 10 спецификации): писем нет, файлы — локальный диск /media.
+// по замыслу: писем нет, файлы — локальный диск /media.
 @Module({
   imports: [
     ConfigModule.forRoot({

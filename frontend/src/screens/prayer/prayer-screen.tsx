@@ -34,7 +34,7 @@ interface PrayerValues {
   consent: boolean;
 }
 
-/** Only the fields of the chosen prayer go to the API (story 33). */
+/** Only the fields of the chosen prayer go to the API. */
 const FIELDS_OF: Record<PrayerType, (keyof PrayerValues)[]> = {
   misheberah: ['forName', 'motherName', 'times'],
   kaddish: ['deceasedName', 'fatherName', 'deathDate', 'months', 'remind'],

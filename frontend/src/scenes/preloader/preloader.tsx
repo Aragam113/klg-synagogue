@@ -8,7 +8,7 @@ import './styles';
 export { DRAW_MS, penKeyframes, starLinePath } from './pen';
 
 /**
- * sessionStorage key the preloader used to skip repeat visits. Since task 10 (G05, owner's request) the preloader
+ * sessionStorage key the preloader used to skip repeat visits. Now the preloader
  * shows on every load/reload; the key is no longer written or read and stays exported only for compatibility.
  */
 export const PRELOADER_KEY = 'synagogue.preloaded';
@@ -20,10 +20,10 @@ const ready = () => {
 };
 
 /**
- * Preloader (R11.1, changed by the owner): a single thin line runs left to right and, in the middle, draws
+ * Preloader: a single thin line runs left to right and, in the middle, draws
  * a Star of David in the same stroke (stroke-dashoffset), then the layer leaves in .6s. The pen is quick on
- * the straight leads and slows down ~2.25× while the star forms (G09; Web Animations keyframes from
- * penKeyframes). ~3.15 s to ready; shown on every load and reload (G05), skipped only with reduced motion
+ * the straight leads and slows down ~2.25× while the star forms (Web Animations keyframes from
+ * penKeyframes). ~3.15 s to ready; shown on every load and reload, skipped only with reduced motion
  * (shown on touch devices too). Sets html[data-app-ready] when done — the hero animations wait for it.
  */
 export const Preloader = () => {

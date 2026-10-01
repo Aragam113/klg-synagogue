@@ -76,7 +76,7 @@ const PhotoRow = ({ row }: { row: Row }) => {
   );
 };
 
-/** Фото альбома: загрузка, подписи, атрибуция (история 66). */
+/** Фото альбома: загрузка, подписи, атрибуция. */
 export const AlbumPhotos = ({ albumId }: { albumId: string }) => {
   const t = useAdminT();
   const q = useAdminListQuery({ path: 'photos', albumId, limit: 50 });

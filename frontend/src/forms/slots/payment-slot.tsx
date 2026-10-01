@@ -6,7 +6,7 @@ import { useGetPublicSettingsQuery } from '@/store/api/content';
 import { Title } from '@/ui/kit';
 
 /**
- * Payment block under «Заявка принята» (task 07):
+ * Payment block under «Заявка принята»:
  *   - prayer request → `{purpose:'prayer', requestId, prayerType, months?}` — optional donation;
  *     Kaddish with a tariff in settings → amount = months × tariff (the server counts it again);
  *   - paid event registration → `{purpose:'event', registrationId, eventId, seats}` — the server takes

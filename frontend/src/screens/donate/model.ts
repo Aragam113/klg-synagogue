@@ -1,7 +1,7 @@
 import type { Fundraiser } from '@/store/api/content';
 import type { ApiError } from '@/store/api/http';
 
-/** /donate (stories 51, 53, 55, 26): form, counter, active fundraisers, dedications ticker, requisites. */
+/** /donate: form, counter, active fundraisers, dedications ticker, requisites. */
 export interface DonateViewProps {
   supportersCount: number | null;
   requisites: string | null | undefined;

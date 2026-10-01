@@ -1,5 +1,5 @@
 /**
- * GitHub Pages demo build (task 16): `EXPO_PUBLIC_DEMO=1 npx expo export -p web`.
+ * GitHub Pages demo build: `EXPO_PUBLIC_DEMO=1 npx expo export -p web`.
  * The API is answered from the static snapshot `public/demo-data/` (see `src/store/demo/`), forms send nothing,
  * the site lives under `experiments.baseUrl` (`/klg-synagogue`, set by app.config.js only for this build).
  * Ordinary dev/prod builds: IS_DEMO=false, BASE_PATH=''.

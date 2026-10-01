@@ -20,7 +20,7 @@ interface HelpValues {
   consent: boolean;
 }
 
-/** «Обратиться за помощью» — fields as on jeps §9 (story 36). */
+/** «Обратиться за помощью» — the help-request form. */
 export const HelpScreen = () => {
   const { t } = useLang('forms');
   const form = useSubmitForm<HelpValues>({

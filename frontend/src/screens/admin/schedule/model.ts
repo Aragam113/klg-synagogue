@@ -1,7 +1,7 @@
 import { fromLoc, type Loc, toLoc } from '@/screens/admin/entity/entity-model';
 import type { ScheduleOverride, ScheduleTemplate, ServiceTimes } from '@/store/api/calendar';
 
-/** История 65: недельный шаблон (будни / пятница / Шаббат) + исключения на даты. */
+/** Недельный шаблон (будни / пятница / Шаббат) + исключения на даты. */
 export const SERVICES = ['shacharit', 'mincha', 'maariv'] as const;
 export const DAY_KINDS = ['weekday', 'friday', 'shabbat'] as const;
 export type Service = (typeof SERVICES)[number];

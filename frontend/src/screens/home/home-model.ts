@@ -1,7 +1,7 @@
 import type { SectionsContent } from '@/content';
 
 /**
- * Pure model of the home page (task 08): what goes into the scroll scene and the live sections, and how
+ * Pure model of the home page: what goes into the scroll scene and the live sections, and how
  * API answers (loading / error / empty) turn into what a section shows. The view only renders this.
  */
 
@@ -16,7 +16,7 @@ export interface SceneChapter {
   text: string;
 }
 
-/** Chapters of the scene, in order; ids of `getContent(lang).history.chapters` (texts from kld-content). */
+/** Chapters of the scene, in order; ids of `getContent(lang).history.chapters` (sourced texts). */
 export const SCENE_CHAPTERS = ['koenigsberg', 'kristallnacht', 'opening', 'today'] as const;
 
 /** The year a chapter is known by: last 4-digit year of its label ('1894–1896' → '1896'). */

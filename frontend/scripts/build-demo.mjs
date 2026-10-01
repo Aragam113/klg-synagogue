@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * GitHub Pages demo build (task 16): `npm run build:demo` =
+ * GitHub Pages demo build: `npm run build:demo` =
  * `EXPO_PUBLIC_DEMO=1 npx expo export -p web` + SPA fallback `dist/404.html` (copy of index.html) + `dist/.nojekyll`.
  * Needs no backend: the API is answered from the committed snapshot `public/demo-data/` (`npm run demo:snapshot`).
  */

@@ -1,7 +1,7 @@
 /**
- * R20i «ни одного выдуманного факта»: в статических текстах (src/content) и в src/config/site.ts
+ * «Ни одного выдуманного факта»: в статических текстах (src/content) и в src/config/site.ts
  * каждый телефон / e-mail / цена стоит рядом (та же строка или соседняя) с источником `src:`,
- * петербургских фактов (образец jeps) нет; шапка и подвал берут контакты из site.ts.
+ * чужих (петербургских) фактов нет; шапка и подвал берут контакты из site.ts.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -33,7 +33,7 @@ describe('facts in static content have a source', () => {
     expect(unsourced).toEqual([]);
   });
 
-  it('has no St. Petersburg facts from the jeps sample', () => {
+  it('has no St. Petersburg facts', () => {
     const spb =
       /812|Лермонтовск|Петербург|Певзнер|Lermontov|Petersburg|Pevzner|פטרבורג|Лехаим|Малон/;
     const hits = files.filter((f) => spb.test(readFileSync(f, 'utf8')));
@@ -43,7 +43,7 @@ describe('facts in static content have a source', () => {
 
 describe('layout contacts come from site.ts', () => {
   it('fills the header/footer slot with the address, phone and e-mail of the community', () => {
-    // kld-content §1: адрес и телефон/e-mail общины (OF-home 2026, FEOR).
+    // Адрес и телефон/e-mail общины (OF-home 2026, FEOR).
     expect(CONTACTS.address?.ru).toBe('236006, Калининград, ул. Октябрьская, 1А');
     expect(CONTACTS.phone).toBe('+7 (4012) 46-43-45');
     expect(CONTACTS.email).toBe('Kaliningrad@feor.ru');

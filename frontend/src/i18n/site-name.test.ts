@@ -9,7 +9,7 @@ import en from './locales/en/common.json';
 import he from './locales/he/common.json';
 import ru from './locales/ru/common.json';
 
-/** Brand from the owner (task 10, G06): «Новая синагога», in full «Новая синагога, Калининград». */
+/** Site brand: «Новая синагога», in full «Новая синагога, Калининград». */
 const make = async () => {
   const i = i18next.createInstance();
   await i.init({

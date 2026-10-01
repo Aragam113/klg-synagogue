@@ -130,7 +130,7 @@ const isPrayer =
   (o: PrayerRequestDto) =>
     types.includes(o.prayerType);
 
-/** Заказ молитвы (история 33): общий блок заказчика + поля по виду молитвы. */
+/** Заказ молитвы: общий блок заказчика + поля по виду молитвы. */
 export class PrayerRequestDto {
   @ApiProperty({ enum: PRAYER_TYPES })
   @IsIn(PRAYER_TYPES)
@@ -174,15 +174,15 @@ export class PrayerRequestDto {
   @Consent() consent: boolean;
 }
 
-/** Виды экскурсий из kld-content §4 (OF-tour): по расписанию и индивидуальная. */
+/** Виды экскурсий (источник OF-tour): по расписанию и индивидуальная. */
 export const EXCURSION_KINDS = ['scheduled', 'individual'] as const;
 /**
- * Языки экскурсий — kld-content §4 (VK-mus: «на русском, немецком и английском»).
+ * Языки экскурсий (источник VK-mus: «на русском, немецком и английском»).
  * Зеркалит frontend/src/forms/facts.ts → EXCURSION.languages: меняешь здесь — поменяй и там.
  */
 export const EXCURSION_LANGS = ['ru', 'de', 'en'] as const;
 /**
- * Начала экскурсий по расписанию — kld-content §4 (OF-tour, снимок 16.06.2026).
+ * Начала экскурсий по расписанию (источник OF-tour, снимок 16.06.2026).
  * Зеркалит frontend/src/forms/facts.ts → EXCURSION.times: меняешь здесь — поменяй и там.
  */
 export const EXCURSION_TIMES = [
@@ -197,7 +197,7 @@ export const EXCURSION_TIMES = [
   '19:00',
 ] as const;
 
-/** Запись на экскурсию (история 44). */
+/** Запись на экскурсию. */
 export class ExcursionRequestDto {
   @RequiredText(200) name: string;
   @RequiredPhone() phone: string;
@@ -227,7 +227,7 @@ export class ExcursionRequestDto {
 
 export const APPOINTMENT_TO = ['rabbi', 'chairman'] as const;
 
-/** Вопрос раввину (история 35). */
+/** Вопрос раввину. */
 export class RabbiQuestionDto {
   @RequiredText(200) name: string;
   @RequiredPhone() phone: string;
@@ -237,7 +237,7 @@ export class RabbiQuestionDto {
   @Consent() consent: boolean;
 }
 
-/** Запись на приём к раввину или руководителю общины (история 35). */
+/** Запись на приём к раввину или руководителю общины. */
 export class AppointmentRequestDto extends RabbiQuestionDto {
   @ApiProperty({ enum: APPOINTMENT_TO })
   @IsIn(APPOINTMENT_TO)
@@ -252,7 +252,7 @@ export const HELP_KINDS = [
 ] as const;
 export const ROOTS = ['both', 'mother', 'father', 'no'] as const;
 
-/** Обращение за помощью (история 36, поля как на jeps §9). */
+/** Обращение за помощью: вид помощи, корни, контакты, описание. */
 export class HelpRequestDto {
   @IsIn(HELP_KINDS) kind: (typeof HELP_KINDS)[number];
   @RequiredText(200) fullName: string;
@@ -280,7 +280,7 @@ export const VOLUNTEER_AREAS = [
   'other',
 ] as const;
 
-/** Анкета волонтёра (история 37). */
+/** Анкета волонтёра. */
 export class VolunteerRequestDto {
   @RequiredText(200) name: string;
   @RequiredPhone() phone: string;
@@ -296,7 +296,7 @@ export class VolunteerRequestDto {
   @Consent() consent: boolean;
 }
 
-/** Регистрация на событие (история 49). */
+/** Регистрация на событие. */
 export class EventRegistrationDto {
   @RequiredText(200) name: string;
   @RequiredPhone() phone: string;
@@ -305,7 +305,7 @@ export class EventRegistrationDto {
   @Consent() consent: boolean;
 }
 
-/** Подписка на рассылку (история 57). */
+/** Подписка на рассылку. */
 export class SubscribeDto {
   @RequiredText(200) name: string;
   @RequiredEmail() email: string;

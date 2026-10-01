@@ -1,5 +1,5 @@
 /**
- * Smoke of the task-06 zone (sections) in real Chrome: every page × ru/en/he × 1440/390.
+ * Smoke of the static sections in real Chrome: every page × ru/en/he × 1440/390.
  *
  *   npm run smoke:sections            (WEB_URL=http://localhost:8096 for another port)
  *
@@ -125,7 +125,7 @@ try {
           title: document.title,
           old: /Синагога Калининграда|Kaliningrad Synagogue/.test(document.querySelector('.hdr')?.textContent ?? ''),
         }));
-        // G06 (task 10): "<page> — Новая синагога, Калининград"; the header never shows the old name.
+        // Page title: "<page> — Новая синагога, Калининград"; the header never shows the old name.
         const FULL = { ru: 'Новая синагога, Калининград', en: 'New Synagogue, Kaliningrad', he: 'בית הכנסת החדש, קלינינגרד' }[lang];
         check(top.title.endsWith(` — ${FULL}`), `${tag}: <title> ends with the full site name`, top.title);
         check(!top.old, `${tag}: no old site name in the header`);

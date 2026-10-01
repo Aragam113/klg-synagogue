@@ -1,4 +1,4 @@
-/** Task 06: contacts for the current language — `/settings/public` first, `src/config/site.ts` as fallback. */
+/** Contacts for the current language — `/settings/public` first, `src/config/site.ts` as fallback. */
 import { useLang } from '@/i18n/use-lang';
 import { useGetPublicSettingsQuery } from '@/store/api/content';
 
