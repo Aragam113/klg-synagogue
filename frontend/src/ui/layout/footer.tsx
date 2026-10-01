@@ -5,8 +5,9 @@ import { Link } from '@/ui/kit/link';
 
 import { Logo } from './header';
 import { FOOTER_COLUMNS } from './nav';
-import { CONTACTS, type SocialKind, SOCIALS } from './slots/contacts';
+import { CONTACTS, type SocialKind } from './slots/contacts';
 import { SubscribeForm } from './slots/subscribe-form';
+import { useSiteContacts } from './slots/use-site-contacts';
 
 const SOCIAL_LABEL: Record<SocialKind, string> = {
   telegram: 'Telegram',
@@ -27,6 +28,7 @@ const SOCIAL_SHORT: Record<SocialKind, string> = {
 
 export const SiteFooter = () => {
   const { t, lang } = useLang();
+  const site = useSiteContacts(); // task 06: settings first, site.ts fallback
   const address = CONTACTS.address ? (CONTACTS.address[lang] ?? CONTACTS.address.ru) : null;
   return (
     <footer className="ftr tone-deep">
@@ -43,10 +45,8 @@ export const SiteFooter = () => {
               </span>
               <span>
                 <b>{t('footer.phone')}</b>{' '}
-                {CONTACTS.phone ? (
-                  <Link href={`tel:${CONTACTS.phone.replace(/[^+\d]/g, '')}`}>
-                    {CONTACTS.phone}
-                  </Link>
+                {site.phone ? (
+                  <Link href={`tel:${site.phone.replace(/[^+\d]/g, '')}`}>{site.phone}</Link>
                 ) : (
                   <Placeholder>{t('footer.phone')}</Placeholder>
                 )}
@@ -81,7 +81,7 @@ export const SiteFooter = () => {
         </div>
         <div className="ftr__bottom">
           <div className="ftr__socials" aria-label={t('footer.social')}>
-            {SOCIALS.map((s) =>
+            {site.socials.map((s) =>
               s.url ? (
                 <Link key={s.kind} href={s.url} className="social" ariaLabel={SOCIAL_LABEL[s.kind]}>
                   {SOCIAL_SHORT[s.kind]}

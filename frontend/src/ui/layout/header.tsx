@@ -1,6 +1,7 @@
 import { usePathname } from 'expo-router';
 import { useEffect, useState } from 'react';
 
+import { telHref } from '@/config/site';
 import { useLang } from '@/i18n/use-lang';
 import { MagenDavid } from '@/ui/judaica/magen-david';
 import { Link } from '@/ui/kit/link';
@@ -9,6 +10,7 @@ import { lockScroll } from '@/ui/motion/engine';
 import { LangSwitch } from './lang-switch';
 import { isActivePath, MAIN_NAV } from './nav';
 import { TodayWidget } from './slots/today-widget';
+import { useSiteContacts } from './slots/use-site-contacts';
 
 export const Logo = ({ light }: { light?: boolean }) => {
   const { t } = useLang();
@@ -35,11 +37,29 @@ const SearchIcon = () => (
   </svg>
 );
 
+const PhoneIcon = () => (
+  <svg
+    width="1.25em"
+    height="1.25em"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.6}
+    aria-hidden
+  >
+    <path
+      d="M5 4h3.5l1.6 4-2.1 1.3a11 11 0 0 0 6.7 6.7l1.3-2.1 4 1.6V19a1.5 1.5 0 0 1-1.5 1.5A16.5 16.5 0 0 1 3.5 5.5 1.5 1.5 0 0 1 5 4Z"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 /** Site header: logo, main menu, today slot, search, language, full-screen mobile menu. */
 export const SiteHeader = () => {
   const { t } = useLang();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { phone } = useSiteContacts();
   useEffect(() => setOpen(false), [pathname]);
   useEffect(() => {
     lockScroll(open);
@@ -68,6 +88,12 @@ export const SiteHeader = () => {
         <div className="hdr__today">
           <TodayWidget variant="header" />
         </div>
+        {/* task 06: phone from /settings/public, fallback src/config/site.ts */}
+        {phone ? (
+          <Link href={telHref(phone)} className="hdr__icon" ariaLabel={phone}>
+            <PhoneIcon />
+          </Link>
+        ) : null}
         <Link href="/search" className="hdr__icon" ariaLabel={t('nav.search')}>
           <SearchIcon />
         </Link>
@@ -118,6 +144,11 @@ export const SiteHeader = () => {
         </nav>
         <div className="mnav__bottom">
           <TodayWidget variant="menu" />
+          {phone ? (
+            <Link href={telHref(phone)} className="mnav__search" onClick={() => setOpen(false)}>
+              <PhoneIcon /> <span dir="ltr">{phone}</span>
+            </Link>
+          ) : null}
           <Link href="/search" className="mnav__search" onClick={() => setOpen(false)}>
             <SearchIcon /> {t('nav.search')}
           </Link>
