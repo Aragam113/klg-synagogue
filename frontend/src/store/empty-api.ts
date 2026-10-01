@@ -2,6 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { BaseQueryFn, FetchArgs } from '@reduxjs/toolkit/query/react';
 import i18next from 'i18next';
 
+import { reportAdminResponse } from '@/store/api/admin-auth';
 import { getAdminToken } from '@/store/api/admin-token';
 import { type ApiError, isAdminUrl, toApiError, unwrapData, withLang } from '@/store/api/http';
 
@@ -30,6 +31,7 @@ export const baseQuery: BaseQueryFn<string | FetchArgs, unknown, ApiError> = asy
       };
   }
   const result = await rawBaseQuery(req, api, extra);
+  reportAdminResponse(args, result.meta?.response?.status);
   if (result.error) return { error: toApiError(result.error), meta: result.meta };
   return { data: unwrapData(result.data), meta: result.meta };
 };

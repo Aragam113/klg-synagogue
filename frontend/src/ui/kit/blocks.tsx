@@ -58,9 +58,12 @@ export const Card = ({
 export const ErrorBox = ({
   error,
   onRetry,
+  retryLabel,
 }: {
   error?: ApiError | string | null;
   onRetry?: () => void;
+  /** Текст кнопки повтора, если он не из языка сайта (админка — всегда ru). */
+  retryLabel?: string;
 }) => {
   const { t } = useLang();
   if (!error) return null;
@@ -70,7 +73,7 @@ export const ErrorBox = ({
       <p>{text}</p>
       {onRetry ? (
         <Button variant="ghost" onPress={onRetry}>
-          {t('errors.retry')}
+          {retryLabel ?? t('errors.retry')}
         </Button>
       ) : null}
     </div>
