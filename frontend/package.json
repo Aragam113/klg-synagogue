@@ -14,7 +14,11 @@
     "codegen": "ts-node -P scripts/tsconfig.codegen.json scripts/generate-api.ts",
     "codegen:format": "ts-node -P scripts/tsconfig.codegen.json scripts/generate-api.ts && npm run format",
     "test": "jest",
-    "smoke": "node e2e/smoke.mjs"
+    "smoke": "node e2e/smoke.mjs",
+    "smoke:schedule": "node e2e/schedule-smoke.mjs",
+    "smoke:content": "node e2e/content-smoke.mjs",
+    "smoke:forms": "node e2e/forms-smoke.mjs",
+    "smoke:sections": "node e2e/sections-smoke.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/frank-ruhl-libre": "^0.4.1",
