@@ -1,0 +1,23 @@
+{
+  "isNotEmpty": "Поле {property} не должно быть пустым",
+  "isString": "Поле {property} должно быть строкой",
+  "isEmail": "Поле {property} должно быть корректным email",
+  "isInt": "Поле {property} должно быть целым числом",
+  "isNumber": "Поле {property} должно быть числом",
+  "isBoolean": "Поле {property} должно быть true или false",
+  "isDate": "Поле {property} должно быть корректной датой",
+  "isArray": "Поле {property} должно быть массивом",
+  "isEnum": "Поле {property} должно быть одним из: {constraints}",
+  "isUUID": "Поле {property} должно быть корректным UUID",
+  "isUrl": "Поле {property} должно быть корректным URL",
+  "minLength": "Поле {property} должно содержать минимум {constraints} символов",
+  "maxLength": "Поле {property} должно содержать максимум {constraints} символов",
+  "min": "Поле {property} должно быть не меньше {constraints}",
+  "max": "Поле {property} должно быть не больше {constraints}",
+  "matches": "Неверный формат поля {property}",
+  "arrayMinSize": "Поле {property} должно содержать минимум {constraints} элементов",
+  "arrayMaxSize": "Поле {property} должно содержать максимум {constraints} элементов",
+  "isPositive": "Поле {property} должно быть положительным числом",
+  "isIn": "Поле {property} должно быть одним из допустимых значений",
+  "password": "Пароль должен содержать минимум 6 символов"
+}

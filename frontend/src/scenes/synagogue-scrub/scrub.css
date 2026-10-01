@@ -1,0 +1,77 @@
+/*
+ * Synagogue scroll scene. Runway = (chapters + 1) x 100svh, sticky 100svh viewport.
+ * Choreography from --p (written by the scroll engine, mode 'pin'), same maths as .pinned in site.css.
+ * Static (reduced motion only — touch scrubs too): poster frame on top, chapters below it.
+ */
+.scrub { position: relative; background: var(--deeper); color: var(--light); }
+.scrub__sticky { position: relative; overflow: clip; }
+.scrub__media { position: relative; aspect-ratio: 16 / 9; background: var(--deeper); }
+.scrub__canvas, .scrub__poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.scrub__fallback { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 60%, #2f4a56 0%, var(--deeper) 70%); }
+.scrub__shade { position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, #15242b33 0%, #15242b00 30%, #15242b00 50%, #15242bcc 100%); }
+.scrub__progress, .scrub__counter { display: none; }
+.scrub__chapters { list-style: none; margin: 0; padding: 2.857rem var(--gutter) 4.286rem; display: grid; gap: 2.857rem; }
+.scrub__chapter { max-width: 40rem; }
+.scrub__year { display: block; font-family: var(--f-display); font-size: 3.429rem; line-height: 1; color: transparent;
+  -webkit-text-stroke: 1px var(--gold); margin-bottom: .857rem; }
+.scrub__chapter .title { color: var(--light); margin: 0 0 .857rem; }
+.scrub__text { color: var(--light-80); font-size: 1.143rem; line-height: 1.55; margin: 0; }
+.scrub__credits { position: absolute; inset-block-start: .857rem; inset-inline-end: var(--gutter); margin: 0; z-index: 3;
+  font-size: max(11px, .714rem); line-height: 1.5; letter-spacing: .02em; color: var(--light-80); background: #15242b8c;
+  padding: .143rem .571rem; border-radius: var(--r-pill); max-width: calc(100% - 2 * var(--gutter));
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+html[data-motion='on'] .scrub--live { height: calc(100svh * (var(--chapters) + 1)); }
+html[data-motion='on'] .scrub--live .scrub__sticky { position: sticky; top: 0; height: 100svh; }
+html[data-motion='on'] .scrub--live .scrub__media { position: absolute; inset: 0; aspect-ratio: auto;
+  transform: scale(calc(1.08 - var(--p) * .08)); transform-origin: 50% 60%; }
+html[data-motion='on'] .scrub--live .scrub__progress { display: block; position: absolute; z-index: 3;
+  inset-inline: var(--gutter); inset-block-end: 2.143rem; height: 1px; background: var(--light-30); }
+html[data-motion='on'] .scrub--live .scrub__progress::after { content: ''; position: absolute; inset: 0; background: var(--gold);
+  transform: scaleX(var(--p)); transform-origin: left; }
+[dir='rtl'] .scrub__progress::after { transform-origin: right !important; }
+html[data-motion='on'] .scrub--live .scrub__counter { display: flex; gap: .429rem; align-items: baseline; position: absolute; z-index: 3;
+  inset-inline-end: var(--gutter); inset-block-end: 3.143rem; font-family: var(--f-ui-md); font-size: .857rem; color: var(--light); }
+.scrub__total { color: var(--light-60); }
+html[data-motion='on'] .scrub--live .scrub__chapters { position: absolute; z-index: 2; inset-inline-start: var(--gutter);
+  inset-block-end: 5.714rem; padding: 0; display: block; width: min(40rem, calc(100% - 2 * var(--gutter))); height: 22rem; }
+html[data-motion='on'] .scrub--live .scrub__chapter {
+  position: absolute; inset-inline: 0; bottom: 0;
+  --local: clamp(0, calc(var(--p) * var(--chapters) - var(--i)), 1);
+  --in: clamp(0, calc(var(--local) / .2), 1);
+  --out: clamp(0, calc((var(--local) - .78) / .22), 1);
+  opacity: calc(var(--in) - var(--out));
+  transform: translateY(calc((1 - var(--in)) * 3.143rem - var(--out) * 3.143rem));
+  filter: blur(calc((1 - var(--in) + var(--out)) * .3rem));
+}
+html[data-motion='on'] .scrub--live .scrub__chapter:first-child { --in: 1; }
+html[data-motion='on'] .scrub--live .scrub__chapter:last-child { --out: 0; }
+html[data-motion='on'] .scrub--live .scrub__chapter[data-current='false'] { pointer-events: none; }
+/* Scrim under the chapter text: the frames are bright daylight renders, white text needs a dark side. */
+html[data-motion='on'] .scrub--live .scrub__shade { background:
+  linear-gradient(180deg, #15242b40 0%, #15242b00 25%, #15242b00 45%, #15242be0 100%),
+  linear-gradient(90deg, #15242bb8 0%, #15242b66 35%, #15242b00 60%); }
+html[dir='rtl'][data-motion='on'] .scrub--live .scrub__shade { background:
+  linear-gradient(180deg, #15242b40 0%, #15242b00 25%, #15242b00 45%, #15242be0 100%),
+  linear-gradient(270deg, #15242bb8 0%, #15242b66 35%, #15242b00 60%); }
+html[data-motion='on'] .scrub--live .scrub__year { font-size: 7.143rem; text-shadow: 0 0 2rem #15242b80; }
+html[data-motion='on'] .scrub--live .scrub__text { text-shadow: 0 1px .6rem #15242bcc; }
+/* Phones: the live scene scrubs on touch too — smaller year, no blur filter (cheap compositing) */
+@media (max-width: 599px) {
+  html[data-motion='on'] .scrub--live .scrub__year { font-size: 4.571rem; }
+}
+@media (pointer: coarse) {
+  html[data-motion='on'] .scrub--live .scrub__chapter { filter: none; }
+}
+@media (min-width: 1440px) {
+  html[data-motion='on'] .scrub--live .scrub__chapters { inset-inline-start: calc((100vw - var(--container)) / 2); }
+}
+
+/* Reduced motion (touch is live): the chapters under the poster are a swipe ribbon */
+.scrub--static .scrub__dots { padding-top: 1rem; --fg-mute: var(--light-60); }
+.scrub--static .scrub__chapters[data-ribbon] { display: flex; gap: 0; padding: 1.429rem 0 4.286rem; overflow-x: auto;
+  scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
+.scrub--static .scrub__chapters[data-ribbon]::-webkit-scrollbar { display: none; }
+.scrub--static .scrub__chapters[data-ribbon] > .scrub__chapter { flex: 0 0 100%; max-width: none; min-width: 0;
+  padding-inline: var(--gutter); scroll-snap-align: start; scroll-snap-stop: always; }

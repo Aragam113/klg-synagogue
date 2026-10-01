@@ -1,0 +1,25 @@
+{
+  "auth": {
+    "invalidCredentials": "Неверный email или пароль",
+    "emailAlreadyExists": "Email уже зарегистрирован",
+    "userNotFound": "Пользователь с указанным email не найден",
+    "invalidCode": "Неверный или просроченный код",
+    "codeSent": "Код подтверждения отправлен на вашу почту",
+    "codeSentRecently": "Подождите перед повторной отправкой кода",
+    "tokenExpired": "Токен истёк",
+    "tokenInvalid": "Неверный токен",
+    "unauthorized": "Требуется авторизация"
+  },
+  "file": {
+    "required": "Файл обязателен",
+    "tooLarge": "Файл слишком большой. Максимальный размер 5MB",
+    "invalidFormat": "Неверный формат файла"
+  },
+  "common": {
+    "internalError": "Внутренняя ошибка сервера",
+    "badRequest": "Некорректный запрос",
+    "notFound": "Ресурс не найден",
+    "forbidden": "Доступ запрещён",
+    "tooManyRequests": "Слишком много запросов, попробуйте позже"
+  }
+}

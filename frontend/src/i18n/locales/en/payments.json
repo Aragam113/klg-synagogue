@@ -1,0 +1,103 @@
+{
+  "purpose": {
+    "donation": "Donation",
+    "prayer": "Donation for a prayer",
+    "event": "Event ticket"
+  },
+  "donate": {
+    "pageTitle": "Support the community",
+    "eyebrow": "Tzedakah",
+    "title": "Support the community",
+    "italic": "community",
+    "lead": "Every donation helps the synagogue: prayers, holidays, classes and help for those in need. Give once or monthly, in your own name or anonymously.",
+    "counter_one": "The community has been supported {{count}} time",
+    "counter_other": "The community has been supported {{count}} times",
+    "fundraisers": "Fundraisers for specific goals",
+    "dedications": "Dedications",
+    "dedicationsEmpty": "Dedications appear here after an editor reviews them",
+    "anonymous": "Anonymous",
+    "testMode": "Payments run in test mode: no real money is charged."
+  },
+  "form": {
+    "title": "Donation amount",
+    "presets": "Choose an amount",
+    "amount": "Your amount, ₽",
+    "amountHint": "From 100 to 1,000,000 ₽",
+    "once": "One time",
+    "monthly": "Monthly",
+    "monthlyNote": "A monthly donation can be cancelled at any time with the link on the “Thank you” page.",
+    "who": "Donate as",
+    "named": "In my name",
+    "anonymous": "Anonymously",
+    "donorName": "Full name",
+    "dedication": "Dedication",
+    "dedicationHint": "Wish health to a loved one, well-being to your family, honour the memory of the departed. The dedication is published on the site after an editor reviews it.",
+    "comment": "Payment comment",
+    "commentHint": "The comment is not published on the site.",
+    "email": "E-mail",
+    "phone": "Phone",
+    "submit": "Proceed to payment",
+    "toPay": "To pay",
+    "kaddish": "{{months}} mo. × {{tariff}} = {{total}}",
+    "eventTotal": "{{seats}} × {{price}} = {{total}}",
+    "eventNote": "The final amount is calculated at checkout using today's ticket price."
+  },
+  "slot": {
+    "prayer": "Donation for the prayer",
+    "prayerOptional": "The donation is optional — the prayer will be read in any case.",
+    "event": "Ticket payment"
+  },
+  "requisites": {
+    "title": "Bank transfer",
+    "lead": "You can transfer a donation to the community's account from any bank.",
+    "missing": "recipient / INN / KPP / bank / BIK / account"
+  },
+  "fundraiser": {
+    "back": "All ways to support",
+    "eyebrow": "Fundraiser",
+    "goal": "Goal",
+    "raised": "Raised",
+    "left": "Still needed",
+    "supporters": "Supporters",
+    "closed": "This fundraiser is closed. Thank you to everyone who helped!",
+    "donate": "Support this fundraiser",
+    "notFound": "Fundraiser not found"
+  },
+  "thanks": {
+    "pageTitle": "Thank you",
+    "eyebrow": "Toda raba",
+    "title": "Thank you for your support",
+    "italic": "support",
+    "pending": "Waiting for payment confirmation…",
+    "paid": "Payment received",
+    "canceled": "Payment cancelled — no money was charged",
+    "failed": "Payment failed",
+    "timeout": "The checkout has not answered yet. Please refresh the page a little later.",
+    "status": "Status",
+    "amount": "Amount",
+    "for": "Purpose",
+    "recurring": "Monthly donation",
+    "recurringActive": "Subscription is active",
+    "recurringCanceled": "Monthly donation cancelled",
+    "cancelRecurring": "Cancel monthly donation",
+    "canceling": "Cancelling…",
+    "notFound": "Payment not found or the link has expired",
+    "again": "Try again",
+    "toDonate": "Give again",
+    "home": "Home"
+  },
+  "devPay": {
+    "pageTitle": "Test payment",
+    "eyebrow": "Test checkout",
+    "title": "Test payment",
+    "lead": "This is a checkout stub: real payments are not connected and no money is charged. Choose the outcome.",
+    "pay": "Pay",
+    "cancel": "Cancel",
+    "busy": "Processing…",
+    "amount": "Amount",
+    "for": "Purpose",
+    "done": "The payment has already been processed",
+    "toThanks": "See the result",
+    "notFound": "Payment not found or the link has expired"
+  }
+}

@@ -1,0 +1,202 @@
+{
+  "common": {
+    "required": "Fields marked with an asterisk are required",
+    "submit": "Send",
+    "sending": "Sending…",
+    "consent": "I agree to the processing of my personal data",
+    "consentLinks": "More: privacy policy and consent to data processing",
+    "privacy": "Privacy policy",
+    "consentPage": "Consent to processing",
+    "choose": "Choose…",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "fields": {
+    "lastName": "Last name",
+    "firstName": "First name",
+    "middleName": "Patronymic",
+    "name": "Name",
+    "fullName": "Full name",
+    "email": "E-mail",
+    "phone": "Phone",
+    "topic": "Subject",
+    "text": "Message",
+    "date": "Date",
+    "time": "Time",
+    "comment": "Comment",
+    "seats": "Seats"
+  },
+  "banner": {
+    "network": "Could not send, please try again",
+    "fields": "Please check the highlighted fields",
+    "too_many": "Too many submissions. Wait a minute and try again",
+    "server": "Server error. Please try later",
+    "request": "Could not send the request. Please check your data",
+    "demo": "This is a demo version of the site: sending forms is disabled"
+  },
+  "errors": {
+    "required": "Required field",
+    "email": "Check the e-mail address",
+    "phone": "Check the phone number",
+    "date": "Enter a date",
+    "out_of_range": "Value out of range",
+    "integer": "Whole number expected",
+    "too_long": "Too long",
+    "invalid_choice": "Choose an option from the list",
+    "date_too_soon": "Choose a date at least 3 days from today",
+    "date_closed": "The synagogue is closed to visitors on this day (Shabbat or a holiday)",
+    "seats_left": "Seats left: {{n}}",
+    "unknown_field": "Unexpected field"
+  },
+  "accepted": {
+    "eyebrow": "Done",
+    "title": "Request received",
+    "italic": "received",
+    "text": "Thank you! We have received your request and will contact you.",
+    "number": "Request number",
+    "again": "Send another one",
+    "home": "Home",
+    "registered": "You are registered",
+    "registeredItalic": "registered",
+    "registeredText": "Seats booked: {{n}}. See you there!",
+    "paidNote": "This is a paid event — you can pay for participation below.",
+    "prayerNote": "A donation to the synagogue is welcome but optional."
+  },
+  "prayer": {
+    "eyebrow": "Order a prayer",
+    "other": "Other prayers",
+    "customer": "Your details",
+    "about": "Who the prayer is for",
+    "types": {
+      "misheberah": {
+        "title": "Mi Sheberach",
+        "lead": "A prayer for the health and well-being of someone close.",
+        "text": "“Mi Sheberach” — “He Who blessed” — is said during the Torah reading on Monday, Thursday and Shabbat. The person is named by their own name and their mother's name; if they have a Hebrew name, it is used. It can be ordered for someone who is ill, travelling, giving birth, or anyone who needs support."
+      },
+      "kaddish": {
+        "title": "Kaddish",
+        "lead": "The memorial prayer during the eleven months after the passing of a loved one.",
+        "text": "Kaddish is an Aramaic prayer sanctifying the Name of the Almighty. It is said with a minyan — ten adult men. After the death of a parent it is customary to say Kaddish for eleven months; if the family cannot do it themselves, it is said in the synagogue at their request."
+      },
+      "yahrzeit": {
+        "title": "Yahrzeit",
+        "lead": "The anniversary of a death by the Jewish calendar.",
+        "text": "Yahrzeit is observed every year on the day of death by the Jewish calendar: a memorial candle is lit, Kaddish and “El Male Rachamim” are said, tzedakah is given. From the date of death we will work out the Hebrew date of the anniversary and, if you wish, remind you in advance."
+      },
+      "yizkor": {
+        "title": "Yizkor",
+        "lead": "Remembrance of the departed on festivals.",
+        "text": "Yizkor — “May He remember” — is said four times a year: on Yom Kippur, Shemini Atzeret, the last day of Passover and the second day of Shavuot. The names of departed relatives are mentioned and a pledge of tzedakah is made in their memory."
+      }
+    },
+    "f": {
+      "forName": "Name (Hebrew name, if any)",
+      "motherName": "Mother's name",
+      "times": "How many times to read",
+      "deceasedName": "Name of the deceased",
+      "yahrzeitName": "Name",
+      "fatherName": "Father's name",
+      "deathDate": "Date of death",
+      "months": "How many months to read",
+      "remind": "Remind me of the anniversary",
+      "remindByEmail": "Remind by e-mail",
+      "remindByPhone": "Remind by phone",
+      "yizkor": "Which Yizkor",
+      "yizkorHint": "The nearest one is suggested"
+    },
+    "yizkorDays": {
+      "yom_kippur": "Yom Kippur",
+      "shmini_atzeret": "Shemini Atzeret",
+      "pesach": "Passover (last day)",
+      "shavuot": "Shavuot (second day)"
+    }
+  },
+  "appointment": {
+    "eyebrow": "Community",
+    "title": "Book an appointment",
+    "italic": "appointment",
+    "lead": "Book a meeting with the rabbi or the community leader — we will call you back to agree on a time.",
+    "to": "With whom",
+    "toRabbi": "Rabbi",
+    "toChairman": "Community leader",
+    "rabbi": "Chief Rabbi of Kaliningrad and the region — {{name}}",
+    "chairman": "Chairman of the community — {{name}}",
+    "rabbiReception": "Rabbi's office (by appointment via the secretary): {{phone}} — religious questions, wedding, divorce, circumcision, burial, confirmation of Jewish descent, conversion.",
+    "synagogueReception": "Synagogue office: {{phone}} — community life, donations, interfaith dialogue.",
+    "hours": "Reception hours",
+    "hoursPlaceholder": "reception hours of the rabbi and the chairman"
+  },
+  "askRabbi": {
+    "eyebrow": "Community",
+    "title": "Ask the rabbi",
+    "italic": "rabbi",
+    "lead": "Ask about Jewish tradition, customs, family life. The answer will come by e-mail or phone."
+  },
+  "help": {
+    "eyebrow": "Community",
+    "title": "Ask for help",
+    "italic": "help",
+    "lead": "If you or your family need support, tell us about your situation. Only community staff will see your request.",
+    "kind": "Kind of help",
+    "kinds": {
+      "spiritual": "Spiritual support",
+      "medical": "Medical",
+      "material": "Material",
+      "question": "Question"
+    },
+    "birthDate": "Date of birth",
+    "address": "Address",
+    "roots": "Jewish roots",
+    "rootsOpts": {
+      "both": "Through both parents",
+      "mother": "Through mother",
+      "father": "Through father",
+      "no": "No"
+    },
+    "situation": "Describe the situation",
+    "otherHelp": "Do you receive other help (from which organisations)",
+    "question": "Your question or request"
+  },
+  "volunteer": {
+    "eyebrow": "Community",
+    "title": "Become a volunteer",
+    "italic": "volunteer",
+    "lead": "Help with meals, holidays, deliveries or the website — every bit of help matters.",
+    "areas": "How I can help",
+    "areaOpts": {
+      "meals": "Meals",
+      "holidays": "Holidays",
+      "delivery": "Delivery",
+      "it": "IT",
+      "other": "Other"
+    },
+    "availability": "When I am free"
+  },
+  "excursion": {
+    "eyebrow": "Visitors",
+    "title": "Book a tour",
+    "italic": "tour",
+    "lead": "The synagogue can be visited every day except Saturday as part of an organised tour.",
+    "rule": "The tour date must be at least 3 days from today. On Shabbat and Jewish holidays the synagogue is closed to visitors.",
+    "prices": "Standard ticket — {{standard}} RUB, reduced for students and pensioners — {{reduced}} RUB.",
+    "times": "Scheduled tours start at: {{times}}.",
+    "department": "Private tours — via the tour office: {{phone}}.",
+    "people": "Number of people",
+    "language": "Tour language",
+    "langs": { "ru": "Russian", "de": "German", "en": "English" },
+    "kind": "Type of tour",
+    "kinds": { "scheduled": "Scheduled", "individual": "Private" },
+    "anyTime": "Any"
+  },
+  "register": {
+    "title": "Registration",
+    "submit": "Register"
+  },
+  "subscribe": {
+    "name": "Name",
+    "email": "E-mail",
+    "lives": "I live in Kaliningrad",
+    "submit": "Subscribe",
+    "done": "Thank you! You are subscribed to community news."
+  }
+}

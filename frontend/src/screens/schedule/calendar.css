@@ -1,0 +1,109 @@
+/* /schedule, /holidays/[key], TodayWidget. Logical properties only (RTL). */
+
+/* ---------- controls ---------- */
+.sch-controls { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1.143rem; margin-bottom: 2.286rem; }
+.sch-controls__period { display: flex; gap: 1rem; flex-wrap: wrap; }
+.sch-controls__period .field { min-width: 11rem; }
+.sch-controls__view { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.sch-toggle {
+  font-family: var(--f-ui-md); font-size: 0.929rem; color: var(--fg);
+  background: transparent; border: 1px solid var(--line); border-radius: var(--r-pill);
+  padding: 0.643rem 1.286rem; cursor: pointer; transition: background 0.25s var(--ease), color 0.25s var(--ease);
+}
+.sch-toggle:hover { border-color: var(--gold); }
+.sch-toggle[aria-pressed='true'] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.sch-toggle--zmanim[aria-pressed='true'] { background: var(--gold); border-color: var(--gold); }
+
+.sch-unknown { font-family: var(--f-ui-md); margin: 0 0 1.714rem; padding: 1rem 1.286rem; border-inline-start: 2px solid var(--gold); background: var(--gold-pill); border-radius: 0.571rem; }
+.sch-footnote { margin-top: 2.286rem; font-size: 0.857rem; color: var(--fg-mute); max-width: 48rem; }
+.sch-loading { height: 20rem; border-radius: var(--r-card); background: linear-gradient(90deg, #0f0f0d08, #0f0f0d12, #0f0f0d08); }
+
+/* ---------- list ---------- */
+.sch-list { display: flex; flex-direction: column; gap: 0.714rem; }
+.sch-list[data-loading] { opacity: 0.55; transition: opacity 0.2s; }
+.sch-day {
+  display: grid; grid-template-columns: 1fr; gap: 1rem;
+  background: var(--cream); border: 1px solid var(--line); border-radius: var(--r-card);
+  padding: 1.286rem 1.429rem; position: relative;
+}
+@media (min-width: 768px) { .sch-day { grid-template-columns: 9rem 1fr minmax(14rem, auto); align-items: start; } }
+.sch-day.is-shabbat { background: var(--deep); color: var(--light); --fg: var(--light); --fg-mute: var(--light-60); --line: var(--light-12); border-color: var(--deep); }
+.sch-day.is-today { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold), var(--shadow-l2); }
+.sch-day__date { display: flex; flex-direction: column; gap: 0.143rem; }
+.sch-day__wd { font-family: var(--f-ui-md); font-size: 0.786rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-mute); }
+.sch-day__num { font-family: var(--f-display); font-size: 2.571rem; line-height: 1; }
+.sch-day.is-today .sch-day__num { color: var(--gold); }
+.sch-day.is-shabbat.is-today .sch-day__num { color: #d8c29d; }
+.sch-day__month { font-size: 0.929rem; }
+.sch-tag { align-self: flex-start; margin-top: 0.429rem; font-family: var(--f-ui-md); font-size: 0.714rem; text-transform: uppercase; letter-spacing: 0.08em; background: var(--gold); color: #fff; border-radius: var(--r-pill); padding: 0.214rem 0.643rem; }
+.sch-day__main { display: flex; flex-direction: column; gap: 0.429rem; min-width: 0; }
+.sch-day__heb { font-family: var(--f-display); font-size: 1.286rem; }
+.sch-day__parasha { color: var(--fg-mute); }
+.sch-day__note { font-size: 0.929rem; }
+.sch-day__closed { font-size: 0.786rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-mute); }
+.sch-hols { display: inline-flex; flex-wrap: wrap; gap: 0.429rem; }
+.sch-hol { font-family: var(--f-ui-md); font-size: 0.857rem; border: 1px solid var(--line); border-radius: var(--r-pill); padding: 0.214rem 0.786rem; color: var(--fg); }
+.sch-hol--yt { border-color: var(--gold); }
+.sch-hol--link { border-color: var(--gold); color: var(--gold); text-decoration: none; transition: background 0.2s var(--ease), color 0.2s var(--ease); }
+.sch-hol--link:hover { background: var(--gold); color: #fff; }
+.sch-day.is-shabbat .sch-hol--link { color: #d8c29d; border-color: #d8c29d; }
+.sch-day__times { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); gap: 0.714rem 1.143rem; margin: 0; }
+.sch-day__times dt, .sch-zmanim dt { font-size: 0.714rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-mute); }
+.sch-day__times dd { margin: 0; font-family: var(--f-display); font-size: 1.429rem; font-variant-numeric: tabular-nums; }
+.sch-day__ask { grid-column: 1 / -1; }
+.sch-day__ask dd { font-family: var(--f-ui); font-size: 0.929rem; color: var(--fg-mute); }
+.sch-gold dd, td.sch-gold { color: var(--gold); }
+.sch-day.is-shabbat .sch-gold dd { color: #d8c29d; }
+.sch-zmanim { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: 0.571rem 1.143rem; margin: 0.714rem 0 0; padding-top: 0.714rem; border-top: 1px solid var(--line); }
+.sch-zmanim dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+/* ---------- table ---------- */
+.sch-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--cream); }
+.sch-table { width: 100%; border-collapse: collapse; font-size: 0.929rem; }
+.sch-table th { font-family: var(--f-ui-md); font-size: 0.714rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-mute); text-align: start; padding: 0.857rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.sch-table td { padding: 0.714rem 0.857rem; border-bottom: 1px solid var(--line); vertical-align: top; font-variant-numeric: tabular-nums; }
+.sch-table tr:last-child td { border-bottom: 0; }
+.sch-table__date { white-space: nowrap; font-family: var(--f-ui-md); }
+.sch-table tr.is-shabbat { background: var(--deep); color: var(--light); --fg: var(--light); --fg-mute: var(--light-60); --line: var(--light-12); }
+.sch-table tr.is-shabbat td.sch-gold { color: #d8c29d; }
+.sch-table tr.is-today td { box-shadow: inset 0 2px 0 var(--gold), inset 0 -2px 0 var(--gold); }
+.sch-table tr.is-today .sch-table__date { color: var(--gold); }
+
+/* ---------- holiday ---------- */
+.hol-back { display: inline-block; margin-bottom: 1.714rem; color: var(--fg-mute); text-decoration: none; font-family: var(--f-ui-md); }
+.hol-back:hover { color: var(--gold); }
+.hol-text { white-space: pre-line; }
+.hol-dates { list-style: none; padding: 0; margin: 1.143rem 0 0; display: flex; flex-direction: column; }
+.hol-dates li { display: flex; flex-wrap: wrap; gap: 0.286rem 1.143rem; padding: 0.857rem 0; border-bottom: 1px solid var(--line); }
+.hol-dates__date { font-family: var(--f-display); font-size: 1.286rem; color: var(--gold); min-width: 12rem; }
+.hol-grid { display: grid; gap: 2.857rem; }
+@media (min-width: 1024px) { .hol-grid { grid-template-columns: 1.4fr 1fr; } }
+
+/* ---------- TodayWidget ---------- */
+.tw { display: flex; align-items: center; gap: 0.857rem; font-family: var(--f-ui); font-size: 0.786rem; line-height: 1.25; color: var(--fg); }
+.tw__dates { display: flex; flex-direction: column; }
+.tw__heb { color: var(--fg-mute); }
+.tw__clock { font-variant-numeric: tabular-nums; }
+.tw__candles { display: flex; flex-direction: column; padding-inline-start: 0.857rem; border-inline-start: 1px solid var(--line); }
+.tw__label { font-size: 0.643rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-mute); }
+.tw__cd { font-variant-numeric: tabular-nums; color: var(--gold); font-family: var(--f-ui-md); }
+.tw__all { color: var(--gold); text-decoration: none; font-family: var(--f-ui-md); }
+.tw__all:hover { text-decoration: underline; }
+.tw--menu { flex-wrap: wrap; font-size: 0.929rem; color: var(--light); --fg-mute: var(--light-60); --line: var(--light-12); padding: 1rem 0; }
+.tw--menu .tw__cd, .tw--menu .tw__all { color: #d8c29d; }
+.tw--menu .tw__all { flex-basis: 100%; }
+
+/* hero → controls: one band of air, not two */
+.sec.sch-hero { padding-bottom: 3.429rem; }
+.sec.sch { padding-top: 2.857rem; }
+.sch-table__label { display: block; font-size: 0.714rem; color: var(--fg-mute); white-space: nowrap; }
+
+/* ---------- TodayWidget: bar right after the header on inner pages (< 1280px), own block ---------- */
+.tw--bar {
+  flex-wrap: wrap; gap: 0.286rem 0.857rem;
+  padding: 0.714rem var(--gutter); border-block: 1px solid var(--hairline);
+  color: var(--ink); --fg-mute: var(--mute); --line: var(--hairline);
+}
+.tw--bar .tw__dates { flex-direction: row; flex-wrap: wrap; gap: 0 0.571rem; }
+.tw--bar .tw__candles { flex-direction: row; flex-wrap: wrap; gap: 0 0.571rem; }
+@media (min-width: 1280px) { .tw--bar { display: none; } }

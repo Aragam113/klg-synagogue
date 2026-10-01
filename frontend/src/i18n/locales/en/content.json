@@ -1,0 +1,102 @@
+{
+  "loadMore": "Load more",
+  "back": "Back",
+  "notFound": "Page not found",
+  "events": {
+    "eyebrow": "Events",
+    "title": "Upcoming events",
+    "italic": "events",
+    "past": "Past events",
+    "free": "Free entry",
+    "priceNow": "{{price}} — today's price",
+    "more": "Details",
+    "back": "All events",
+    "date": "Date",
+    "time": "Time",
+    "place": "Place",
+    "price": "Price",
+    "ladder": "The price depends on the purchase date",
+    "until": "until {{date}}",
+    "later": "later",
+    "capacity": "Seats: {{n}}",
+    "seats": "Capacity",
+    "registerSoon": "Online registration for this event will open here soon.",
+    "register": "Register",
+    "buy": "Buy a ticket",
+    "empty": "New events will be announced soon",
+    "emptyText": "Subscribe to the community letter or check the prayer schedule."
+  },
+  "news": {
+    "eyebrow": "News",
+    "title": "News and announcements",
+    "italic": "announcements",
+    "announcement": "Announcement",
+    "back": "All news",
+    "source": "Source: Telegram channel",
+    "photos": "Photos",
+    "morePosts": "photos also from posts",
+    "empty": "No news yet",
+    "emptyText": "Check the events page for what's coming up."
+  },
+  "fundraisers": {
+    "help": "Help",
+    "raised": "Raised",
+    "left": "Still needed",
+    "supporters": "Supporters"
+  },
+  "programs": {
+    "eyebrow": "Community life",
+    "title": "Community programs",
+    "italic": "programs",
+    "audience": "For whom",
+    "schedule": "When",
+    "contact": "Contact",
+    "empty": "Programs are coming soon",
+    "emptyText": "Ask the community office about classes."
+  },
+  "departments": {
+    "eyebrow": "At the synagogue",
+    "title": "Departments and services",
+    "italic": "services",
+    "address": "Address",
+    "phone": "Phone",
+    "email": "Email",
+    "hours": "Opening hours",
+    "empty": "Information about departments is coming soon",
+    "emptyText": "Contact the community using the details in the footer."
+  },
+  "gallery": {
+    "eyebrow": "Gallery",
+    "title": "Photos of the synagogue",
+    "italic": "synagogue",
+    "photos": "Photos: {{n}}",
+    "back": "All albums",
+    "credits": "Photo credits",
+    "empty": "No albums yet",
+    "emptyPhotos": "No photos in this album yet",
+    "close": "Close",
+    "prev": "Previous photo",
+    "next": "Next photo",
+    "counter": "{{i}} of {{n}}"
+  },
+  "search": {
+    "eyebrow": "Search",
+    "title": "Search the site",
+    "italic": "site",
+    "placeholder": "What are you looking for?",
+    "submit": "Search",
+    "hint": "Enter at least two characters",
+    "pages": "Site sections",
+    "results": "Found",
+    "empty": "Nothing found",
+    "emptyText": "Try another query or visit a section:",
+    "type": {
+      "news": "News",
+      "event": "Event",
+      "program": "Program",
+      "department": "Department",
+      "fundraiser": "Fundraiser",
+      "page": "Section"
+    }
+  }
+}

@@ -1,0 +1,131 @@
+{
+  "site": {
+    "name": "New Synagogue",
+    "city": "Kaliningrad",
+    "full": "$t(site.name), $t(site.city)",
+    "tagline": "The Jewish community of Kaliningrad"
+  },
+  "nav": {
+    "main": "Main menu",
+    "community": "Community",
+    "visit": "Visitors",
+    "schedule": "Schedule",
+    "events": "Events",
+    "news": "News",
+    "donate": "Support",
+    "search": "Search",
+    "menu": "Menu",
+    "close": "Close",
+    "home": "Home"
+  },
+  "lang": {
+    "label": "Language",
+    "short": { "ru": "RU", "en": "EN", "he": "HE" },
+    "name": { "ru": "Русский", "en": "English", "he": "עברית" }
+  },
+  "links": {
+    "community": "Community life",
+    "programs": "Programs",
+    "departments": "Departments",
+    "askRabbi": "Ask the rabbi",
+    "appointment": "Book an appointment",
+    "visit": "Visitors",
+    "excursions": "Book a tour",
+    "history": "History",
+    "about": "About the synagogue",
+    "contacts": "Contacts",
+    "schedule": "Prayer times",
+    "events": "Events",
+    "news": "News",
+    "gallery": "Gallery",
+    "donate": "Donate",
+    "help": "Ask for help",
+    "volunteer": "Volunteer"
+  },
+  "footer": {
+    "subscribeTitle": "Community letter",
+    "subscribeNote": "Leave your e-mail to stay in touch with the community.",
+    "subscribeName": "Name",
+    "subscribeEmail": "Your e-mail",
+    "subscribeCta": "Subscribe",
+    "subscribeSoon": "Subscription is coming very soon.",
+    "colCommunity": "Community",
+    "colVisit": "Visitors",
+    "colLife": "Synagogue life",
+    "colSupport": "Support",
+    "address": "Address",
+    "phone": "Phone",
+    "email": "E-mail",
+    "social": "Follow us",
+    "privacy": "Personal data policy",
+    "consent": "Consent to data processing",
+    "rights": "© {{year}} New Synagogue, Kaliningrad"
+  },
+  "cookie": {
+    "text": "This site uses cookies and local storage to remember your language and settings.",
+    "ok": "Got it",
+    "more": "Learn more"
+  },
+  "demo": {
+    "badge": "Demo version",
+    "formsDisabled": "This is a demo version of the site: sending forms is disabled",
+    "calendarStale": "The calendar data in the demo version is out of date",
+    "adminTitle": "The admin panel is not available in the demo version",
+    "adminText": "The demo version of the site runs without a server: content editing, requests and payments are disabled here.",
+    "home": "To the home page"
+  },
+  "errors": {
+    "network": "The server is unreachable. Check your connection and try again.",
+    "client": "The request failed. Please try again.",
+    "server": "Server error. Please try later.",
+    "request": "The request failed.",
+    "tooMany": "Too many requests. Wait a minute and try again.",
+    "retry": "Retry"
+  },
+  "fieldErrors": {
+    "required": "Required field",
+    "email": "Check the e-mail address",
+    "phone": "Check the phone number",
+    "too_long": "Too long",
+    "too_short": "Too short",
+    "invalid": "Invalid value",
+    "invalid_format": "Invalid format",
+    "number": "Must be a number",
+    "integer": "Must be a whole number",
+    "too_large": "Value is too large",
+    "too_small": "Value is too small",
+    "boolean": "Must be yes or no",
+    "invalid_choice": "Choose an option from the list",
+    "date": "Enter a date",
+    "url": "Check the link",
+    "unknown_field": "Unexpected field",
+    "date_too_soon": "This date is too soon, please pick a later day",
+    "date_closed": "The synagogue is closed to visitors on this day (Shabbat or a holiday)",
+    "consent": "Consent to data processing is required"
+  },
+  "empty": {
+    "title": "Nothing here yet",
+    "text": "Materials will appear here soon."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "text": "It may have moved, or the address has a typo.",
+    "home": "Go home"
+  },
+  "fallback": {
+    "ruOnly": "Available in Russian"
+  },
+  "actions": {
+    "more": "Learn more",
+    "back": "Back",
+    "send": "Send",
+    "sending": "Sending…",
+    "loading": "Loading…"
+  },
+  "home": {
+    "eyebrow": "Welcome",
+    "title": "New Synagogue",
+    "italic": "Synagogue",
+    "lead": "The site is being built: sections appear as they are ready."
+  }
+}

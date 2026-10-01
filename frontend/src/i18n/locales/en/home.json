@@ -1,0 +1,105 @@
+{
+  "title": "New Synagogue, Kaliningrad",
+  "hero": {
+    "eyebrow": "Kaliningrad · 1896 · 2018",
+    "title": "The New Synagogue — a home for the community",
+    "italic": "community",
+    "lead": "On the historic site of the 1896 synagogue: prayers and Shabbat, holidays, classes, help, and tours for visitors to the city.",
+    "visit": "Visit the synagogue",
+    "donate": "Support the community",
+    "cue": "Scroll"
+  },
+  "scene": {
+    "today": "Today",
+    "todayTitle": "A home for the community",
+    "todayItalic": "community",
+    "aria": "History of the synagogue: from Königsberg to our days",
+    "credits": "Footage:",
+    "credit": "Footage: 3D model, kldsynagogue.com"
+  },
+  "threshold": {
+    "eyebrow": "Shalom · ברוכים הבאים",
+    "title": "Welcome home",
+    "italic": "home",
+    "note": "The synagogue is open to the community and guests: come to pray, to celebrate a holiday, to study, or for a tour."
+  },
+  "today": {
+    "eyebrow": "Today at the synagogue",
+    "title": "Time by the Jewish calendar",
+    "italic": "calendar",
+    "hebrew": "Hebrew date",
+    "clock": "Kaliningrad, now",
+    "candles": "Candle lighting",
+    "in": "in",
+    "passed": "The next time will appear in the schedule",
+    "parasha": "Torah portion",
+    "holidayReading": "Holiday reading",
+    "all": "Full schedule",
+    "unavailable": "The calendar is unavailable right now — see prayer times and candle lighting on the schedule page."
+  },
+  "community": {
+    "eyebrow": "Community life",
+    "title": "Together week after week",
+    "italic": "Together",
+    "more": "Learn more",
+    "prayer": { "title": "Prayer and Shabbat", "text": "Morning, afternoon and evening prayers, welcoming Shabbat on Friday evening and seeing it off — times for every day are in the schedule." },
+    "holidays": { "title": "Holidays", "text": "Rosh Hashanah and Yom Kippur, Sukkot, Hanukkah, Purim, Passover and Shavuot — the year the community lives by." },
+    "programs": { "title": "Programs and classes", "text": "Torah study, activities for children and youth, meetings for everyone who wants to learn more about the tradition." },
+    "help": { "title": "Help and charity", "text": "Tzedakah is one of the foundations of Jewish life: the community supports those in need and welcomes volunteers." }
+  },
+  "ledger": {
+    "eyebrow": "History in numbers",
+    "title": "A building that came back",
+    "italic": "back",
+    "consecrated": "the New Synagogue of Königsberg is consecrated",
+    "height": "height of the historic building",
+    "burned": "burned on Kristallnacht",
+    "reopened": "the synagogue reopens on the same site",
+    "m": "m"
+  },
+  "visit": {
+    "eyebrow": "For visitors",
+    "title": "Come and visit",
+    "italic": "visit",
+    "all": "Everything for visitors",
+    "hours": { "title": "Opening hours", "text": "When the synagogue and the museum are open and when they are closed to visitors." },
+    "howTo": { "title": "How to get here", "text": "Address, landmarks, transport and map." },
+    "excursions": { "title": "Tours", "text": "Kinds of tours, rules and online booking." },
+    "museum": { "title": "“New Synagogue” museum", "text": "History of the Jewish community of Königsberg and Kaliningrad." }
+  },
+  "events": {
+    "eyebrow": "Events",
+    "title": "Upcoming events",
+    "italic": "events",
+    "all": "All events",
+    "prev": "Previous",
+    "next": "Next",
+    "empty": "New events will be announced soon",
+    "emptyNote": "Subscribe to the newsletter — we will let you know about holidays, classes and meetings."
+  },
+  "funds": {
+    "eyebrow": "Fundraisers",
+    "title": "What the community is raising for",
+    "italic": "community",
+    "supporters_one": "The community has been supported {{count}} time",
+    "supporters_other": "The community has been supported {{count}} times",
+    "empty": "There are no open fundraisers right now — you can support the community with a donation.",
+    "donate": "Donate",
+    "dedications": "Dedications"
+  },
+  "news": {
+    "eyebrow": "News",
+    "title": "What’s new in the community",
+    "italic": "new",
+    "all": "All news",
+    "empty": "No news yet — check back later."
+  },
+  "dawn": {
+    "eyebrow": "Tzedakah",
+    "title": "Support the community",
+    "italic": "community",
+    "note": "Every donation helps the synagogue remain an open home — for prayer, holidays, study and help.",
+    "button": "Support"
+  },
+  "loading": "Loading…"
+}

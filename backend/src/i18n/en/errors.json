@@ -1,0 +1,25 @@
+{
+  "auth": {
+    "invalidCredentials": "Invalid email or password",
+    "emailAlreadyExists": "Email already registered",
+    "userNotFound": "User with this email not found",
+    "invalidCode": "Invalid or expired code",
+    "codeSent": "Verification code sent to your email",
+    "codeSentRecently": "Please wait before requesting a new code",
+    "tokenExpired": "Token expired",
+    "tokenInvalid": "Invalid token",
+    "unauthorized": "Unauthorized access"
+  },
+  "file": {
+    "required": "File is required",
+    "tooLarge": "File is too large. Maximum size is 5MB",
+    "invalidFormat": "Invalid file format"
+  },
+  "common": {
+    "internalError": "Internal server error",
+    "badRequest": "Bad request",
+    "notFound": "Resource not found",
+    "forbidden": "Access forbidden",
+    "tooManyRequests": "Too many requests, please try again later"
+  }
+}

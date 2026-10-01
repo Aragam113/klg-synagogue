@@ -1,0 +1,210 @@
+/* Admin. Quiet working UI on the site kit: light tones, no scroll effects. */
+.adm {
+  --adm-side: 15rem;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: var(--adm-side) minmax(0, 1fr);
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--f-ui);
+}
+.adm__side {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--canvas);
+  border-inline-end: 1px solid var(--hairline);
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.adm__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--f-display);
+  font-size: 1.15rem;
+  margin: 0 0.5rem 1.25rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+.adm__brand svg { color: var(--gold); }
+.adm__side .adm__burger { display: none; }
+.adm__nav { display: flex; flex-direction: column; gap: 0.125rem; }
+.adm__link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.6rem;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 0.95rem;
+  background: none;
+  border: 0;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.adm__link:hover { background: var(--gold-pill); }
+.adm__link[aria-current='page'] { background: var(--ink); color: #fff; }
+.adm__count {
+  min-width: 1.5rem;
+  padding: 0 0.4rem;
+  border-radius: 1rem;
+  background: var(--gold);
+  color: #fff;
+  font-size: 0.8rem;
+  text-align: center;
+}
+.adm__logout { margin-top: auto; color: var(--mute); }
+.adm__main { padding: 2rem 2.5rem 4rem; min-width: 0; }
+.adm__inner { max-width: 64rem; }
+
+.adm-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.adm-head h1 { font-family: var(--f-display); font-weight: 400; font-size: 2rem; margin: 0; }
+.adm-head__back { color: var(--mute); font-size: 0.9rem; text-decoration: none; display: inline-block; margin-bottom: 0.25rem; }
+.adm-filters { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem; }
+.adm-filters .field { min-width: 12rem; }
+
+.adm-panel {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+.adm-panel h2 { font-family: var(--f-ui-sb); font-size: 1.05rem; margin: 0 0 1rem; }
+.adm-grid { display: grid; gap: 1.1rem; }
+.adm-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.adm-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.adm-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--hairline); }
+.adm-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+  padding: 0.9rem 0.25rem;
+  border-bottom: 1px solid var(--hairline);
+}
+.adm-row__main { flex: 1 1 16rem; min-width: 0; }
+.adm-row__title { color: var(--ink); text-decoration: none; font-family: var(--f-ui-md); }
+a.adm-row__title:hover { text-decoration: underline; }
+.adm-row__sub { color: var(--mute); font-size: 0.875rem; margin-top: 0.15rem; overflow-wrap: anywhere; }
+.adm-row__meta { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; font-size: 0.875rem; }
+.adm-row__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.adm-row__thumb { width: 4rem; height: 3rem; object-fit: cover; border-radius: 0.4rem; background: var(--cream); }
+
+.adm-chip {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 1rem;
+  border: 1px solid var(--hairline);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.adm-chip--new, .adm-chip--active, .adm-chip--paid, .adm-chip--published, .adm-chip--confirmed { background: var(--gold-pill); border-color: var(--gold-soft); }
+.adm-chip--rejected, .adm-chip--canceled, .adm-chip--failed { color: var(--danger); border-color: currentColor; }
+
+.adm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 2rem;
+  border: 1px solid var(--hairline);
+  background: var(--canvas);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+.adm-btn:hover { border-color: var(--ink); }
+.adm-btn:disabled { opacity: 0.5; cursor: default; }
+.adm-btn--danger { color: var(--danger); }
+.adm-btn--danger:hover { border-color: var(--danger); }
+.adm-btn--primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+.adm-tabs { display: flex; gap: 0.25rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
+.adm-tab {
+  padding: 0.3rem 0.8rem;
+  border-radius: 2rem;
+  border: 1px solid var(--hairline);
+  background: none;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--ink);
+}
+.adm-tab[aria-selected='true'] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.adm-tab__dot { color: var(--gold); margin-inline-start: 0.25rem; }
+.adm-loc { display: flex; flex-direction: column; gap: 0.25rem; }
+.adm-loc__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.adm-loc__label { font-family: var(--f-ui-md); font-size: 0.857rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mute); }
+.adm-loc [dir='rtl'] .field__input { text-align: right; }
+
+.adm-cover { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+.adm-cover__img { width: 10rem; height: 6.5rem; object-fit: cover; border-radius: 0.6rem; background: var(--cream); border: 1px solid var(--hairline); }
+.adm-cover__empty { display: grid; place-items: center; color: var(--mute); font-size: 0.8rem; }
+.adm-cover input[type='file'] { font-size: 0.875rem; }
+
+.adm-tiers { display: flex; flex-direction: column; gap: 0.5rem; }
+.adm-tier { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; }
+.adm-tier .field { flex: 1 1 10rem; }
+
+.adm-save {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 1rem 0;
+  background: var(--cream);
+  border-top: 1px solid var(--hairline);
+}
+.adm-save__note { color: var(--mute); font-size: 0.875rem; }
+.adm-ok { color: var(--gold); font-size: 0.9rem; }
+.adm-dl { display: grid; grid-template-columns: minmax(8rem, 14rem) minmax(0, 1fr); gap: 0.5rem 1rem; margin: 0; }
+.adm-dl dt { color: var(--mute); font-size: 0.875rem; }
+.adm-dl dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.adm-pager { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-top: 1rem; color: var(--mute); font-size: 0.875rem; }
+.adm-sched { width: 100%; border-collapse: collapse; }
+.adm-sched th, .adm-sched td { padding: 0.5rem; text-align: start; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+.adm-sched th { font-family: var(--f-ui-md); font-size: 0.85rem; color: var(--mute); }
+
+.adm-login { min-height: 100vh; display: grid; place-items: center; background: var(--cream); padding: 1.5rem; }
+.adm-login__card { width: 100%; max-width: 24rem; background: var(--canvas); border: 1px solid var(--hairline); border-radius: 1.25rem; padding: 2rem; display: flex; flex-direction: column; gap: 1.1rem; }
+.adm-login__card h1 { font-family: var(--f-display); font-weight: 400; font-size: 1.75rem; margin: 0; display: flex; gap: 0.6rem; align-items: center; }
+.adm-login__card h1 svg { color: var(--gold); }
+
+@media (max-width: 900px) {
+  .adm { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; align-content: start; }
+  .adm__side { position: sticky; z-index: 5; height: auto; padding: 0.75rem 1rem; border-inline-end: 0; border-bottom: 1px solid var(--hairline); }
+  .adm__top { display: flex; align-items: center; justify-content: space-between; }
+  .adm__brand { margin: 0; }
+  .adm__side .adm__burger { display: inline-flex; }
+  .adm__nav { display: none; padding-top: 0.75rem; }
+  .adm--open .adm__nav { display: flex; }
+  .adm__logout { margin-top: 0; }
+  .adm__main { padding: 1.25rem 1rem 3rem; }
+  .adm-grid--2, .adm-grid--3 { grid-template-columns: minmax(0, 1fr); }
+  .adm-dl { grid-template-columns: minmax(0, 1fr); }
+  .adm-dl dd { margin-bottom: 0.5rem; }
+  .adm-head h1 { font-size: 1.6rem; }
+  .adm-sched thead { display: none; }
+  .adm-sched tr { display: block; border-bottom: 1px solid var(--hairline); padding: 0.5rem 0; }
+  .adm-sched td { display: block; border: 0; padding: 0.25rem 0; }
+}
