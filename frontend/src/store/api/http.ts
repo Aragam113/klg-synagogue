@@ -3,7 +3,8 @@ import i18next from 'i18next';
 
 /** Normalised API error. `fields` holds machine keys (`required`, `email`, `date_closed`...) - translate via i18n `common:fieldErrors.<key>`. */
 export interface ApiError {
-  status: number | 'network';
+  /** 'demo' — the GitHub Pages demo build refused the request (nothing is sent there). */
+  status: number | 'network' | 'demo';
   message: string;
   fields?: Record<string, string>;
 }
@@ -54,7 +55,7 @@ export const toApiError = (error: unknown): ApiError => {
 export const isApiError = (v: unknown): v is ApiError =>
   isRecord(v) &&
   typeof v.message === 'string' &&
-  (typeof v.status === 'number' || v.status === 'network');
+  (typeof v.status === 'number' || v.status === 'network' || v.status === 'demo');
 
 /** For screens: RTK Query hook error -> ApiError | undefined. */
 export const asApiError = (error: unknown): ApiError | undefined =>

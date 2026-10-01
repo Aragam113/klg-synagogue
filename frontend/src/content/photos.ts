@@ -3,6 +3,8 @@
  * Файлы — `public/media/sections/*` (уменьшены до 1600px), атрибуция — подпись под фото + `public/media/CREDITS.md`.
  * Фото с официального сайта (без лицензии) на сайт не ставятся.
  */
+import { assetUrl } from '@/config/demo';
+
 export interface Photo {
   src: string;
   author: string;
@@ -24,7 +26,7 @@ const photo = (
   en: string,
   he: string
 ): Photo => ({
-  src: `/media/sections/${file}`,
+  src: assetUrl(`/media/sections/${file}`),
   author,
   license,
   year,

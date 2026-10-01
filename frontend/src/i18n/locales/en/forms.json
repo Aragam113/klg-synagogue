@@ -31,7 +31,8 @@
     "fields": "Please check the highlighted fields",
     "too_many": "Too many submissions. Wait a minute and try again",
     "server": "Server error. Please try later",
-    "request": "Could not send the request. Please check your data"
+    "request": "Could not send the request. Please check your data",
+    "demo": "This is a demo version of the site: sending forms is disabled"
   },
   "errors": {
     "required": "Required field",

@@ -1,6 +1,8 @@
 import { type Href, router } from 'expo-router';
 import { type MouseEvent, type ReactNode } from 'react';
 
+import { assetUrl } from '@/config/demo';
+
 export interface LinkProps {
   href: string;
   children: ReactNode;
@@ -42,7 +44,7 @@ export const Link = ({
   };
   return (
     <a
-      href={href}
+      href={assetUrl(href)}
       className={className}
       onClick={handle}
       aria-label={ariaLabel}

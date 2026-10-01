@@ -2,9 +2,11 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { BaseQueryFn, FetchArgs } from '@reduxjs/toolkit/query/react';
 import i18next from 'i18next';
 
+import { IS_DEMO } from '@/config/demo';
 import { reportAdminResponse } from '@/store/api/admin-auth';
 import { getAdminToken } from '@/store/api/admin-token';
 import { type ApiError, isAdminUrl, toApiError, unwrapData, withLang } from '@/store/api/http';
+import { demoBaseQuery } from '@/store/demo/demo-base-query';
 
 /**
  * Base RTK Query API. Each task adds `src/store/api/<module>.ts`:
@@ -22,6 +24,7 @@ export const baseQuery: BaseQueryFn<string | FetchArgs, unknown, ApiError> = asy
   extra
 ) => {
   let req = withLang(args, i18next.resolvedLanguage ?? i18next.language ?? 'ru');
+  if (IS_DEMO) return demoBaseQuery(req);
   if (isAdminUrl(args)) {
     const token = await getAdminToken();
     if (token)

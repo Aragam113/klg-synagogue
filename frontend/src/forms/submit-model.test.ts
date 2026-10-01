@@ -28,6 +28,9 @@ describe('nextAttempt (idempotency key lifecycle)', () => {
 });
 
 describe('outcomeOf', () => {
+  it('demo build refused the send → banner "demo" (Pages demo: forms are disabled)', () => {
+    expect(outcomeOf({ status: 'demo', message: 'x' })).toEqual({ banner: 'demo', fields: {} });
+  });
   it('network failure → banner "network", no field errors (values stay in the form)', () => {
     expect(outcomeOf({ status: 'network', message: 'x' })).toEqual({
       banner: 'network',

@@ -1,3 +1,4 @@
+import { IS_DEMO, assetUrl } from '@/config/demo';
 import { API_BASE_URL, emptyApi } from '@/store/empty-api';
 
 /** Языковой аргумент: явно передаём `lang`, чтобы кэш RTK Query различал языки. */
@@ -140,7 +141,13 @@ const MEDIA_ORIGIN = API_BASE_URL.replace(/\/api\/v\d+\/?$/, '');
 
 /** `/media/x.webp` → абсолютный URL на бэкенде; внешние и пустые — как есть. */
 export const mediaUrl = (path: string | null | undefined): string | undefined =>
-  !path ? undefined : /^https?:\/\//.test(path) ? path : `${MEDIA_ORIGIN}${path}`;
+  !path
+    ? undefined
+    : /^https?:\/\//.test(path)
+      ? path
+      : IS_DEMO // демо (Pages): файлы снимка лежат статикой под базовым путём
+        ? assetUrl(path)
+        : `${MEDIA_ORIGIN}${path}`;
 
 export const contentApi = emptyApi.injectEndpoints({
   endpoints: (b) => ({

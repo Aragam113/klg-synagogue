@@ -23,7 +23,10 @@
     "build:scrub": "node scripts/build-scrub.mjs",
     "smoke:home": "node e2e/home-smoke.mjs",
     "smoke:admin": "node e2e/admin-smoke.mjs",
-    "smoke:mobile": "node e2e/mobile-smoke.mjs"
+    "smoke:mobile": "node e2e/mobile-smoke.mjs",
+    "demo:snapshot": "node scripts/demo-snapshot.mjs",
+    "build:demo": "node scripts/build-demo.mjs",
+    "serve:demo": "node scripts/serve-demo.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/frank-ruhl-libre": "^0.4.1",

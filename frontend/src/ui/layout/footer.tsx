@@ -2,6 +2,7 @@ import { useLang } from '@/i18n/use-lang';
 import { HexPattern } from '@/ui/judaica/hex-pattern';
 import { Placeholder } from '@/ui/kit/blocks';
 import { Link } from '@/ui/kit/link';
+import { DemoBadge } from '@/ui/layout/demo';
 
 import { Logo } from './header';
 import { FOOTER_COLUMNS } from './nav';
@@ -38,6 +39,7 @@ export const SiteFooter = () => {
           <div className="ftr__brand">
             <Logo light />
             <p className="ftr__motto">{t('site.tagline')}</p>
+            <DemoBadge />
             <address className="ftr__contacts">
               <span>
                 <b>{t('footer.address')}</b>{' '}

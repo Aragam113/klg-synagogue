@@ -1,7 +1,7 @@
 import type { ApiError } from '@/store/api/http';
 
 /** Banner above the form: `network` → «Не удалось отправить, попробуйте ещё раз». */
-export type Banner = 'network' | 'fields' | 'too_many' | 'server' | 'request';
+export type Banner = 'network' | 'fields' | 'too_many' | 'server' | 'request' | 'demo';
 
 export interface Outcome {
   banner: Banner;
@@ -44,6 +44,7 @@ export function newKey(): string {
 
 export function outcomeOf(error: ApiError): Outcome {
   if (error.status === 'network') return { banner: 'network', fields: {} };
+  if (error.status === 'demo') return { banner: 'demo', fields: {} };
   if (error.fields && Object.keys(error.fields).length)
     return { banner: 'fields', fields: error.fields };
   if (error.status === 429) return { banner: 'too_many', fields: {} };

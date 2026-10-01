@@ -16,7 +16,8 @@ export interface DayHoliday {
 }
 
 export interface Zmanim {
-  alot: string;
+  /** null — рассвет (алот) не наступает: белые ночи лета */
+  alot: string | null;
   talit: string;
   sunrise: string;
   shma: string;

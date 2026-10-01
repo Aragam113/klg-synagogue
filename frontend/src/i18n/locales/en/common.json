@@ -66,6 +66,14 @@
     "ok": "Got it",
     "more": "Learn more"
   },
+  "demo": {
+    "badge": "Demo version",
+    "formsDisabled": "This is a demo version of the site: sending forms is disabled",
+    "calendarStale": "The calendar data in the demo version is out of date",
+    "adminTitle": "The admin panel is not available in the demo version",
+    "adminText": "The demo version of the site runs without a server: content editing, requests and payments are disabled here.",
+    "home": "To the home page"
+  },
   "errors": {
     "network": "The server is unreachable. Check your connection and try again.",
     "client": "The request failed. Please try again.",
