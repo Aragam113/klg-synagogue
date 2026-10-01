@@ -8,3 +8,7 @@ __pycache__/
 dist/
 .expo/
 coverage/
+
+# загруженные через админку файлы
+/uploads/
+/backend/uploads/

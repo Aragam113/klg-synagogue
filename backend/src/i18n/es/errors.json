@@ -1,0 +1,25 @@
+{
+  "auth": {
+    "invalidCredentials": "Correo electrónico o contraseña inválidos",
+    "emailAlreadyExists": "El correo electrónico ya está registrado",
+    "userNotFound": "Usuario con este correo electrónico no encontrado",
+    "invalidCode": "Código inválido o expirado",
+    "codeSent": "Código de verificación enviado a tu correo",
+    "codeSentRecently": "Por favor espere antes de solicitar un nuevo código",
+    "tokenExpired": "Token expirado",
+    "tokenInvalid": "Token inválido",
+    "unauthorized": "Acceso no autorizado"
+  },
+  "file": {
+    "required": "El archivo es obligatorio",
+    "tooLarge": "El archivo es demasiado grande. El tamaño máximo es 5MB",
+    "invalidFormat": "Formato de archivo inválido"
+  },
+  "common": {
+    "internalError": "Error interno del servidor",
+    "badRequest": "Solicitud incorrecta",
+    "notFound": "Recurso no encontrado",
+    "forbidden": "Acceso prohibido",
+    "tooManyRequests": "Demasiadas solicitudes, por favor intente más tarde"
+  }
+}

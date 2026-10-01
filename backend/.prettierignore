@@ -1,0 +1,6 @@
+# Неподключённые модули шаблона хранятся байт-в-байт как в шаблоне
+src/shared/email/
+src/shared/redis/
+src/shared/i18n/
+src/shared/file-storage/
+src/shared/queue/

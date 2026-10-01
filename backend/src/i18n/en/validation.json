@@ -1,0 +1,23 @@
+{
+  "isNotEmpty": "{property} should not be empty",
+  "isString": "{property} must be a string",
+  "isEmail": "{property} must be a valid email",
+  "isInt": "{property} must be an integer",
+  "isNumber": "{property} must be a number",
+  "isBoolean": "{property} must be a boolean",
+  "isDate": "{property} must be a valid date",
+  "isArray": "{property} must be an array",
+  "isEnum": "{property} must be one of: {constraints}",
+  "isUUID": "{property} must be a valid UUID",
+  "isUrl": "{property} must be a valid URL",
+  "minLength": "{property} must be at least {constraints} characters",
+  "maxLength": "{property} must be at most {constraints} characters",
+  "min": "{property} must be at least {constraints}",
+  "max": "{property} must be at most {constraints}",
+  "matches": "{property} format is invalid",
+  "arrayMinSize": "{property} must contain at least {constraints} items",
+  "arrayMaxSize": "{property} must contain at most {constraints} items",
+  "isPositive": "{property} must be a positive number",
+  "isIn": "{property} must be one of the allowed values",
+  "password": "Password must be at least 6 characters"
+}
