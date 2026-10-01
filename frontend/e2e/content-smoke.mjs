@@ -155,6 +155,68 @@ try {
   await sleep(800);
   check((await count('.empty')) === 1, 'news item: 404 -> empty state');
 
+  // --- news feed "load more" + Telegram post: gallery, lightbox, source (task 11) ---
+  const feed = await api('/news?limit=50');
+  if (feed.data?.total > 9) {
+    await open('/news?lang=ru');
+    await page.waitForSelector('[data-testid="news-list"] .card', { timeout: 30000 });
+    const before = await count('[data-testid="news-list"] .card');
+    await page.click('.cnt-loadmore button');
+    await page.waitForFunction(
+      (n) => document.querySelectorAll('[data-testid="news-list"] .card').length > n,
+      { timeout: 30000 },
+      before
+    );
+    check((await count('[data-testid="news-list"] .card')) > before, 'news: load more appends cards', before);
+  }
+  let post = null;
+  for (const it of feed.data?.items ?? []) {
+    const d = (await api(`/news/${it.slug}?lang=ru`)).data;
+    if (d?.sourceUrl && d.images?.length > 1) {
+      post = d;
+      break;
+    }
+  }
+  if (post) {
+    for (const lang of ['ru', 'he']) {
+      await open(`/news/${post.slug}?lang=${lang}`, { w: 390, h: 844 });
+      await page.waitForSelector('[data-testid="news-photos"] .cnt-photo', { timeout: 30000 });
+      const n = await count('[data-testid="news-photos"] .cnt-photo');
+      check(n === post.images.length, `post ${lang}: gallery has all images`, `${n}/${post.images.length}`);
+      const src = await page.$eval('[data-testid="news-source"] a', (a) => a.href);
+      check(src === post.sourceUrl, `post ${lang}: source link to the post`, src);
+      const firstLine = (await text('[data-testid="news-item"] .cnt-body')).trim().split('\n')[0];
+      check(!firstLine.includes(post.title), `post ${lang}: title not repeated in body`, firstLine.slice(0, 60));
+      if (lang === 'he')
+        check(
+          (await count('[data-testid="news-item"] [dir="auto"] .cnt-body')) === 1,
+          'post he: Russian fallback text has dir=auto'
+        );
+      const letters = (s) => s.replace(/[^\p{L}\p{N}]+/gu, '').toLowerCase();
+      const shownLead = (await count('[data-testid="news-item"] .lead'))
+        ? await text('[data-testid="news-item"] .lead')
+        : '';
+      const bodyText = await text('[data-testid="news-item"] .cnt-body');
+      check(
+        !shownLead || !letters(bodyText).startsWith(letters(shownLead)),
+        `post ${lang}: lead does not repeat the body start`,
+        shownLead ? 'lead shown' : 'lead hidden'
+      );
+      const noScroll = await page.evaluate(() => document.documentElement.scrollWidth <= 390);
+      check(noScroll, `post ${lang}: 390px without horizontal scroll`);
+      await shot(`news-post-${lang}-390`);
+      await page.click('[data-testid="news-photos"] .cnt-photo');
+      await page.waitForSelector('[data-testid="lightbox"]', { timeout: 10000 });
+      const c1 = await text('.lbx__count');
+      await page.keyboard.press(lang === 'he' ? 'ArrowLeft' : 'ArrowRight');
+      await sleep(200);
+      check((await text('.lbx__count')) !== c1, `post ${lang}: lightbox steps`, await text('.lbx__count'));
+      await page.keyboard.press('Escape');
+      await sleep(200);
+      check((await count('[data-testid="lightbox"]')) === 0, `post ${lang}: lightbox closes`);
+    }
+  }
+
   // --- events (ink + grain) -> event -> #register ---
   await open('/events?lang=ru');
   check((await count('.tone-ink.sec--grain')) >= 1, 'events: afisha on ink with grain');

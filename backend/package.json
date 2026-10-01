@@ -22,7 +22,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "admin:hash": "ts-node scripts/admin-hash.ts",
-    "seed": "ts-node -r tsconfig-paths/register src/shared/database/seeds/content.seed.ts"
+    "seed": "ts-node -r tsconfig-paths/register src/shared/database/seeds/content.seed.ts",
+    "import:telegram": "ts-node -r tsconfig-paths/register scripts/import-telegram.ts"
   },
   "dependencies": {
     "@hebcal/core": "5.10.1",

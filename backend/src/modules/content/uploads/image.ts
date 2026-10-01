@@ -10,11 +10,18 @@ export const MAX_IMAGE_SIDE = 2000;
 export const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
 const ALLOWED_FORMATS = ['jpeg', 'png', 'webp'];
 
-/** Картинка → webp ≤ 2000px в UPLOAD_DIR; возвращает публичный путь /media/<имя>.webp. */
+export interface SavedImage {
+  /** Публичный путь /media/<имя>.webp. */
+  url: string;
+  width: number;
+  height: number;
+}
+
+/** Картинка → webp ≤ 2000px в UPLOAD_DIR; размеры — уже сохранённого файла. */
 export async function saveImageAsWebp(
   input: Buffer,
   uploadDir: string
-): Promise<string> {
+): Promise<SavedImage> {
   let meta: { format?: string };
   try {
     meta = await sharp(input).metadata();
@@ -33,7 +40,7 @@ export async function saveImageAsWebp(
   const dir = resolve(uploadDir);
   await mkdir(dir, { recursive: true });
   const name = `${randomUUID()}.webp`;
-  await sharp(input)
+  const info = await sharp(input)
     .rotate()
     .resize({
       width: MAX_IMAGE_SIDE,
@@ -43,5 +50,9 @@ export async function saveImageAsWebp(
     })
     .webp({ quality: 82 })
     .toFile(join(dir, name));
-  return `${MEDIA_PREFIX}/${name}`;
+  return {
+    url: `${MEDIA_PREFIX}/${name}`,
+    width: info.width,
+    height: info.height,
+  };
 }

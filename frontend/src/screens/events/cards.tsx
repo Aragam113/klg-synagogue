@@ -65,9 +65,13 @@ export const NewsCard = ({ item }: { item: NewsItem }) => {
           {item.publishedAt ? formatDay(item.publishedAt, lang) : ''}
         </>
       }
-      title={item.title}
+      title={<span dir={item.fallback ? 'auto' : undefined}>{item.title}</span>}
     >
-      {item.lead ? <p className="text cnt-lead">{item.lead}</p> : null}
+      {item.lead ? (
+        <p className="text cnt-lead" dir={item.fallback ? 'auto' : undefined}>
+          {item.lead}
+        </p>
+      ) : null}
       <FallbackBadge show={item.fallback} />
     </Card>
   );

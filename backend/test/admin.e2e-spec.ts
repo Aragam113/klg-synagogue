@@ -95,4 +95,26 @@ describe('Вход в админку (e2e)', () => {
         .expect(401);
     }
   });
+  it('?lang= разрешён на всех админ-эндпоинтах, прочие лишние параметры — нет', async () => {
+    const auth = { Authorization: `Bearer ${await adminToken(app)}` };
+    for (const path of [
+      '/admin/requests',
+      '/admin/yahrzeits',
+      '/admin/subscribers',
+      '/admin/payments',
+      '/admin/recurring',
+      '/admin/news',
+      '/admin/photos',
+      '/admin/settings',
+      '/admin/schedule/template',
+    ]) {
+      const res = await http.get(`/api/v1${path}?lang=he`).set(auth);
+      expect(`${path} ${res.status}`).toBe(`${path} 200`);
+    }
+    const bad = await http
+      .get('/api/v1/admin/requests?lang=ru&hacker=1')
+      .set(auth)
+      .expect(400);
+    expect(bad.body.fields).toEqual({ hacker: 'unknown_field' });
+  });
 });

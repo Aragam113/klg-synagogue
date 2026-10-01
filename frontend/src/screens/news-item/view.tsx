@@ -1,4 +1,5 @@
 import { useLang } from '@/i18n/use-lang';
+import { Lightbox, PhotoGrid } from '@/screens/album/lightbox';
 import { formatDay } from '@/screens/events/content-model';
 import { RichText } from '@/screens/events/rich-text';
 import '@/screens/events/styles';
@@ -19,12 +20,33 @@ import {
 } from '@/ui/kit';
 import { Reveal } from '@/ui/motion';
 
-import type { NewsItemViewProps } from './model';
+import {
+  type NewsItemViewProps,
+  bodyWithoutTitle,
+  extraSources,
+  leadRepeatsBody,
+  newsPhotos,
+  sourceChannel,
+} from './model';
 
-export const NewsItemView = ({ item, notFound, error, onRetry }: NewsItemViewProps) => {
+export const NewsItemView = ({
+  item,
+  notFound,
+  error,
+  onRetry,
+  open,
+  onOpen,
+  onStep,
+}: NewsItemViewProps) => {
   const { t, lang } = useLang('content');
+  const photos = newsPhotos(item?.images);
+  const channel = sourceChannel(item?.sourceUrl);
+  const more = extraSources(item?.images, item?.sourceUrl);
+  const body = item ? bodyWithoutTitle(item.body ?? '', item.title) : '';
+  // русский фолбэк на he: направление по самому тексту, иначе пунктуация уезжает («!Бар-мицва»)
+  const textDir = item?.fallback ? 'auto' : undefined;
   return (
-    <Page title={`${item?.title ?? t('news.title')} — ${t('common:site.name')}`}>
+    <Page title={`${item?.title ?? t('news.title')}`}>
       <Section tone="cream" pattern>
         <Container size="narrow">
           <Link href="/news" className="cnt-back">
@@ -45,9 +67,15 @@ export const NewsItemView = ({ item, notFound, error, onRetry }: NewsItemViewPro
                   {item.kind === 'announcement' ? `${t('news.announcement')} · ` : ''}
                   {item.publishedAt ? formatDay(item.publishedAt, lang) : t('news.eyebrow')}
                 </Eyebrow>
-                <Title as="h1" size="lg" text={item.title} />
+                <div dir={textDir}>
+                  <Title as="h1" size="lg" text={item.title} />
+                </div>
                 <FallbackBadge show={item.fallback} />
-                {item.lead ? <Text lead>{item.lead}</Text> : null}
+                {item.lead && !leadRepeatsBody(item.lead, body) ? (
+                  <div dir={textDir}>
+                    <Text lead>{item.lead}</Text>
+                  </div>
+                ) : null}
               </Reveal>
               {item.cover ? (
                 <Reveal delay={0.08}>
@@ -60,12 +88,45 @@ export const NewsItemView = ({ item, notFound, error, onRetry }: NewsItemViewPro
                 </Reveal>
               ) : null}
               <Reveal delay={0.12}>
-                <RichText text={item.body} />
+                <div dir={textDir}>
+                  <RichText text={body} />
+                </div>
               </Reveal>
+              {photos.length > 1 ? (
+                <section className="cnt-post-gallery" data-testid="news-photos">
+                  <Eyebrow>{t('news.photos')}</Eyebrow>
+                  <PhotoGrid photos={photos} onOpen={onOpen} />
+                </section>
+              ) : null}
+              {item.sourceUrl ? (
+                <p className="cnt-credits" data-testid="news-source">
+                  {t('news.source')}{' '}
+                  <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">
+                    {channel ? `@${channel}` : item.sourceUrl}
+                  </a>
+                  {more.length ? (
+                    <>
+                      {' · '}
+                      {t('news.morePosts')}{' '}
+                      {more.map((u, i) => (
+                        <span key={u}>
+                          {i ? ', ' : ''}
+                          <a href={u} target="_blank" rel="noopener noreferrer">
+                            {u.replace(/^https:\/\//, '')}
+                          </a>
+                        </span>
+                      ))}
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
             </article>
           ) : null}
         </Container>
       </Section>
+      {open !== null ? (
+        <Lightbox photos={photos} index={open} onClose={() => onOpen(null)} onStep={onStep} />
+      ) : null}
     </Page>
   );
 };

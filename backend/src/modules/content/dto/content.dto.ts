@@ -9,6 +9,7 @@ import {
   IsEmail,
   IsIn,
   IsInt,
+  IsNumberString,
   IsOptional,
   IsString,
   IsUUID,
@@ -356,4 +357,25 @@ export class SocialLinkDto {
   @Matches(/^https?:\/\/\S+$/, { message: 'url' })
   @MaxLength(300)
   url: string;
+}
+
+/** Query списков админки: `?page&limit` (`?lang` снимает общий pipe). */
+export class AdminListQueryDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumberString({ no_symbols: true })
+  page?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumberString({ no_symbols: true })
+  limit?: string;
+}
+
+/** `GET /admin/photos?albumId=<uuid>` — фото одного альбома. */
+export class AdminPhotosQueryDto extends AdminListQueryDto {
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  albumId?: string;
 }

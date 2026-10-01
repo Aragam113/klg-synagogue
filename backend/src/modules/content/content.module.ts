@@ -25,6 +25,7 @@ import {
   CreateEventDto,
   CreateFundraiserDto,
   CreateNewsDto,
+  AdminPhotosQueryDto,
   CreatePhotoDto,
   CreateProgramDto,
   UpdateAlbumDto,
@@ -115,6 +116,7 @@ const adminControllers = [
       entity: PhotoEntity,
       order: { sort: 'ASC' },
       notFound: 'Фото не найдено',
+      listQuery: AdminPhotosQueryDto,
       filter: (q) => (q.albumId ? { albumId: q.albumId } : {}),
       prepare: async (data, em) => {
         if (typeof data.albumId !== 'string') return;

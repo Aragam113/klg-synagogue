@@ -27,6 +27,7 @@ import { FieldValidationPipe } from '@common/pipes';
 import { AdminOnly } from '@modules/admin';
 import { parsePaging, toPage } from './content.service';
 import { slugify, uniqueSlug } from './slug';
+import { AdminListQueryDto } from './dto/content.dto';
 
 const SLUG_RETRIES = 5;
 
@@ -37,8 +38,8 @@ function isSlugConflict(err: unknown): boolean {
   return d?.code === '23505' && /\(slug\)/.test(d.detail ?? '');
 }
 
-/** Глобальный пipe не видит тип тела в контроллере-фабрике — передаём его явно. */
-class TypedBodyPipe extends FieldValidationPipe {
+/** Глобальный pipe не видит тип тела/query в контроллере-фабрике — передаём его явно. */
+class TypedPipe extends FieldValidationPipe {
   constructor(type: Type<unknown>) {
     super();
     this.expectedType = type;
@@ -51,7 +52,9 @@ export interface CrudSpec<E extends ObjectLiteral> {
   order: FindOptionsOrder<E>;
   /** У сущности есть слаг: генерируется из title.ru, уникален. */
   slug?: boolean;
-  /** Фильтр списка по строке запроса (например `?albumId=`). */
+  /** DTO query списка (по умолчанию `AdminListQueryDto`: page, limit); проверяется глобальными правилами полей. */
+  listQuery?: Type<unknown>;
+  /** Фильтр списка по уже проверенному query (например `?albumId=`). */
   filter?: (query: Record<string, string | undefined>) => FindOptionsWhere<E>;
   /** Подготовка данных перед сохранением (проверки, производные поля). */
   prepare?: (
@@ -172,7 +175,10 @@ export function adminCrudController<E extends ObjectLiteral & { id: string }>(
     }
 
     @Get()
-    list(@Query() query: Record<string, string | undefined>) {
+    list(
+      @Query(new TypedPipe(spec.listQuery ?? AdminListQueryDto))
+      query: Record<string, string | undefined>
+    ) {
       return this.crud.list(query);
     }
 
@@ -182,14 +188,14 @@ export function adminCrudController<E extends ObjectLiteral & { id: string }>(
     }
 
     @Post()
-    create(@Body(new TypedBodyPipe(createDto)) dto: object) {
+    create(@Body(new TypedPipe(createDto)) dto: object) {
       return this.crud.create(dto);
     }
 
     @Patch(':id')
     update(
       @Param('id', ParseUUIDPipe) id: string,
-      @Body(new TypedBodyPipe(updateDto)) dto: object
+      @Body(new TypedPipe(updateDto)) dto: object
     ) {
       return this.crud.update(id, dto);
     }

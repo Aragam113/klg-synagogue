@@ -78,6 +78,6 @@ export class UploadsController {
         fields: { file: 'required' },
       });
     }
-    return { url: await saveImageAsWebp(file.buffer, this.conf.uploadDir) };
+    return saveImageAsWebp(file.buffer, this.conf.uploadDir);
   }
 }

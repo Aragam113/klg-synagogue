@@ -31,6 +31,14 @@ export function newsItem(n: NewsEntity, lang: LangCode) {
   return {
     ...card,
     body: body.values.body,
+    // postUrl — пост Telegram, откуда картинка (у приклеенных фото-постов свой)
+    images: (n.images ?? []).map(({ url, width, height, source }) => ({
+      url,
+      width,
+      height,
+      postUrl: source ?? n.sourceUrl ?? null,
+    })),
+    sourceUrl: n.sourceUrl ?? null,
     fallback: card.fallback || body.fallback,
   };
 }

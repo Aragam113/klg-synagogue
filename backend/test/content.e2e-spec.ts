@@ -411,6 +411,38 @@ describe('Контент: новости, события, сборы, загру
         .send({ hacker: 1 })
         .expect(400);
     });
+
+    it('null в значении очищает ключ (не 500)', async () => {
+      await http
+        .put('/api/v1/admin/settings')
+        .set(auth)
+        .send({ kaddish_month_rub: 1800, requisites: { ru: 'Счёт' } })
+        .expect(200);
+      const res = await http
+        .put('/api/v1/admin/settings')
+        .set(auth)
+        .send({ kaddish_month_rub: null, requisites: null })
+        .expect(200);
+      expect(res.body.data).toMatchObject({
+        kaddish_month_rub: null,
+        requisites: null,
+      });
+      const pub = await http.get('/api/v1/settings/public').expect(200);
+      expect(pub.body.data).toMatchObject({
+        kaddishMonthRub: null,
+        requisites: null,
+      });
+    });
+  });
+
+  describe('админ-эндпоинты', () => {
+    it('?albumId= не uuid → 400 fields.albumId', async () => {
+      const res = await http
+        .get('/api/v1/admin/photos?albumId=not-a-uuid')
+        .set(auth)
+        .expect(400);
+      expect(res.body.fields).toEqual({ albumId: 'invalid_format' });
+    });
   });
 
   it('гонка слага: одновременные создания с одним заголовком — не 500, слаги разные', async () => {

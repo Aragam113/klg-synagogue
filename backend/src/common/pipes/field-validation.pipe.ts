@@ -1,4 +1,5 @@
 import {
+  ArgumentMetadata,
   BadRequestException,
   ValidationError,
   ValidationPipe,
@@ -32,6 +33,8 @@ const CONSTRAINT_KEYS: Record<string, string> = {
   matches: 'invalid_format',
   isUrl: 'url',
   isUUID: 'invalid_format',
+  isUuid: 'invalid_format', // так правило зовёт class-validator
+  isNumberString: 'number',
   whitelistValidation: 'unknown_field',
 };
 /** Сообщение-ключ, заданное в DTO: `@Validate(..., { message: 'date_too_soon' })`. */
@@ -55,6 +58,25 @@ export class FieldValidationPipe extends ValidationPipe {
           fields: collectFieldErrors(errors),
         }),
     });
+  }
+
+  /**
+   * `?lang=` фронт добавляет к каждому запросу (его читает `@Lang()`), поэтому query-DTO
+   * его не объявляют: из объекта query он убирается до проверки лишних полей.
+   */
+  override transform(value: unknown, metadata: ArgumentMetadata) {
+    if (
+      metadata.type === 'query' &&
+      metadata.data === undefined &&
+      value &&
+      typeof value === 'object' &&
+      'lang' in value
+    ) {
+      const rest = { ...(value as Record<string, unknown>) };
+      delete rest.lang;
+      return super.transform(rest, metadata);
+    }
+    return super.transform(value, metadata);
   }
 }
 

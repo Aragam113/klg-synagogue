@@ -1,6 +1,6 @@
 import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { LangCode, LocalizedString, localize } from '@common/localization';
 import { SiteSettingEntity } from './entities';
 import { UpdateSettingsDto } from './dto/content.dto';
@@ -44,13 +44,17 @@ export class SettingsService {
     return out as unknown as SiteSettings;
   }
 
+  /** Значение — сохраняет ключ; `null` — удаляет его (вернётся значение по умолчанию). */
   async update(dto: UpdateSettingsDto): Promise<SiteSettings> {
-    const rows = Object.entries(dto)
-      .filter(
-        ([key, value]) =>
-          KEYS.includes(key as keyof SiteSettings) && value !== undefined
-      )
+    const entries = Object.entries(dto).filter(
+      ([key, value]) =>
+        KEYS.includes(key as keyof SiteSettings) && value !== undefined
+    );
+    const cleared = entries.filter(([, v]) => v === null).map(([k]) => k);
+    const rows = entries
+      .filter(([, v]) => v !== null)
       .map(([key, value]) => ({ key, value: value as unknown }));
+    if (cleared.length) await this.repo.delete({ key: In(cleared) });
     if (rows.length) await this.repo.save(rows.map((r) => this.repo.create(r)));
     return this.getAll();
   }

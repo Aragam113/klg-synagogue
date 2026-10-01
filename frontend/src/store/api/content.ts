@@ -21,6 +21,18 @@ export interface NewsItem {
   kind: 'news' | 'announcement';
   publishedAt: string | null;
   fallback: boolean;
+  /** Все картинки поста (только в GET /news/:slug); обложка — первая. */
+  images?: NewsImage[];
+  /** Ссылка на исходный пост (импорт из Telegram) или null. */
+  sourceUrl?: string | null;
+}
+
+export interface NewsImage {
+  url: string;
+  width?: number;
+  height?: number;
+  /** Пост Telegram, из которого картинка (у приклеенных постов только с фото — свой). */
+  postUrl?: string | null;
 }
 
 export interface PriceTier {

@@ -129,7 +129,7 @@ export async function seedContent(
         throw new Error(`Нет свободной лицензии в _sources.txt для ${p.file}`);
       if (await photos.findOne({ where: { albumId: album.id, credit } }))
         continue;
-      const file = await saveImageAsWebp(
+      const { url: file } = await saveImageAsWebp(
         await readFile(resolve(imgDir, p.file)),
         opts.uploadDir
       );

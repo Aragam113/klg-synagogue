@@ -32,6 +32,9 @@
     "italic": "announcements",
     "announcement": "Announcement",
     "back": "All news",
+    "source": "Source: Telegram channel",
+    "photos": "Photos",
+    "morePosts": "photos also from posts",
     "empty": "No news yet",
     "emptyText": "Check the events page for what's coming up."
   },
