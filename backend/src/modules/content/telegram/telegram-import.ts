@@ -1,4 +1,4 @@
-import { Between, DataSource } from 'typeorm';
+import { Between, DataSource, IsNull, Not } from 'typeorm';
 import { NewsEntity, NewsImage } from '../entities';
 import { MAX_UPLOAD_BYTES, saveImageAsWebp } from '../uploads/image';
 import { slugify, uniqueSlug } from '../slug';
@@ -212,6 +212,8 @@ export async function importTelegram(
     const [target] = await repo.find({
       where: {
         publishedAt: Between(new Date(`${day}T00:00:00+02:00`), o.publishedAt),
+        // только новости канала: новость из админки (без sourceUrl) не перехватывает фото
+        sourceUrl: Not(IsNull()),
       },
       order: { publishedAt: 'DESC' },
       take: 1,

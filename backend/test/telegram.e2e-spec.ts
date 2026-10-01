@@ -5,6 +5,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { importTelegram } from '../src/modules/content/telegram/telegram-import';
+import { NewsEntity } from '../src/modules/content/entities';
 import { sharp } from '../src/modules/content/uploads/sharp';
 import { createTestApp, resetDb } from './helpers';
 
@@ -174,6 +175,33 @@ describe('Импорт новостей из Telegram (npm run import:telegram)'
       );
       expect(result.photoPostsSkipped).toBe(1);
       expect(logs.join('\n')).toMatch(/пропущен.*https:\/\/t\.me\/TestChan\/3/);
+    });
+
+    it('сосед фото-поста ищется только среди новостей канала: новость из админки того же дня не перехватывает', async () => {
+      await run(
+        msg(4, '2026-12-07T08:00:00+00:00', 'Утро в общине<br/>Текст', [
+          'https://cdn4.telesco.pe/file/f.jpg',
+        ])
+      );
+      const repo = ds.getRepository(NewsEntity);
+      const admin = await repo.save(
+        repo.create({
+          slug: 'admin-news-same-day',
+          title: { ru: 'Новость из админки' },
+          body: { ru: 'Текст' },
+          kind: 'news',
+          status: 'published',
+          publishedAt: new Date('2026-12-07T09:00:00+00:00'),
+        })
+      );
+      const { result } = await run(
+        msg(5, '2026-12-07T10:00:00+00:00', '', [
+          'https://cdn4.telesco.pe/file/g.jpg',
+        ])
+      );
+      expect(result.photoPostsAppended).toBe(1);
+      expect(await imagesOf(4)).toHaveLength(2);
+      expect((await repo.findOneByOrFail({ id: admin.id })).images).toEqual([]);
     });
   });
 
