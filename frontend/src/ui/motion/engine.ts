@@ -10,6 +10,7 @@ export interface RegisterOptions {
 export { progressOf } from './progress';
 export const reducedMotion = (): boolean => true;
 export const motionAllowed = (): boolean => false;
+export const pinAllowed = (): boolean => false;
 export const startEngine = (): void => undefined;
 export const stopEngine = (): void => undefined;
 export const registerProgress =

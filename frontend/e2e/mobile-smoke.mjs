@@ -8,6 +8,9 @@
  * the mobile menu is above the cookie banner; touch targets ≥ 44px (header icons, burger, menu languages,
  * close, checkbox label); the marquee moves; Reveal fires on scroll; the community chapters ribbon swipes
  * (scroll-snap, dots follow); the scene credit is one short line; with reduced motion nothing moves.
+ * Task 15 (G12/G13): on touch the synagogue scene scrubs by native scroll (frame at p≈0.1 ≠ p≈0.9 and back,
+ * sticky 100svh), the Dawn rosette turns by itself (two marks 3 s apart) and with scroll, the hexagram
+ * background parallaxes — at 390×844 and 360×740; shots e2e/shots/g12_*.
  */
 import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
@@ -26,6 +29,7 @@ mkdirSync(SHOTS, { recursive: true });
 
 const SECTIONS = ['#hero', '.scrub', '#welcome', '#today', '#community', '#ledger', '.home-marquee', '#visit', '#events', '#funds', '#news', '#dawn'];
 
+const ONLY = process.env.G12_ONLY === '1'; // task-15 checks only (4b, 5)
 const failures = [];
 const check = (ok, what, extra = '') => {
   console.log(`${ok ? 'OK  ' : 'FAIL'} ${what}${extra ? ` (${extra})` : ''}`);
@@ -62,9 +66,9 @@ const browser = await puppeteer.launch({
   args: ['--no-sandbox', '--hide-scrollbars', '--font-render-hinting=none'],
 });
 
-const open = async (path, width, { reduced = false, cookie = true } = {}) => {
+const open = async (path, width, { reduced = false, cookie = true, height = 800 } = {}) => {
   const page = await browser.newPage();
-  await page.setViewport({ width, height: 800, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  await page.setViewport({ width, height, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
   await page.evaluateOnNewDocument((c) => {
     localStorage.setItem('synagogue.preloaded', '1');
     if (c) localStorage.setItem('synagogue.cookieConsent', '1');
@@ -79,6 +83,7 @@ const open = async (path, width, { reduced = false, cookie = true } = {}) => {
 };
 const scrollTo = (page, y) => page.evaluate((v) => window.scrollTo(0, v), y);
 const shot = (page, name, full = false) => page.screenshot({ path: join(SHOTS, `${PREFIX}_${name}.png`), fullPage: full });
+const shotG = (page, name) => page.screenshot({ path: join(SHOTS, `g12_${name}.png`) });
 
 /** Elements of a section that stick out of the 16px side fields (horizontal tracks are measured as a whole). */
 const marginViolations = (page) =>
@@ -119,7 +124,7 @@ const marginViolations = (page) =>
 
 try {
   // ---- 1. margins, header, credit: 360/390/414 × ru/he
-  for (const lang of ['ru', 'he']) {
+  if (!ONLY) for (const lang of ['ru', 'he']) {
     for (const w of [360, 390, 414]) {
       const page = await open(`/?lang=${lang}`, w);
       const tag = `${w} ${lang}`;
@@ -160,7 +165,7 @@ try {
   }
 
   // ---- 2. menu above the cookie banner, menu targets
-  for (const lang of ['ru', 'he']) {
+  if (!ONLY) for (const lang of ['ru', 'he']) {
     const page = await open(`/?lang=${lang}`, 360, { cookie: false });
     const ck = await page.evaluate(() => Math.round(document.querySelector('.cookie')?.getBoundingClientRect().height ?? 0));
     check(ck > 0 && ck <= 120, `${lang}: cookie banner compact on 360`, `${ck}px`);
@@ -183,7 +188,7 @@ try {
   }
 
   // ---- 2b. visible [ВПИШИ] placeholders stay inside their card on he
-  for (const path of ['/donate?lang=he', '/visit/how-to-get?lang=he']) {
+  if (!ONLY) for (const path of ['/donate?lang=he', '/visit/how-to-get?lang=he']) {
     const page = await open(path, 360);
     const out = await page.evaluate(() => {
       const vw = document.documentElement.clientWidth;
@@ -197,7 +202,7 @@ try {
   }
 
   // ---- 3. checkbox hit area
-  {
+  if (!ONLY) {
     const page = await open('/ask-rabbi', 360);
     const h = await page.evaluate(() => {
       const l = document.querySelector('label.check');
@@ -208,9 +213,9 @@ try {
   }
 
   // ---- 4. motion on a phone: marquee, reveal, chapters ribbon
-  {
+  if (!ONLY) {
     const page = await open('/?lang=ru', 390);
-    check(await page.evaluate(() => document.documentElement.dataset.motion !== 'on'), '390: no scroll-scrub on touch');
+    check(await page.evaluate(() => document.documentElement.dataset.motion === 'on'), '390: scroll-driven motion on touch');
     const ty = () =>
       page.evaluate(() => new DOMMatrix(getComputedStyle(document.querySelector('.home-marquee .marquee__track')).transform).m41);
     await page.evaluate(() => document.querySelector('.home-marquee').scrollIntoView({ block: 'center' }));
@@ -241,11 +246,6 @@ try {
     });
     check(after.rev === 'true' && +after.op > 0.99, '390: Reveal fires on scroll', JSON.stringify(after));
 
-    const scene = await page.evaluate(() => {
-      const t = document.querySelector('.scrub [data-ribbon]');
-      return t ? { sw: t.scrollWidth, cw: t.clientWidth, dots: document.querySelectorAll('.scrub .pinned__dot').length } : null;
-    });
-    check(!!scene && scene.sw > scene.cw * 1.5 && scene.dots === 4, '390: scene chapters are a swipe ribbon with dots', JSON.stringify(scene));
 
     await page.evaluate(() => document.querySelector('#community').scrollIntoView({ block: 'start' }));
     await sleep(500);
@@ -273,19 +273,140 @@ try {
     await page.close();
   }
 
+  // ---- 4b. G13 + G12 (task 15): Dawn rosette, scroll scene, parallax on phones (native scroll, real heights)
+  for (const [w, h] of [[390, 844], [360, 740]]) {
+    const page = await open('/?lang=ru', w, { height: h });
+    const tag = `${w}×${h}`;
+    const touchScroll = async (dy) => {
+      // a finger drag (native touch scroll, passive listeners); the wheel only if the drag did not move the page
+      const x = Math.round(w / 2);
+      const y0 = Math.round(h / 2 + dy / 2);
+      const before = await page.evaluate(() => scrollY);
+      await page.touchscreen.touchStart(x, y0);
+      for (let i = 1; i <= 8; i++) await page.touchscreen.touchMove(x, Math.round(y0 - (dy * i) / 8));
+      await sleep(150); // hold the finger still before lifting: no fling, the page moves by exactly the drag
+      await page.touchscreen.touchEnd();
+      await sleep(700);
+      if ((await page.evaluate(() => scrollY)) === before) {
+        await page.mouse.move(x, h / 2);
+        await page.mouse.wheel({ deltaY: dy });
+        await sleep(500);
+      }
+    };
+    // total angle of the Dawn rosette = its own rotation + every rotated wrapper up to the section
+    const angle = () =>
+      page.evaluate(() => {
+        let deg = 0;
+        for (let el = document.querySelector('#dawn .rosette'); el && el.id !== 'dawn'; el = el.parentElement) {
+          const t = getComputedStyle(el).transform;
+          if (t && t !== 'none') {
+            const m = new DOMMatrix(t);
+            deg += (Math.atan2(m.b, m.a) * 180) / Math.PI;
+          }
+        }
+        return +deg.toFixed(3);
+      });
+    await page.evaluate(() => document.querySelector('#dawn').scrollIntoView({ block: 'center' }));
+    await sleep(600);
+    const r1 = await angle();
+    await sleep(3000);
+    const r2 = await angle();
+    check(Math.abs(r2 - r1) > 10, `${tag}: Dawn rosette turns by itself (visible in 3 s)`, `${r1}° → ${r2}°`);
+    await shotG(page, `dawn_${w}`);
+    const own = () =>
+      page.evaluate(() => {
+        const m = new DOMMatrix(getComputedStyle(document.querySelector('#dawn .rosette')).transform);
+        return +((Math.atan2(m.b, m.a) * 180) / Math.PI).toFixed(3);
+      });
+    const s1 = await own();
+    await touchScroll(-Math.round(h * 0.4));
+    const s2 = await own();
+    check(Math.abs(s2 - s1) > 1, `${tag}: Dawn rosette also turns with (touch) scroll`, `${s1}° → ${s2}°`);
+
+    const sceneAt = async (p) => {
+      await page.evaluate((v) => {
+        const s = document.querySelector('.scrub');
+        const top = s.getBoundingClientRect().top + scrollY;
+        window.scrollTo(0, top + v * (s.offsetHeight - innerHeight));
+      }, p);
+      await sleep(1200);
+      return page.evaluate(() => {
+        const c = document.querySelector('.scrub canvas');
+        const st = document.querySelector('.scrub__sticky').getBoundingClientRect();
+        const cur = document.querySelector('.scrub__chapter[data-current="true"]');
+        return {
+          frame: c ? +c.dataset.frame : null,
+          cw: c?.width ?? 0,
+          top: Math.round(st.top),
+          sh: Math.round(st.height),
+          op: cur ? +(+getComputedStyle(cur).opacity).toFixed(2) : null,
+          active: document.querySelector('.scrub').dataset.active,
+        };
+      });
+    };
+    const a = await sceneAt(0.1);
+    await shotG(page, `scene_${w}_p10`);
+    const b = await sceneAt(0.9);
+    await shotG(page, `scene_${w}_p90`);
+    const c = await sceneAt(0.1);
+    check(a.frame !== null && b.frame !== null && a.frame !== b.frame && c.frame === a.frame, `${tag}: scene frame scrubs by scroll and back`, `${a.frame} → ${b.frame} → ${c.frame}`);
+    check(Math.abs(a.top) <= 1 && Math.abs(a.sh - h) <= 2, `${tag}: scene sticky at 100svh`, JSON.stringify(a));
+    check(a.cw > 0 && a.cw <= w * 2 + 1, `${tag}: canvas sized to the phone (DPR ≤ 2)`, String(a.cw));
+    check(a.active !== b.active && a.op > 0.9 && b.op > 0.9, `${tag}: scene chapters enter/leave with scroll`, `${a.active}/${a.op} → ${b.active}/${b.op}`);
+    const t1 = await page.evaluate(() => +document.querySelector('.scrub canvas')?.dataset.frame);
+    await touchScroll(-Math.round(h * 0.8));
+    const t2 = await page.evaluate(() => +document.querySelector('.scrub canvas')?.dataset.frame);
+    check(Number.isFinite(t1) && Number.isFinite(t2) && t1 !== t2, `${tag}: a finger drag scrubs the scene`, `${t1} → ${t2}`);
+
+    const par = () =>
+      page.evaluate(() => {
+        const el = [...document.querySelectorAll('.hexpattern')].find((e) => {
+          const r = e.parentElement.getBoundingClientRect();
+          return r.top < innerHeight * 0.6 && r.bottom > innerHeight * 0.4;
+        });
+        return el ? +new DOMMatrix(getComputedStyle(el).transform).m42.toFixed(2) : null;
+      });
+    await page.evaluate(() => document.querySelector('.hexpattern').parentElement.scrollIntoView({ block: 'center' }));
+    await sleep(500);
+    const y1 = await par();
+    await touchScroll(Math.round(h * 0.3));
+    const y2 = await par();
+    check(y1 !== null && y2 !== null && Math.abs(y2 - y1) > 1, `${tag}: hexagram background parallax`, `${y1} → ${y2}`);
+    await page.close();
+  }
+
   // ---- 5. reduced motion: nothing moves, everything visible
   {
-    const page = await open('/?lang=ru', 390, { reduced: true });
+    const page = await open('/?lang=ru', 390, { reduced: true, height: 844 });
     const st = await page.evaluate(() => {
       const el = document.querySelector('#visit .reveal');
-      return { op: getComputedStyle(el).opacity, anim: getComputedStyle(document.querySelector('.home-marquee .marquee__track')).animationName };
+      return {
+        op: getComputedStyle(el).opacity,
+        anim: getComputedStyle(document.querySelector('.home-marquee .marquee__track')).animationName,
+        motion: document.documentElement.dataset.motion,
+        scene: document.querySelector('.scrub').className,
+        chapters: [...document.querySelectorAll('.scrub__chapter')].every((x) => +getComputedStyle(x).opacity === 1),
+      };
     });
-    check(+st.op === 1 && st.anim === 'none', '390 reduced: static and visible', JSON.stringify(st));
+    check(+st.op === 1 && st.anim === 'none' && st.motion !== 'on' && st.scene.includes('scrub--static') && st.chapters, '390 reduced: static and visible', JSON.stringify(st));
+    const rot = () =>
+      page.evaluate(() => {
+        const out = [];
+        for (let el = document.querySelector('#dawn .rosette'); el && el.id !== 'dawn'; el = el.parentElement) out.push(getComputedStyle(el).transform);
+        return out.join('|');
+      });
+    await page.evaluate(() => document.querySelector('#dawn').scrollIntoView({ block: 'center' }));
+    await sleep(300);
+    const q1 = await rot();
+    await sleep(1500);
+    const q2 = await rot();
+    check(q1 === q2 && q1.split('|').every((t) => t === 'none' || t.startsWith('matrix(1, 0, 0, 1')), '390 reduced: Dawn rosette static', q1);
+    await shotG(page, 'reduced_dawn_390');
     await page.close();
   }
 
   // ---- 6. tablet + he snapshots
-  {
+  if (!ONLY) {
     const page = await open('/?lang=he', 768);
     check(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), '768 he: no horizontal scroll');
     const bad = await marginViolations(page);

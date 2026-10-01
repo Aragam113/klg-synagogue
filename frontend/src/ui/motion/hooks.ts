@@ -3,6 +3,7 @@ import { type RefObject, useEffect, useRef, useState } from 'react';
 import {
   motionAllowed,
   type MotionEl,
+  pinAllowed,
   registerProgress,
   registerReveal,
   type RegisterOptions,
@@ -37,18 +38,23 @@ export const useReveal = (ref: RefObject<MotionEl | null>): void => {
   }, [ref]);
 };
 
-/** Live `motionAllowed()` (fine pointer, no reduced motion): follows the same media queries as the engine. */
-export const useMotionOn = (): boolean => {
+const useMediaFlag = (read: () => boolean): boolean => {
   const [on, setOn] = useState(false);
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
-    const sync = () => setOn(motionAllowed());
+    const sync = () => setOn(read());
     sync();
     const mqs = ['(pointer: coarse)', '(prefers-reduced-motion: reduce)'].map((q) =>
       window.matchMedia(q)
     );
     mqs.forEach((q) => q.addEventListener('change', sync));
     return () => mqs.forEach((q) => q.removeEventListener('change', sync));
-  }, []);
+  }, [read]);
   return on;
 };
+
+/** Live `motionAllowed()` (no reduced motion; touch included): follows the same media queries as the engine. */
+export const useMotionOn = (): boolean => useMediaFlag(motionAllowed);
+
+/** Live `pinAllowed()` (fine pointer, no reduced motion): pinned chapters instead of the swipe ribbon. */
+export const usePinOn = (): boolean => useMediaFlag(pinAllowed);

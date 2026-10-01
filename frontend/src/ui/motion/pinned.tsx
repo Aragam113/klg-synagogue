@@ -1,6 +1,6 @@
 import { type ReactNode, useRef, useState } from 'react';
 
-import { useMotionOn, useScrollProgress } from './hooks';
+import { usePinOn, useScrollProgress } from './hooks';
 
 export interface PinnedProps {
   /** One node per chapter; each takes 100svh of scroll and enters/leaves by `--p`. */
@@ -32,7 +32,7 @@ export const Pinned = ({
   const ref = useRef<HTMLDivElement>(null);
   const n = chapters.length;
   const [active, setActive] = useState(0);
-  const motion = useMotionOn();
+  const motion = usePinOn();
   const ribbon = useRef<HTMLDivElement>(null);
   useScrollProgress(ref, {
     mode: 'pin',

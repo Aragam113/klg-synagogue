@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { assetUrl } from '@/config/demo';
 import { Title } from '@/ui/kit';
 import { motionAllowed } from '@/ui/motion/engine';
 import { useScrollProgress } from '@/ui/motion/hooks';
@@ -35,14 +36,15 @@ export interface SynagogueScrubProps {
   ariaLabel?: string;
 }
 
-const DEFAULT_MANIFEST = '/media/scrub/manifest.json';
+const DEFAULT_MANIFEST = assetUrl('/media/scrub/manifest.json');
 const pad = (n: number) => String(n).padStart(2, '0');
 
 /**
  * Pinned scroll scene (spec R04, «Решение 4»): a sticky 100svh canvas inside a (chapters + 1) × 100svh runway;
  * the frame is round(p·(N−1)) of the manifest — strictly by scroll, forward and back. The first frame loads at
  * once, the rest are preloaded after the first paint; until a frame arrives the nearest loaded one is drawn.
- * Chapters enter/leave by `--p` in CSS. On touch / reduced motion: static poster frame + chapters stacked.
+ * Chapters enter/leave by `--p` in CSS. Touch scrubs too (native scroll, task 15); reduced motion: static poster
+ * frame + chapters as a swipe ribbon.
  * `data-frame` on the canvas = the frame drawn (used by the smoke test).
  */
 export const SynagogueScrub = ({
@@ -124,7 +126,7 @@ export const SynagogueScrub = ({
     };
   }, [manifestUrl]);
 
-  // Frames: the one for the current progress first, then the rest (6 at a time) after it has been drawn.
+  // Frames: the one for the current progress first, then the rest (6 at a time, 2 on phones), nearest first.
   useEffect(() => {
     if (!m || !motion) return;
     let gone = false;
@@ -149,10 +151,19 @@ export const SynagogueScrub = ({
     const first = frameIndex(progress.current, N);
     load(first).then(async () => {
       const queue = Array.from({ length: N }, (_, i) => i).filter((i) => i !== first);
+      // each worker takes the frame nearest to the CURRENT scroll position (it moves while frames load)
       const worker = async () => {
-        while (!gone && queue.length) await load(queue.shift() as number);
+        while (!gone && queue.length) {
+          const want = frameIndex(progress.current, N);
+          let best = 0;
+          for (let j = 1; j < queue.length; j++)
+            if (Math.abs(queue[j] - want) < Math.abs(queue[best] - want)) best = j;
+          await load(queue.splice(best, 1)[0]);
+        }
       };
-      await Promise.all(Array.from({ length: 6 }, worker));
+      // phones: fewer parallel downloads so the frame for the current scroll is not queued behind the rest
+      const coarse = window.matchMedia('(pointer: coarse)').matches;
+      await Promise.all(Array.from({ length: coarse ? 2 : 6 }, worker));
     });
     const onResize = () => draw();
     window.addEventListener('resize', onResize);

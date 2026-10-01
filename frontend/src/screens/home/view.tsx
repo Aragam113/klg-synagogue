@@ -461,7 +461,10 @@ export const HomeView = ({
       {/* 12. Dawn */}
       <Section tone="canvas" className="home-dawn" id="dawn">
         <div className="home-dawn__rosette" aria-hidden>
-          <Rosette size="min(64.286rem, 140vw)" spin={45} />
+          {/* G13: the wrapper turns slowly by itself (every device), the rosette inside adds the scroll turn */}
+          <span className="home-dawn__spin">
+            <Rosette size="min(64.286rem, 140vw)" spin={45} />
+          </span>
         </div>
         <Container size="text" className="home-center">
           <Eyebrow>{t('dawn.eyebrow')}</Eyebrow>

@@ -5,7 +5,7 @@
  *
  * Needs the backend on :3000 for live data (the page must survive without it too).
  * Checks: preloader leaves; the scene frame follows the scroll (p≈0.1 ≠ p≈0.9 and back again); all 12 sections;
- * scroll to the bottom without console errors; 390px without horizontal scroll; reduced motion → static scene;
+ * scroll to the bottom without console errors; 390px (touch: live scene) without horizontal scroll; reduced motion → static scene;
  * ?lang=he → dir=rtl and the scene still renders. Screenshots 1440/390 → e2e/shots/ (SMOKE_SHOTS overrides).
  */
 import { spawn } from 'node:child_process';
@@ -217,10 +217,10 @@ try {
     check(errors.length === 0, '1440: no console errors', errors.slice(0, 3).join(' | '));
     await page.close();
   }
-  // 390: static scene, stacked chapters, no horizontal scroll.
+  // 390 touch: the scene scrubs by native scroll too (task 15), no horizontal scroll.
   {
     const { page, errors } = await open('/?lang=ru', 390);
-    check(!!(await page.$('.scrub--static')), '390: scene is static on touch');
+    check(!!(await page.$('.scrub--live canvas[data-frames]')), '390: live scene on touch (task 15)');
     await sleep(1500);
     await checkEyebrow(page, '390 ru');
     await walk(page, 'home_390');
