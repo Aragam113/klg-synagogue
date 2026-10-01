@@ -1,0 +1,18 @@
+@import 'tailwindcss';
+@import 'uniwind';
+
+/* Design tokens for tailwind/uniwind classes (bg-cream, text-gold...). Same values as src/ui/styles/site.css :root. */
+@theme {
+  --color-cream: #edebe4;
+  --color-canvas: #f5f4ef;
+  --color-ink: #0f0f0d;
+  --color-mute: #0f0f0d99;
+  --color-hairline: #0f0f0d33;
+  --color-deep: #233a45;
+  --color-deeper: #15242b;
+  --color-gold: #8a7352;
+  --color-gold-soft: #8a735273;
+  --color-light: #f5f4ef;
+  --font-display: 'PlayfairDisplay_400Regular', serif;
+  --font-ui: 'Onest_400Regular', sans-serif;
+}

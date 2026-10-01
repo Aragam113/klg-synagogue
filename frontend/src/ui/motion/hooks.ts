@@ -1,0 +1,32 @@
+import { type RefObject, useEffect, useRef } from 'react';
+
+import { type MotionEl, registerProgress, registerReveal, type RegisterOptions } from './engine';
+
+/**
+ * Writes `--p` (0..1) on the element while it is near the viewport. Children inherit it in CSS, e.g.
+ *   html[data-motion='on'] .x { transform: rotate(calc(var(--p) * 30deg)); }
+ */
+export const useScrollProgress = (
+  ref: RefObject<MotionEl | null>,
+  opts: RegisterOptions = {}
+): void => {
+  const cb = useRef(opts.onChange);
+  useEffect(() => {
+    cb.current = opts.onChange;
+  });
+  const mode = opts.mode;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    return registerProgress(el, { mode, onChange: (p) => cb.current?.(p) });
+  }, [ref, mode]);
+};
+
+/** One-shot `data-revealed="true"` when 20% of the element is visible (immediately when motion is off). */
+export const useReveal = (ref: RefObject<MotionEl | null>): void => {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    return registerReveal(el);
+  }, [ref]);
+};
