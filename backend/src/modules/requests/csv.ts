@@ -1,9 +1,10 @@
 export type CsvColumn<T> = [header: string, value: (row: T) => string];
 
 function cell(v: string): string {
-  // Защита от формул в Excel и экранирование кавычек/разделителей.
-  const safe = /^[=+\-@]/.test(v) ? `'${v}` : v;
-  return /[";\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+  // Защита от формул в Excel (CSV-инъекция): ячейка, начинающаяся с = + - @ \t \r, — текст с префиксом '.
+  const safe = /^[=+\-@\t\r]/.test(v) ? `'${v}` : v;
+  // Экранирование кавычек, разделителей («;» и «,») и переводов строк.
+  return /[";,\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }
 
 /** CSV для Excel: BOM, разделитель «;», CRLF. */
