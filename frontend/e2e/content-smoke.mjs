@@ -149,7 +149,7 @@ try {
   await page.waitForSelector('[data-testid="news-item"] h1', { timeout: 30000 });
   check(/^\/news\/[\w-]+$/.test(path()), 'news: card opens /news/<slug>', path());
   check((await text('[data-testid="news-item"] .cnt-body')).length > 20, 'news item: body text');
-  check((await count('[data-testid="news-item"] .arch img')) === 1, 'news item: cover in ArchFrame');
+  check((await count('[data-testid="news-item"] .arch')) === 0, 'news item: no arch frame around photos');
   await shot('news-item-1440');
   await open('/news/no-such-news?lang=ru');
   await sleep(800);
@@ -182,7 +182,7 @@ try {
       await open(`/news/${post.slug}?lang=${lang}`, { w: 390, h: 844 });
       await page.waitForSelector('[data-testid="news-photos"] .cnt-photo', { timeout: 30000 });
       const n = await count('[data-testid="news-photos"] .cnt-photo');
-      check(n === post.images.length, `post ${lang}: gallery has all images`, `${n}/${post.images.length}`);
+      check(n === post.images.length - 1, `post ${lang}: gallery = images except the cover`, `${n}/${post.images.length}`);
       const src = await page.$eval('[data-testid="news-source"] a', (a) => a.href);
       check(src === post.sourceUrl, `post ${lang}: source link to the post`, src);
       const firstLine = (await text('[data-testid="news-item"] .cnt-body')).trim().split('\n')[0];
@@ -204,6 +204,11 @@ try {
       );
       const noScroll = await page.evaluate(() => document.documentElement.scrollWidth <= 390);
       check(noScroll, `post ${lang}: 390px without horizontal scroll`);
+      const small = await page.$$eval(
+        '.nws-crumbs a, .nws-chip, .nws-back, .nws-nb, [data-testid="news-cover"]',
+        (els) => els.filter((e) => e.getBoundingClientRect().height < 44).map((e) => e.className || e.tagName)
+      );
+      check(small.length === 0, `post ${lang}: 390px tap targets ≥ 44px`, small.join(','));
       await shot(`news-post-${lang}-390`);
       await page.click('[data-testid="news-photos"] .cnt-photo');
       await page.waitForSelector('[data-testid="lightbox"]', { timeout: 10000 });
@@ -215,6 +220,71 @@ try {
       await sleep(200);
       check((await count('[data-testid="lightbox"]')) === 0, `post ${lang}: lightbox closes`);
     }
+
+    // --- news item: cover -> lightbox (counter, keys, focus trap, Esc), copy link toast, prev/next, back ---
+    await open(`/news/${post.slug}?lang=ru`);
+    await page.waitForSelector('[data-testid="news-cover"]', { timeout: 30000 });
+    const total = (await api(`/news/${post.slug}?lang=ru`)).data;
+    check(/\d{4}/.test(await text('[data-testid="news-hebrew-date"]')), 'news item: hebrew date in the header');
+    check((await count('[data-testid="news-crumbs"] li')) === 3, 'news item: breadcrumbs Home / News / title');
+    await page.click('[data-testid="news-cover"]');
+    await page.waitForSelector('[data-testid="lightbox"]', { timeout: 10000 });
+    const n = post.images.length;
+    check((await text('[data-testid="lightbox-counter"]')) === `1 / ${n}`, 'lightbox: cover opens "1 / N"', await text('[data-testid="lightbox-counter"]'));
+    await page.keyboard.press('ArrowRight');
+    await sleep(150);
+    check((await text('[data-testid="lightbox-counter"]')) === `2 / ${n}`, 'lightbox: ArrowRight -> 2 / N');
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('ArrowLeft');
+    await sleep(150);
+    check((await text('[data-testid="lightbox-counter"]')) === `${n} / ${n}`, 'lightbox: ArrowLeft wraps to the last');
+    for (let i = 0; i < 6; i++) await page.keyboard.press('Tab');
+    check(
+      await page.evaluate(() => !!document.activeElement?.closest('[data-testid="lightbox"]')),
+      'lightbox: focus stays inside (trap)'
+    );
+    check((await count('.lbx__credit a[href^="https://t.me/"]')) === 1, 'lightbox: link to the source post');
+    await page.keyboard.press('Escape');
+    await sleep(200);
+    check((await count('[data-testid="lightbox"]')) === 0, 'lightbox: Esc closes');
+    await page.click('[data-testid="news-cover"]');
+    await page.waitForSelector('[data-testid="lightbox"]', { timeout: 10000 });
+    await page.mouse.click(5, 450);
+    await sleep(200);
+    check((await count('[data-testid="lightbox"]')) === 0, 'lightbox: click on the backdrop closes');
+
+    await page.click('[data-testid="share-copy"]');
+    await page.waitForFunction(
+      () => document.querySelector('[data-testid="toast"]')?.textContent === 'Ссылка скопирована',
+      { timeout: 5000 }
+    ).catch(() => undefined);
+    check((await text('[data-testid="toast"]')) === 'Ссылка скопирована', 'share: copy link -> toast', await text('[data-testid="toast"]'));
+    check((await count('[data-testid="news-share"] .nws-chip')) >= 2, 'share: share buttons present');
+
+    const back = await page.$eval('.nws-back', (a) => a.getAttribute('href'));
+    check(back?.includes(`from=${post.slug}`), 'news item: "All news" returns to the same place in the feed', back);
+    const go = total?.next ? 'next' : 'prev';
+    const back2 = go === 'next' ? 'prev' : 'next';
+    check(!!total?.[go], 'news nav: API returns a neighbour', go);
+    if (total?.[go]) {
+      await page.$eval(`.nws-nb--${go}`, (a) => a.click());
+      await page.waitForFunction((s) => location.pathname === `/news/${s}`, { timeout: 15000 }, total[go].slug).catch(() => undefined);
+      check(path() === `/news/${total[go].slug}`, `news nav: ${go} opens the neighbour`, path());
+      await page.waitForSelector(`.nws-nb--${back2}`, { timeout: 15000 });
+      await page.$eval(`.nws-nb--${back2}`, (a) => a.click());
+      await page.waitForFunction((s) => location.pathname === `/news/${s}`, { timeout: 15000 }, post.slug).catch(() => undefined);
+      check(path() === `/news/${post.slug}`, `news nav: ${back2} comes back`, path());
+    }
+    await page.waitForSelector('[data-testid="news-more"] .card', { timeout: 15000 }).catch(() => undefined);
+    check((await count('[data-testid="news-more"] .card')) === 3, 'news item: "More news" — 3 cards');
+    await page.$eval('.nws-back', (a) => a.click());
+    await page.waitForSelector('[data-testid="news-list"] .card', { timeout: 30000 });
+    await sleep(800);
+    check(
+      (await count(`[data-slug="${post.slug}"]`)) === 1,
+      'news: back link restores the feed up to the story',
+      String(await count('[data-testid="news-list"] .card'))
+    );
   }
 
   // --- events (ink + grain) -> event -> #register ---
@@ -252,16 +322,16 @@ try {
   check((await count('.cnt-credits li')) >= 1, 'album: photo credits');
   await page.click('.cnt-photo');
   await page.waitForSelector('[data-testid="lightbox"]', { timeout: 5000 });
-  check(/^1 из/.test(await text('.lbx__count')), 'lightbox: opens on photo 1', await text('.lbx__count'));
+  check(/^1 \/ /.test(await text('.lbx__count')), 'lightbox: opens on photo 1', await text('.lbx__count'));
   check(await page.evaluate(() => document.documentElement.style.overflow === 'hidden'), 'lightbox: page scroll locked');
   await shot('lightbox-1440');
   if (nPhotos > 1) {
     await page.keyboard.press('ArrowRight');
     await sleep(150);
-    check(/^2 из/.test(await text('.lbx__count')), 'lightbox: ArrowRight -> next', await text('.lbx__count'));
+    check(/^2 \/ /.test(await text('.lbx__count')), 'lightbox: ArrowRight -> next', await text('.lbx__count'));
     await page.click('.lbx__prev');
     await sleep(150);
-    check(/^1 из/.test(await text('.lbx__count')), 'lightbox: prev button');
+    check(/^1 \/ /.test(await text('.lbx__count')), 'lightbox: prev button');
   }
   await page.keyboard.press('Escape');
   await sleep(200);

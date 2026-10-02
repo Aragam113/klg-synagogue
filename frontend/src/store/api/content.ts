@@ -26,6 +26,16 @@ export interface NewsItem {
   images?: NewsImage[];
   /** Ссылка на исходный пост (импорт из Telegram) или null. */
   sourceUrl?: string | null;
+  /** Соседи в ленте (только в GET /news/:slug): prev — старше, next — новее. */
+  prev?: NewsNeighbour | null;
+  next?: NewsNeighbour | null;
+}
+
+export interface NewsNeighbour {
+  slug: string;
+  title: string;
+  cover: string | null;
+  publishedAt: string | null;
 }
 
 export interface NewsImage {

@@ -26,6 +26,7 @@ import {
   fundraiserItem,
   newsCard,
   newsItem,
+  newsNeighbour,
   photoItem,
   programItem,
 } from './content.mappers';
@@ -123,7 +124,37 @@ export class ContentService {
   async getNews(slug: string, lang: LangCode) {
     const row = await this.news.findOneBy({ slug, status: 'published' });
     if (!row) throw new NotFoundException('Новость не найдена');
-    return newsItem(row, lang);
+    const [prev, next] = await Promise.all([
+      this.newsNeighbour(row, 'older'),
+      this.newsNeighbour(row, 'newer'),
+    ]);
+    return {
+      ...newsItem(row, lang),
+      prev: prev ? newsNeighbour(prev, lang) : null,
+      next: next ? newsNeighbour(next, lang) : null,
+    };
+  }
+
+  /**
+   * Сосед новости в ленте (порядок ленты: published_at DESC, created_at DESC; id — для полного порядка).
+   * NULL published_at в ленте идёт первым (DESC) — считаем его +infinity.
+   */
+  private newsNeighbour(row: NewsEntity, side: 'older' | 'newer') {
+    const cols = (a: string) =>
+      `COALESCE(${a}.published_at, 'infinity'::timestamptz), ${a}.created_at, ${a}.id`;
+    // ключ текущей строки берём из БД: в JS Date теряются микросекунды created_at
+    const at = `(SELECT ${cols('c')} FROM news c WHERE c.id = :id)`;
+    const dir = side === 'older' ? 'DESC' : 'ASC';
+    return this.news
+      .createQueryBuilder('n')
+      .where("n.status = 'published'")
+      .andWhere(`(${cols('n')}) ${side === 'older' ? '<' : '>'} ${at}`, {
+        id: row.id,
+      })
+      .orderBy("COALESCE(n.published_at, 'infinity'::timestamptz)", dir)
+      .addOrderBy('n.created_at', dir)
+      .addOrderBy('n.id', dir)
+      .getOne();
   }
 
   async listEvents(

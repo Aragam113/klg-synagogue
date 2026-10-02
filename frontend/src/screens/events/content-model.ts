@@ -65,6 +65,22 @@ export const splitLinks = (text: string): { text: string; href?: string }[] => {
   return out;
 };
 
+/** URL для показа: без протокола, www и хвостового «/»; длиннее 32 знаков — с многоточием. */
+export const shortUrl = (href: string): string => {
+  const s = href.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+  return s.length > 32 ? `${s.slice(0, 31)}…` : s;
+};
+
+const EMOJI =
+  '(?:\\p{Extended_Pictographic}|\\p{Regional_Indicator})(?:\\p{Emoji_Modifier}|\\u200d|\\ufe0f|\\p{Extended_Pictographic}|\\p{Regional_Indicator})*';
+const EMOJI_AFTER = new RegExp(`\\s+(${EMOJI}(?:\\s*${EMOJI})*)(?=\\s|$)`, 'gu');
+const NBSP = String.fromCharCode(0xa0);
+const EMOJI_LEAD = new RegExp(`(^|\\n)(${EMOJI})\\s+`, 'gu');
+
+/** Эмодзи приклеены неразрывным пробелом: к слову перед ними и к слову после эмодзи в начале строки. */
+export const glueEmoji = (text: string): string =>
+  text.replace(EMOJI_LEAD, `$1$2${NBSP}`).replace(EMOJI_AFTER, `${NBSP}$1`);
+
 export const formatRub = (n: number, lang: string) =>
   `${new Intl.NumberFormat(localeOf(lang)).format(n)} ₽`;
 

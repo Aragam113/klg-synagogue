@@ -45,7 +45,9 @@ export const NewsView = ({
           <div className="cnt-grid" data-testid="news-list">
             {items.map((item, i) => (
               <Reveal key={item.id} delay={(i % 3) * 0.06}>
-                <NewsCard item={item} />
+                <div className="cnt-slot" data-slug={item.slug}>
+                  <NewsCard item={item} />
+                </div>
               </Reveal>
             ))}
           </div>

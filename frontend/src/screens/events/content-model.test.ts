@@ -3,7 +3,9 @@ import { matchStaticPages } from '@/screens/search/static-pages';
 import {
   accumulate,
   fundraiserProgress,
+  glueEmoji,
   mergeById,
+  shortUrl,
   splitLinks,
   ticketLadder,
 } from './content-model';
@@ -85,5 +87,22 @@ describe('accumulate («Загрузить ещё»)', () => {
   });
   it('первая страница (смена языка, обновление) заменяет ленту', () => {
     expect(accumulate([a, b, c], { page: 1, items: [c] })).toEqual([c]);
+  });
+});
+
+describe('ссылки и эмодзи в тексте поста', () => {
+  it('URL показывается коротко: без протокола и www, длинный — с многоточием', () => {
+    expect(shortUrl('https://t.me/B_C_Kaliningrad')).toBe('t.me/B_C_Kaliningrad');
+    expect(shortUrl('http://www.example.org/')).toBe('example.org');
+    expect(shortUrl('https://example.org/a/very/long/path/to/some/page?with=query&x=1')).toBe(
+      'example.org/a/very/long/path/to…'
+    );
+  });
+
+  it('эмодзи не отрываются от слова переносом строки', () => {
+    expect(glueEmoji('было радостно 😊')).toBe('было радостно 😊');
+    expect(glueEmoji('💬 Бейт Хабад')).toBe('💬 Бейт Хабад');
+    expect(glueEmoji('Хаг Суккот самеах! 🌿🍋')).toBe('Хаг Суккот самеах! 🌿🍋');
+    expect(glueEmoji('без эмодзи 2 + 2')).toBe('без эмодзи 2 + 2');
   });
 });
