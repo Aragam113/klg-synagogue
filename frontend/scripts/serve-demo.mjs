@@ -22,6 +22,7 @@ const TYPES = {
   '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
+  '.webmanifest': 'application/manifest+json',
   '.ttf': 'font/ttf',
   '.woff2': 'font/woff2',
 };
