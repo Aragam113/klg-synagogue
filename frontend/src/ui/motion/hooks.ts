@@ -18,22 +18,19 @@ export const useScrollProgress = (
   opts: RegisterOptions = {}
 ): void => {
   const cb = useRef(opts.onChange);
-  const wait = useRef(opts.waitFor);
   useEffect(() => {
     cb.current = opts.onChange;
-    wait.current = opts.waitFor;
   });
-  const { mode, duration } = opts;
+  const { mode, snap } = opts;
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     return registerProgress(el, {
       mode,
-      duration,
+      snap,
       onChange: (p) => cb.current?.(p),
-      waitFor: () => (wait.current ? wait.current() : true),
     });
-  }, [ref, mode, duration]);
+  }, [ref, mode, snap]);
 };
 
 /** One-shot `data-revealed="true"` when 20% of the element is visible (immediately when motion is off). */

@@ -20,11 +20,14 @@
  *   --quality <q>    starting webp quality (default 72)
  *   --budget <MB>    total size limit (default 12)
  *   --credit "<text>"  attribution shown in the corner of the scene and in CREDITS.md
- *   --light <px>     width of the light phone set (default 640, 0 = none): public/media/scrub/m/ + its own
- *                    manifest.json; the main manifest gets "light": "m/manifest.json" (phones, touch ?a=2|3)
- *   --light-step <n> keep every n-th frame in the light set (default 2: half the download on a mobile network)
+ *   --light <px>     width of the light phone set (default 1024, 0 = none): public/media/scrub/m/ + its own
+ *                    manifest.json; the main manifest gets "light": "m/manifest.json" (every touch device)
+ *   --light-step <n> keep every n-th frame in the light set (default 1: all of them — the phone loads every 4th
+ *                    first and scrubs on those, then the rest)
+ *   --light-quality <q>  starting webp quality of the light set (default 74)
+ *   --light-budget <MB>  size limit of the light set, quality drops by 4 until it fits (default 5.5)
  *
- *   npm run build:scrub -- --light-only [--light 640]
+ *   npm run build:scrub -- --light-only [--light 1024 --light-step 1 --light-quality 74 --light-budget 5.5]
  *                    re-encodes only the light set from the frames already in public/media/scrub/
  */
 import { execFileSync } from 'node:child_process';
@@ -43,7 +46,7 @@ const VIDEO = /\.(mp4|webm|mov|mkv|avi|m4v)$/i;
 const IMAGE = /\.(jpe?g|png|webp)$/i;
 
 const parseArgs = (argv) => {
-  const opts = { frames: 110, width: 1600, quality: 72, budget: 12, from: 0, to: null, credit: '', light: 640, lightStep: 2, lightOnly: false };
+  const opts = { frames: 110, width: 1600, quality: 72, budget: 12, from: 0, to: null, credit: '', light: 1024, lightStep: 1, lightQuality: 74, lightBudget: 5.5, lightOnly: false };
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -55,7 +58,7 @@ const parseArgs = (argv) => {
       rest.push(a);
       continue;
     }
-    const key = a.slice(2);
+    const key = a.slice(2).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
     const val = argv[++i];
     if (val === undefined) throw new Error(`no value for ${a}`);
     opts[key] = key === 'credit' ? val : Number(val);
@@ -161,22 +164,34 @@ const writeCredits = (credit) => {
 
 const LIGHT = 'm';
 
-/** Light phone set: every `step`-th frame resized to `width`, webp q60, into scrub/m/ + manifest; links it from the main one. */
-const writeLight = async (all, width, step) => {
+/**
+ * Light phone set: every `step`-th frame resized to `width` into scrub/m/ + manifest; links it from the main one.
+ * webp quality starts at `quality` and drops by 4 until the set fits `budget` MB (the phone loads it progressively:
+ * every 4th frame first, so the budget is about the full set, not the time to the first scrub).
+ */
+const writeLight = async (all, width, step, quality, budget) => {
   const k = Math.max(1, Math.round(step));
   const sources = all.filter((_, i) => i % k === 0 || i === all.length - 1);
   const dir = path.join(OUT, LIGHT);
   fs.mkdirSync(dir, { recursive: true });
   for (const f of fs.readdirSync(dir)) if (/^frame-\d+\.webp$/.test(f) || f === 'manifest.json') fs.unlinkSync(path.join(dir, f));
+  const resized = [];
+  for (const f of sources) resized.push(await sharp(f).resize({ width, withoutEnlargement: true, kernel: 'lanczos3' }).toBuffer());
+  let q = quality;
+  let bufs = [];
+  for (;;) {
+    bufs = [];
+    for (const r of resized) bufs.push(await sharp(r).webp({ quality: q, effort: 6, smartSubsample: true }).toBuffer());
+    if (bufs.reduce((s, b) => s + b.length, 0) <= budget * 1048576 || q <= 40) break;
+    q -= 4;
+  }
   let bytes = 0;
-  const frames = [];
-  for (let i = 0; i < sources.length; i++) {
+  const frames = bufs.map((buf, i) => {
     const name = `frame-${String(i + 1).padStart(3, '0')}.webp`;
-    const buf = await sharp(sources[i]).resize({ width, withoutEnlargement: true }).webp({ quality: 60, effort: 5 }).toBuffer();
     fs.writeFileSync(path.join(dir, name), buf);
     bytes += buf.length;
-    frames.push(name);
-  }
+    return name;
+  });
   const meta = await sharp(path.join(dir, frames[0])).metadata();
   const mainPath = path.join(OUT, 'manifest.json');
   const main = JSON.parse(fs.readFileSync(mainPath, 'utf8'));
@@ -186,14 +201,14 @@ const writeLight = async (all, width, step) => {
 `);
   fs.writeFileSync(mainPath, `${JSON.stringify({ ...main, light: `${LIGHT}/manifest.json` }, null, 2)}
 `);
-  console.log(`scrub light: ${frames.length} frames ${meta.width}x${meta.height}, ${(bytes / 1048576).toFixed(1)} MB → ${path.relative(ROOT, dir)}`);
+  console.log(`scrub light: ${frames.length} frames ${meta.width}x${meta.height}, webp q${q}, ${(bytes / 1048576).toFixed(1)} MB → ${path.relative(ROOT, dir)}`);
 };
 
 const main = async () => {
   const o = parseArgs(process.argv.slice(2));
   if (o.lightOnly) {
     const m = JSON.parse(fs.readFileSync(path.join(OUT, 'manifest.json'), 'utf8'));
-    await writeLight(m.frames.map((f) => path.join(OUT, f)), o.light || 640, o.lightStep);
+    await writeLight(m.frames.map((f) => path.join(OUT, f)), o.light || 1024, o.lightStep, o.lightQuality, o.lightBudget);
     return;
   }
   if (!fs.existsSync(o.source)) throw new Error(`not found: ${o.source}`);
@@ -222,7 +237,7 @@ const main = async () => {
     const manifest = { frames, width: meta.width, height: meta.height, credits };
     fs.writeFileSync(path.join(OUT, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
     writeCredits(credits);
-    if (o.light > 0) await writeLight(raw, o.light, o.lightStep);
+    if (o.light > 0) await writeLight(raw, o.light, o.lightStep, o.lightQuality, o.lightBudget);
     console.log(
       `scrub: ${frames.length} frames ${meta.width}x${meta.height}, webp q${q}, ${(total() / 1048576).toFixed(1)} MB → ${path.relative(ROOT, OUT)}`
     );

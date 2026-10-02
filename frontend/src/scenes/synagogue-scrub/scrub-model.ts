@@ -79,3 +79,40 @@ export const parseManifest = (raw: unknown, base: string): ScrubManifest | null 
     ...(light ? { light } : {}),
   };
 };
+
+export interface Blend {
+  /** Frame drawn first (fully opaque). */
+  a: number;
+  /** Frame drawn on top with `alpha` (= a when there is nothing to blend). */
+  b: number;
+  alpha: number;
+}
+
+/**
+ * Inter-frame blending for a fractional frame position `x` (p·(N−1)): the nearest loaded frame at or before `x` and
+ * the nearest loaded one after it, `alpha` = how far `x` is between them. All loaded → neighbours i, i+1; on the
+ * coarse pass (every 4th) → a longer crossfade. Loaded only on one side → that frame alone; nothing → null.
+ */
+export const blendFrames = (x: number, loaded: readonly boolean[]): Blend | null => {
+  const n = loaded.length;
+  if (!n) return null;
+  const c = Math.min(n - 1, Math.max(0, Number.isFinite(x) ? x : 0));
+  let a = Math.floor(c);
+  while (a >= 0 && !loaded[a]) a--;
+  let b = Math.ceil(c) === a ? a : Math.ceil(c);
+  while (b < n && b !== a && !loaded[b]) b++;
+  if (b >= n) b = -1;
+  if (a < 0 && b < 0) return null;
+  if (a < 0) return { a: b, b, alpha: 0 };
+  if (b < 0 || b === a) return { a, b: a, alpha: 0 };
+  return { a, b, alpha: (c - a) / (b - a) };
+};
+
+/** First pass of the phone set: every `step`-th frame plus the last — the scene scrubs once these are in. */
+export const coarsePass = (n: number, step: number): number[] => {
+  const k = Math.max(1, Math.round(step));
+  const out: number[] = [];
+  for (let i = 0; i < n; i += k) out.push(i);
+  if (n > 0 && out[out.length - 1] !== n - 1) out.push(n - 1);
+  return out;
+};
