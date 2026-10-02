@@ -20,6 +20,12 @@
  *   --quality <q>    starting webp quality (default 72)
  *   --budget <MB>    total size limit (default 12)
  *   --credit "<text>"  attribution shown in the corner of the scene and in CREDITS.md
+ *   --light <px>     width of the light phone set (default 640, 0 = none): public/media/scrub/m/ + its own
+ *                    manifest.json; the main manifest gets "light": "m/manifest.json" (phones, touch ?a=2|3)
+ *   --light-step <n> keep every n-th frame in the light set (default 2: half the download on a mobile network)
+ *
+ *   npm run build:scrub -- --light-only [--light 640]
+ *                    re-encodes only the light set from the frames already in public/media/scrub/
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -37,10 +43,14 @@ const VIDEO = /\.(mp4|webm|mov|mkv|avi|m4v)$/i;
 const IMAGE = /\.(jpe?g|png|webp)$/i;
 
 const parseArgs = (argv) => {
-  const opts = { frames: 110, width: 1600, quality: 72, budget: 12, from: 0, to: null, credit: '' };
+  const opts = { frames: 110, width: 1600, quality: 72, budget: 12, from: 0, to: null, credit: '', light: 640, lightStep: 2, lightOnly: false };
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
+    if (a === '--light-only') {
+      opts.lightOnly = true;
+      continue;
+    }
     if (!a.startsWith('--')) {
       rest.push(a);
       continue;
@@ -51,8 +61,8 @@ const parseArgs = (argv) => {
     opts[key] = key === 'credit' ? val : Number(val);
     if (key !== 'credit' && !Number.isFinite(opts[key])) throw new Error(`${a} needs a number`);
   }
-  if (!rest[0]) throw new Error('usage: npm run build:scrub -- <video | photo folder> [options]');
-  opts.source = path.resolve(process.cwd(), rest[0]);
+  if (!rest[0] && !opts.lightOnly) throw new Error('usage: npm run build:scrub -- <video | photo folder> [options]');
+  opts.source = rest[0] ? path.resolve(process.cwd(), rest[0]) : '';
   opts.frames = Math.max(2, Math.min(120, Math.round(opts.frames)));
   return opts;
 };
@@ -149,8 +159,43 @@ const writeCredits = (credit) => {
   fs.writeFileSync(CREDITS, text, 'utf8');
 };
 
+const LIGHT = 'm';
+
+/** Light phone set: every `step`-th frame resized to `width`, webp q60, into scrub/m/ + manifest; links it from the main one. */
+const writeLight = async (all, width, step) => {
+  const k = Math.max(1, Math.round(step));
+  const sources = all.filter((_, i) => i % k === 0 || i === all.length - 1);
+  const dir = path.join(OUT, LIGHT);
+  fs.mkdirSync(dir, { recursive: true });
+  for (const f of fs.readdirSync(dir)) if (/^frame-\d+\.webp$/.test(f) || f === 'manifest.json') fs.unlinkSync(path.join(dir, f));
+  let bytes = 0;
+  const frames = [];
+  for (let i = 0; i < sources.length; i++) {
+    const name = `frame-${String(i + 1).padStart(3, '0')}.webp`;
+    const buf = await sharp(sources[i]).resize({ width, withoutEnlargement: true }).webp({ quality: 60, effort: 5 }).toBuffer();
+    fs.writeFileSync(path.join(dir, name), buf);
+    bytes += buf.length;
+    frames.push(name);
+  }
+  const meta = await sharp(path.join(dir, frames[0])).metadata();
+  const mainPath = path.join(OUT, 'manifest.json');
+  const main = JSON.parse(fs.readFileSync(mainPath, 'utf8'));
+  const poster = typeof main.poster === 'number' ? Math.min(frames.length - 1, Math.round(main.poster / k)) : Math.round((frames.length - 1) / 2);
+  const manifest = { frames, width: meta.width, height: meta.height, credits: main.credits ?? '', poster };
+  fs.writeFileSync(path.join(dir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}
+`);
+  fs.writeFileSync(mainPath, `${JSON.stringify({ ...main, light: `${LIGHT}/manifest.json` }, null, 2)}
+`);
+  console.log(`scrub light: ${frames.length} frames ${meta.width}x${meta.height}, ${(bytes / 1048576).toFixed(1)} MB → ${path.relative(ROOT, dir)}`);
+};
+
 const main = async () => {
   const o = parseArgs(process.argv.slice(2));
+  if (o.lightOnly) {
+    const m = JSON.parse(fs.readFileSync(path.join(OUT, 'manifest.json'), 'utf8'));
+    await writeLight(m.frames.map((f) => path.join(OUT, f)), o.light || 640, o.lightStep);
+    return;
+  }
   if (!fs.existsSync(o.source)) throw new Error(`not found: ${o.source}`);
   const isDir = fs.statSync(o.source).isDirectory();
   if (!isDir && !VIDEO.test(o.source)) throw new Error('source must be a video file or a folder of photos');
@@ -177,6 +222,7 @@ const main = async () => {
     const manifest = { frames, width: meta.width, height: meta.height, credits };
     fs.writeFileSync(path.join(OUT, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
     writeCredits(credits);
+    if (o.light > 0) await writeLight(raw, o.light, o.lightStep);
     console.log(
       `scrub: ${frames.length} frames ${meta.width}x${meta.height}, webp q${q}, ${(total() / 1048576).toFixed(1)} MB → ${path.relative(ROOT, OUT)}`
     );
