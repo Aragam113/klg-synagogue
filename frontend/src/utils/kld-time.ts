@@ -107,6 +107,17 @@ export const formatDay = (iso: string, lang: string, opts: Intl.DateTimeFormatOp
     ...opts,
   }).format(new Date(iso));
 
+/** Еврейская дата дня по Калининграду (Intl, календарь hebrew): «17 Tishri 5787». */
+export const formatHebrewDay = (iso: string, lang: string) =>
+  new Intl.DateTimeFormat(`${localeOf(lang)}-u-ca-hebrew`, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: KLD_TZ,
+  })
+    .format(new Date(iso))
+    .replace(/(\s*г\.)?(\s*AM)?$/, '');
+
 /** Время по Калининграду 'HH:MM'. */
 export const formatTime = (iso: string, lang: string) =>
   new Intl.DateTimeFormat(localeOf(lang), {

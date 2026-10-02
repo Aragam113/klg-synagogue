@@ -43,6 +43,17 @@ export function newsItem(n: NewsEntity, lang: LangCode) {
   };
 }
 
+/** Сосед новости для навигации «Предыдущая / Следующая». */
+export function newsNeighbour(n: NewsEntity, lang: LangCode) {
+  const { values } = localizeFields(n, ['title'], lang);
+  return {
+    slug: n.slug,
+    title: values.title,
+    cover: n.cover,
+    publishedAt: n.publishedAt,
+  };
+}
+
 export function eventItem(e: EventEntity, lang: LangCode, now: Date) {
   const { values, fallback } = localizeFields(
     e,

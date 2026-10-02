@@ -1,4 +1,5 @@
 import {
+  formatHebrewDay,
   addDays,
   dateBadge,
   fmtDateTime,
@@ -108,5 +109,13 @@ describe('админка: datetime-local ↔ ISO по Калининграду',
   it('fmtDateTime: «01.11.2026, 00:30», пусто → «—»', () => {
     expect(fmtDateTime(LATE_OCT_31)).toBe('01.11.2026, 00:30');
     expect(fmtDateTime(null)).toBe('—');
+  });
+});
+
+describe('formatHebrewDay', () => {
+  it('еврейская дата дня по Калининграду', () => {
+    // 1 тишрея 5787 = 12.09.2026 (Рош а-Шана) → 28.09.2026 = 17 тишрея
+    expect(formatHebrewDay('2026-09-28T10:00:00Z', 'en')).toBe('17 Tishri 5787');
+    expect(formatHebrewDay('2026-09-28T10:00:00Z', 'ru')).toBe('17 тишрей 5787');
   });
 });

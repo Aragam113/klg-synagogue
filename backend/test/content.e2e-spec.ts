@@ -124,6 +124,45 @@ describe('Контент: новости, события, сборы, загру
       expect(p2.body.data.hasMore).toBe(false);
     });
 
+    it('соседи по ленте: prev — старше, next — новее; черновики пропускаются', async () => {
+      const mk = async (ru: string, at: string, status = 'published') =>
+        (
+          await http
+            .post('/api/v1/admin/news')
+            .set(auth)
+            .send({
+              title: { ru },
+              body: { ru: 'x' },
+              cover: '/media/n.webp',
+              status,
+              publishedAt: at,
+            })
+            .expect(201)
+        ).body.data.slug as string;
+      const oldest = await mk('Сосед старый', '2001-01-01T10:00:00.000Z');
+      await mk('Сосед черновик', '2001-01-02T10:00:00.000Z', 'draft');
+      const middle = await mk('Сосед средний', '2001-01-03T10:00:00.000Z');
+      const newest = await mk('Сосед новый', '2001-01-05T10:00:00.000Z');
+      // ещё новее — анонсы из теста пагинации (сейчас); самый старый в ленте — oldest
+      const mid = (await http.get(`/api/v1/news/${middle}`).expect(200)).body
+        .data;
+      expect(mid.prev).toEqual({
+        slug: oldest,
+        title: 'Сосед старый',
+        cover: '/media/n.webp',
+        publishedAt: '2001-01-01T10:00:00.000Z',
+      });
+      expect(mid.next).toMatchObject({ slug: newest, title: 'Сосед новый' });
+      const first = (
+        await http.get(`/api/v1/news/${oldest}?lang=en`).expect(200)
+      ).body.data;
+      expect(first.prev).toBeNull();
+      expect(first.next).toMatchObject({
+        slug: middle,
+        title: 'Сосед средний',
+      });
+    });
+
     it('удаление', async () => {
       await http.delete(`/api/v1/admin/news/${id}`).set(auth).expect(200);
       await http.get(`/api/v1/news/${slug}`).expect(404);

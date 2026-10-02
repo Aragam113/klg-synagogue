@@ -2,15 +2,15 @@ import { Fragment } from 'react';
 
 import { Link } from '@/ui/kit';
 
-import { paragraphs, splitLinks } from './content-model';
+import { glueEmoji, paragraphs, shortUrl, splitLinks } from './content-model';
 
-/** Текст с ссылками: http(s)-адреса становятся внешними ссылками. */
+/** Текст с ссылками: http(s)-адреса становятся внешними ссылками с коротким видом адреса. */
 export const Linked = ({ text }: { text: string }) => (
   <>
     {splitLinks(text).map((part, i) =>
       part.href ? (
-        <Link key={i} href={part.href}>
-          {part.text}
+        <Link key={i} href={part.href} className="cnt-url">
+          {shortUrl(part.text)}
         </Link>
       ) : (
         <Fragment key={i}>{part.text}</Fragment>
@@ -19,12 +19,18 @@ export const Linked = ({ text }: { text: string }) => (
   </>
 );
 
-/** Тело новости/события: абзацы через пустую строку, ссылки кликабельны. */
-export const RichText = ({ text }: { text: string | null | undefined }) => (
-  <div className="cnt-body">
+/** Тело новости/события: абзацы через пустую строку, ссылки кликабельны, эмодзи не отрываются от слов. */
+export const RichText = ({
+  text,
+  className,
+}: {
+  text: string | null | undefined;
+  className?: string;
+}) => (
+  <div className={className ? `cnt-body ${className}` : 'cnt-body'}>
     {paragraphs(text).map((p, i) => (
       <p key={i} className="text">
-        <Linked text={p} />
+        <Linked text={glueEmoji(p)} />
       </p>
     ))}
   </div>
