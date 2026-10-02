@@ -1,4 +1,3 @@
-import { useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
 
 import { getContent } from '@/content';
@@ -14,14 +13,13 @@ import {
 } from '@/store/api/content';
 import { useGetDedicationsQuery } from '@/store/api/payments';
 
-import { blockState, sceneChapters, todayBgVariant, todayBlock } from './model';
+import { blockState, sceneChapters, todayBlock } from './model';
 import { HomeView } from './view';
 
 /** Home screen: reads calendar / content / dedications, turns answers into section states, renders HomeView. */
 export const HomeScreen = () => {
   const { t, lang } = useLang('home');
   const now = useNow();
-  const { todaybg } = useLocalSearchParams<{ todaybg?: string }>();
 
   const today = useGetTodayQuery(undefined, { pollingInterval: 30 * 60 * 1000 });
   const events = useGetEventsQuery({ lang, page: 1 });
@@ -51,7 +49,6 @@ export const HomeScreen = () => {
     <HomeView
       t={t}
       lang={lang}
-      todayBg={todayBgVariant(todaybg)}
       chapters={chapters}
       today={{
         state: today.isLoading ? 'loading' : today.data ? 'ready' : 'empty',

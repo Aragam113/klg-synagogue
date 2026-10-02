@@ -1,6 +1,6 @@
 import type { TodayInfo } from '@/store/api/calendar';
 
-import { todayBgVariant, todayBlock } from './model';
+import { todayBlock } from './model';
 
 const day = (date: string) => ({
   date,
@@ -42,15 +42,5 @@ describe('todayBlock — живой блок «Сегодня» на главн�
     expect(b.candles).toBeNull();
     expect(b.left).toBeNull();
     expect(b.clock).toBe('12:00:00');
-  });
-});
-
-describe('todayBgVariant — ?todaybg= секции «Сегодня»', () => {
-  it('1|2|3 → вариант, остальное → 1', () => {
-    expect(todayBgVariant('2')).toBe(2);
-    expect(todayBgVariant(['3', '1'])).toBe(3);
-    expect(todayBgVariant('1')).toBe(1);
-    expect(todayBgVariant('9')).toBe(1);
-    expect(todayBgVariant(undefined)).toBe(1);
   });
 });

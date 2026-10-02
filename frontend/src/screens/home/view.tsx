@@ -25,7 +25,6 @@ import {
   VISIT,
   type BlockState,
   type SceneChapter,
-  type TodayBg,
   type TodayBlock,
 } from './model';
 import './styles';
@@ -42,8 +41,6 @@ export interface HomeViewProps {
   /** `<Marquee>` items of the dedications ribbon (`dedicationItems` from donate-model). */
   dedications: { text: string; italic?: boolean }[];
   news: { state: BlockState; items: NewsItem[] };
-  /** Background of «Today»: 1 plain, 2 ruled lines, 3 soft gold glow (`?todaybg=1|2|3`). */
-  todayBg?: TodayBg;
 }
 
 /** «Созвездие» words of the home sections: the first one is the big anchor. */
@@ -168,7 +165,6 @@ export const HomeView = ({
   funds,
   dedications,
   news,
-  todayBg = 1,
 }: HomeViewProps) => {
   const units = {
     d: t('calendar:widget.d'),
@@ -236,10 +232,7 @@ export const HomeView = ({
       </Section>
 
       {/* 4. Today */}
-      <Section tone="deeper" className={`home-today home-today--bg${todayBg}`} id="today">
-        {todayBg === 1 ? null : (
-          <div className="home-today__bg" aria-hidden data-todaybg={todayBg} />
-        )}
+      <Section tone="deeper" className="home-today" id="today">
         <Container>
           <Head t={t} ns="today" light />
           {today.state === 'loading' ? (

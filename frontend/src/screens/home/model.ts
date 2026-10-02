@@ -61,11 +61,3 @@ export const VISIT = [
   { id: 'excursions', href: '/visit/excursions', photo: 'interior1896' },
   { id: 'museum', href: '/visit/museum', photo: 'k1900' },
 ] as const;
-
-/** Background of the «Today» section: 1 plain, 2 ruled lines, 3 soft gold glow (`?todaybg=`, default 1). */
-export type TodayBg = 1 | 2 | 3;
-
-export const todayBgVariant = (raw: string | string[] | null | undefined): TodayBg => {
-  const v = Array.isArray(raw) ? raw[0] : raw;
-  return v === '2' ? 2 : v === '3' ? 3 : 1;
-};
