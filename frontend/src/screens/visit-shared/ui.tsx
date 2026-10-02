@@ -67,12 +67,22 @@ export const PageHero = ({
 );
 
 /** Фото из `PHOTOS` в арке с подписью: что на фото · автор, лицензия, Wikimedia Commons. */
-export const Figure = ({ id, glow, ratio }: { id: string; glow?: boolean; ratio?: string }) => {
+export const Figure = ({
+  id,
+  glow,
+  ratio,
+  className = '',
+}: {
+  id: string;
+  glow?: boolean;
+  ratio?: string;
+  className?: string;
+}) => {
   const { t, lang } = useLang('sections');
   const p = PHOTOS[id];
   if (!p) return null;
   return (
-    <figure className="sx-figure">
+    <figure className={`sx-figure ${className}`}>
       <div className="sx-figure__frame">
         <ArchFrame src={p.src} alt={p.alt[lang]} glow={glow} ratio={ratio} />
       </div>
