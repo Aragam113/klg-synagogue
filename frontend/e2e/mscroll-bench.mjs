@@ -1,17 +1,20 @@
 /**
- * Phone scroll bench for the touch variants of the motion engine (`/?a=1|2|3`).
+ * Phone scroll bench for the touch path of the motion engine (html[data-touch]).
  *
- *   node e2e/mscroll-bench.mjs [1 2 3 | base]      (WEB_URL=http://localhost:8150 by default)
+ *   npm run bench:mobile [-- <tag>]      (WEB_URL=http://localhost:8150 by default; tag names the run, default m2)
  *
  * Emulates a real phone: 390×844, isMobile + hasTouch, CPU throttling ×4, «Fast 3G» for the first load.
  * Scrolls through the synagogue scene with touch flings (CDP synthesizeScrollGesture, inertia on) and samples
- * every rAF: scrollY, the scene's `--p` and the canvas frame. Prints one JSON line per variant and saves
- * e2e/shots/mscroll_a<N>_*.png.
+ * every rAF: scrollY, the scene's `--p`, the canvas frame, its blend alpha and repaint count. Prints one JSON line
+ * and saves e2e/shots/mscroll_<tag>_*.png.
  *
  * Metrics (all over the frames the page actually moved):
- *   loadS     seconds until the scene's frame set is fully loaded on Fast 3G (null — not done in 40 s)
- *   pHz       --p writes per second while scrolling (or playing, a=3)
+ *   firstS    seconds until the scene scrubs (phone: the coarse pass, every 4th frame) after scrolling to it
+ *   loadS     seconds until the scene's frame set is fully loaded on Fast 3G (null — not done in 90 s)
+ *   pHz       --p writes per second while scrolling
  *   frameHz   scene frame changes per second
+ *   blend     % of moving rAFs whose canvas shows two frames crossfaded (alpha strictly between 0 and 1)
+ *   drawHz    canvas repaints per second while moving
  *   missed    % of rAFs where the page moved but --p stayed still
  *   jerks     frame jumps > 4 frames in one rAF, plus --p jumps after an address-bar resize
  *   barJump   |Δ--p| when the viewport height changes by 56px (address bar) at a fixed scrollY
@@ -26,7 +29,7 @@ const WEB = process.env.WEB_URL ?? 'http://localhost:8150';
 const CHROME = process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SHOTS = process.env.SMOKE_SHOTS ?? join(ROOT, 'e2e', 'shots');
-const VARIANTS = process.argv.slice(2).length ? process.argv.slice(2) : ['1', '2', '3'];
+const TAG = process.argv[2] ?? 'm2';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 mkdirSync(SHOTS, { recursive: true });
 
@@ -44,21 +47,22 @@ const sampler = () => {
     if (s.on) {
       const sc = document.querySelector('.scrub');
       const c = document.querySelector('.scrub canvas');
-      s.rows.push([t, scrollY, sc ? sc.style.getPropertyValue('--p') : '', c ? c.dataset.frame ?? '' : '', innerHeight]);
+      s.rows.push([t, scrollY, sc ? sc.style.getPropertyValue('--p') : '', c ? c.dataset.frame ?? '' : '', innerHeight, c ? +(c.dataset.blend ?? 0) : 0, c ? +(c.dataset.draws ?? 0) : 0]);
     }
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
 };
 
-const summarize = (rows, mode) => {
-  let moved = 0, pw = 0, fw = 0, missed = 0, jerks = 0;
+const summarize = (rows) => {
+  let moved = 0, pw = 0, fw = 0, missed = 0, jerks = 0, blended = 0, draws = 0;
   for (let i = 1; i < rows.length; i++) {
-    const [, y0, p0, f0] = rows[i - 1];
-    const [, y1, p1, f1] = rows[i];
-    const live = mode === 'time' ? p0 !== p1 || f0 !== f1 : y0 !== y1;
-    if (!live) continue;
+    const [, y0, p0, f0, , , d0] = rows[i - 1];
+    const [, y1, p1, f1, , b1, d1] = rows[i];
+    if (y0 === y1) continue;
     moved++;
+    if (b1 > 0 && b1 < 1) blended++;
+    draws += Math.max(0, d1 - d0);
     if (p0 !== p1) pw++;
     else missed++;
     if (f0 !== f1) fw++;
@@ -70,12 +74,14 @@ const summarize = (rows, mode) => {
     rafHz: +((rows.length - 1) / secs).toFixed(1),
     pHz: +(pw / Math.max(0.01, liveSecs)).toFixed(1),
     frameHz: +(fw / Math.max(0.01, liveSecs)).toFixed(1),
+    drawHz: +(draws / Math.max(0.01, liveSecs)).toFixed(1),
+    blend: moved ? +((100 * blended) / moved).toFixed(1) : 0,
     missed: moved ? +((100 * missed) / moved).toFixed(1) : 0,
     jerks,
   };
 };
 
-const runVariant = async (v) => {
+const run = async () => {
   const page = await browser.newPage();
   const cdp = await page.createCDPSession();
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
@@ -89,12 +95,11 @@ const runVariant = async (v) => {
   await cdp.send('Network.setCacheDisabled', { cacheDisabled: true });
   await cdp.send('Network.emulateNetworkConditions', FAST_3G);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
-  const q = v === 'base' ? '' : `&a=${v}`;
   const t0 = Date.now();
-  await page.goto(`${WEB}/?lang=ru${q}`, { waitUntil: 'domcontentloaded', timeout: 180000 });
+  await page.goto(`${WEB}/?lang=ru`, { waitUntil: 'domcontentloaded', timeout: 180000 });
   await page.waitForSelector('.scrub', { timeout: 180000 });
-  const tag = v === 'base' ? 'base' : `a${v}`;
-  const variant = await page.evaluate(() => document.documentElement.dataset.touch ?? 'native');
+  const tag = TAG;
+  const engine = await page.evaluate(() => document.documentElement.dataset.touch ?? 'native');
   // scroll to the scene at once (the visitor does not wait for all frames) and measure until the set is in
   await page.evaluate(() => {
     const s = document.querySelector('.scrub');
@@ -102,18 +107,21 @@ const runVariant = async (v) => {
   });
   const loadStart = Date.now();
   let loadS = null;
+  let firstS = null;
   // frames loaded = canvas has the full set (data-loaded) or all Image requests finished
-  for (let i = 0; i < 80; i++) {
-    const done = await page.evaluate(() => {
+  for (let i = 0; i < 360; i++) {
+    const st = await page.evaluate(() => {
       const n = +(document.querySelector('.scrub canvas')?.dataset.frames ?? 0);
       const got = performance.getEntriesByType('resource').filter((e) => /frame-\d+\.webp/.test(e.name)).length;
-      return n > 0 && got >= n;
+      const sc = document.querySelector('.scrub');
+      return { done: n > 0 && got >= n, first: sc?.dataset.pass === 'coarse' || sc?.dataset.loaded === 'all' };
     });
-    if (done) {
+    if (st.first && firstS === null) firstS = +((Date.now() - loadStart) / 1000).toFixed(1);
+    if (st.done) {
       loadS = +((Date.now() - loadStart) / 1000).toFixed(1);
       break;
     }
-    await sleep(500);
+    await sleep(250);
   }
   // early scroll sample during load (first 40 s already passed or load done): flings down through the scene
   await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
@@ -124,28 +132,23 @@ const runVariant = async (v) => {
   await page.evaluate((y) => window.scrollTo(0, y), sceneTop.top);
   await sleep(800);
   await page.evaluate(() => { window.__mb.rows = []; window.__mb.on = true; });
-  let mode = 'scroll';
-  if (variant === '3') {
-    mode = 'time';
-    await sleep(9000);
-  } else {
-    // finger flicks: quick touchMoves then lift — Chrome continues with a fling (inertia), as on a phone
-    for (const step of [22, 30, 18, -26, 34]) {
-      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 195, y: 420 }] });
-      for (let i = 1; i <= 6; i++)
-        await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 195, y: 420 - i * step }] });
-      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-      await sleep(1100);
-    }
+  // finger flicks: quick touchMoves then lift — Chrome continues with a fling (inertia), as on a phone; the pauses
+  // let the auto-settle glide run (it is part of the movement measured)
+  for (const step of [22, 30, 18, -26, 34]) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 195, y: 420 }] });
+    for (let i = 1; i <= 6; i++)
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 195, y: 420 - i * step }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await sleep(1100);
   }
   const rows = await page.evaluate(() => { window.__mb.on = false; return window.__mb.rows; });
-  const stats = summarize(rows, mode);
+  const stats = summarize(rows);
   await page.screenshot({ path: join(SHOTS, `mscroll_${tag}_scene.png`) });
   // address bar: viewport height +56px at a fixed scrollY (mid-scene)
   let barJump = null;
-  if (variant !== '3') {
+  {
     await page.evaluate((s) => window.scrollTo(0, s.top + (s.h - innerHeight) * 0.5), sceneTop);
-    await sleep(500);
+    await sleep(1600); // the auto-settle glide (≤ 800 ms) ends first
     const p1 = await page.evaluate(() => +document.querySelector('.scrub').style.getPropertyValue('--p'));
     await page.setViewport({ width: 390, height: 900, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
     await sleep(700);
@@ -153,12 +156,12 @@ const runVariant = async (v) => {
     barJump = +Math.abs(p2 - p1).toFixed(4);
     await page.screenshot({ path: join(SHOTS, `mscroll_${tag}_bar.png`) });
   }
-  console.log(JSON.stringify({ variant: tag, engine: variant, loadS, ...stats, barJump, totalS: +((Date.now() - t0) / 1000).toFixed(0) }));
+  console.log(JSON.stringify({ run: tag, engine, firstS, loadS, ...stats, barJump, totalS: +((Date.now() - t0) / 1000).toFixed(0) }));
   await page.close();
 };
 
 try {
-  for (const v of VARIANTS) await runVariant(v);
+  await run();
 } finally {
   await browser.close();
 }

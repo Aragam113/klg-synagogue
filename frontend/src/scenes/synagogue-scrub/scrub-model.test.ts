@@ -1,4 +1,12 @@
-import { coverRect, frameIndex, improvesFrame, nearestLoaded, parseManifest } from './scrub-model';
+import {
+  blendFrames,
+  coarsePass,
+  coverRect,
+  frameIndex,
+  improvesFrame,
+  nearestLoaded,
+  parseManifest,
+} from './scrub-model';
 
 describe('frameIndex — кадр строго по прогрессу прокрутки', () => {
   it('p=0 → первый кадр, p=1 → последний, середина → round(p*(N-1))', () => {
@@ -108,5 +116,33 @@ describe('parseManifest — light set for phones', () => {
     expect(
       parseManifest({ frames: ['a.webp'], width: 1, height: 1 }, '/x/')?.light
     ).toBeUndefined();
+  });
+});
+
+describe('blendFrames — crossfade between the loaded frames around the fractional position', () => {
+  const all = [true, true, true, true, true];
+  it('all loaded → neighbours i, i+1 with alpha = the fraction', () => {
+    expect(blendFrames(2.25, all)).toEqual({ a: 2, b: 3, alpha: 0.25 });
+  });
+  it('a whole position → one frame, no blend', () => {
+    expect(blendFrames(3, all)).toEqual({ a: 3, b: 3, alpha: 0 });
+  });
+  it('coarse pass (every 4th) → the loaded frames around it', () => {
+    expect(blendFrames(2.25, [true, false, false, false, true])).toEqual({
+      a: 0,
+      b: 4,
+      alpha: 0.5625,
+    });
+  });
+  it('loaded only on one side → that frame alone; nothing loaded → null', () => {
+    expect(blendFrames(1, [false, false, false, false, true])).toEqual({ a: 4, b: 4, alpha: 0 });
+    expect(blendFrames(1, [false, false])).toBeNull();
+  });
+});
+
+describe('coarsePass — the first frames to load on a phone', () => {
+  it('every 4th frame plus the last one', () => {
+    expect(coarsePass(10, 4)).toEqual([0, 4, 8, 9]);
+    expect(coarsePass(9, 4)).toEqual([0, 4, 8]);
   });
 });

@@ -1,5 +1,7 @@
 export { SynagogueScrub, type ScrubChapter, type SynagogueScrubProps } from './synagogue-scrub';
 export {
+  blendFrames,
+  coarsePass,
   coverRect,
   frameIndex,
   nearestLoaded,
