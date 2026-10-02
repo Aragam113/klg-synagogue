@@ -22,7 +22,7 @@ export const DonateView = ({
   const { t } = useLang('payments');
   return (
     <Page title={`${t('donate.pageTitle')}`}>
-      <Section tone="cream" pattern className="don-hero">
+      <Section tone="cream" className="don-hero">
         <div className="don-hero__rosette">
           <Rosette size="40rem" spin={120} />
         </div>

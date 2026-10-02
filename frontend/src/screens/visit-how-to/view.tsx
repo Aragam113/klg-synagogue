@@ -1,4 +1,5 @@
 import { useLang } from '@/i18n/use-lang';
+import { GHOST_WORDS as GW } from '@/ui/judaica';
 import { Button, Link, Placeholder, Text } from '@/ui/kit';
 import { Reveal } from '@/ui/motion';
 
@@ -12,7 +13,11 @@ export const HowToView = (p: HowToViewProps) => {
   const h = p.content;
   return (
     <SectionPage titleKey="howTo">
-      <PageHero hero={h.hero} photo="fishVillage">
+      <PageHero
+        hero={h.hero}
+        photo="fishVillage"
+        ghost={[GW.shalom, GW.bruchim, GW.beitKnesset, GW.yerushalayim, GW.kehila]}
+      >
         <p className="sx-addr">
           {p.address} <SourceLink href={p.addressSrc} />
         </p>

@@ -1,4 +1,5 @@
 import { useLang } from '@/i18n/use-lang';
+import { GHOST_WORDS as GW } from '@/ui/judaica';
 import { Reveal } from '@/ui/motion';
 
 import {
@@ -18,7 +19,11 @@ export const KosherView = (p: KosherViewProps) => {
   const k = p.content;
   return (
     <SectionPage titleKey="kosher">
-      <PageHero hero={k.hero} photo="evening2024" ghost="כשר" />
+      <PageHero
+        hero={k.hero}
+        photo="evening2024"
+        ghost={[GW.kasher, GW.shabbat, GW.kehila, GW.chesed, GW.shalom]}
+      />
       <Band tone="cream" title={k.about.title}>
         <Paras items={k.about.paragraphs} />
         <p className="sx-alt">

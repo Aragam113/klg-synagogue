@@ -172,3 +172,25 @@ html:not([data-pin='on']) .home-community .home-arch { width: min(100%, 22rem); 
 /* he: the Hebrew greeting under the title would repeat the title itself */
 :root[lang='he'] .home-threshold__he { display: none; }
 @media (max-width: 599px) { .home-threshold { min-height: 0; } }
+
+/* «Today» background (?todaybg=1|2|3): 1 plain tone; 2 ruled lines like a calendar page; 3 soft gold glow
+   behind the time tiles that breathes slowly (opacity/scale only, static under reduced motion). */
+.home-today > .home-today__bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.home-today--bg2 > .home-today__bg {
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(2.5rem - 1px), var(--light) calc(2.5rem - 1px), var(--light) 2.5rem);
+  opacity: 0.05;
+}
+.home-today--bg3 > .home-today__bg { overflow: clip; }
+.home-today--bg3 > .home-today__bg::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  width: min(70rem, 140vw);
+  aspect-ratio: 1.6;
+  translate: -50% -50%;
+  background: radial-gradient(closest-side, #8a7352 0%, #8a735266 45%, #8a735200 100%);
+  opacity: 0.15;
+}
+html[data-anim='on'] .home-today--bg3 > .home-today__bg::before { animation: today-breathe 10s ease-in-out infinite alternate; }
+@keyframes today-breathe { from { opacity: 0.12; transform: scale(0.94); } to { opacity: 0.18; transform: scale(1.04); } }

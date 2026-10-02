@@ -8,7 +8,8 @@ import type { EventItem, Fundraiser, NewsItem } from '@/store/api/content';
 import {
   ArchFrame,
   BRUCHIM_HABAIM,
-  GhostHebrew,
+  GHOST_WORDS as GW,
+  GhostField,
   HexPattern,
   MagenDavid,
   Rosette,
@@ -24,6 +25,7 @@ import {
   VISIT,
   type BlockState,
   type SceneChapter,
+  type TodayBg,
   type TodayBlock,
 } from './model';
 import './styles';
@@ -40,7 +42,13 @@ export interface HomeViewProps {
   /** `<Marquee>` items of the dedications ribbon (`dedicationItems` from donate-model). */
   dedications: { text: string; italic?: boolean }[];
   news: { state: BlockState; items: NewsItem[] };
+  /** Background of «Today»: 1 plain, 2 ruled lines, 3 soft gold glow (`?todaybg=1|2|3`). */
+  todayBg?: TodayBg;
 }
+
+/** «Созвездие» words of the home sections: the first one is the big anchor. */
+const HERO_GHOSTS = [GW.shalom, GW.kehila, GW.torah, GW.shabbat, GW.beitKnesset, GW.yerushalayim];
+const WELCOME_GHOSTS = [GW.bruchim, GW.chesed, GW.tzedaka, GW.emuna, GW.kehila, GW.shalom];
 
 /** Marquee words: greetings in the three languages of the site. */
 const MARQUEE = [
@@ -160,6 +168,7 @@ export const HomeView = ({
   funds,
   dedications,
   news,
+  todayBg = 1,
 }: HomeViewProps) => {
   const units = {
     d: t('calendar:widget.d'),
@@ -172,7 +181,7 @@ export const HomeView = ({
     <div className="home" data-home="root">
       {/* 2. Hero */}
       <Section tone="cream" className="home-hero" id="hero">
-        <GhostHebrew text={SHALOM} />
+        <GhostField seed="home-hero" words={HERO_GHOSTS} />
         <HexPattern opacity={0.04} parallax={-8} />
         <Container>
           <div className="home-hero__inner">
@@ -207,7 +216,7 @@ export const HomeView = ({
 
       {/* 3. Threshold */}
       <Section tone="deep" curtain pattern={0.05} className="home-threshold" id="welcome">
-        <GhostHebrew text={BRUCHIM_HABAIM} />
+        <GhostField seed="home-welcome" words={WELCOME_GHOSTS} tone="dark" />
         <Container size="narrow" className="home-center">
           <Eyebrow>{t('threshold.eyebrow')}</Eyebrow>
           <Title
@@ -227,7 +236,10 @@ export const HomeView = ({
       </Section>
 
       {/* 4. Today */}
-      <Section tone="deeper" className="home-today" id="today">
+      <Section tone="deeper" className={`home-today home-today--bg${todayBg}`} id="today">
+        {todayBg === 1 ? null : (
+          <div className="home-today__bg" aria-hidden data-todaybg={todayBg} />
+        )}
         <Container>
           <Head t={t} ns="today" light />
           {today.state === 'loading' ? (

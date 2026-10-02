@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 
 import { useLang } from '@/i18n/use-lang';
-import { GhostHebrew } from '@/ui/judaica/ghost-hebrew';
+import { GHOST_WORDS as GW, GhostField } from '@/ui/judaica';
 import { Container, Eyebrow, Link, Section, Text, Title } from '@/ui/kit';
 import { Reveal, useScrollProgress } from '@/ui/motion';
 
@@ -9,6 +9,10 @@ import { num } from '../visit-shared/model';
 import { Figure, PageHero, QuoteBlock, SectionPage } from '../visit-shared/ui';
 
 import { chapterTone, type HistoryViewProps } from './model';
+
+/** «Созвездие» истории: «помни» — якорь обложки и тёмных глав. */
+const HERO_GHOSTS = [GW.zachor, GW.beitKnesset, GW.kehila, GW.yerushalayim, GW.torah, GW.emuna];
+const CHAPTER_GHOSTS = [GW.zachor, GW.kehila, GW.emuna, GW.yerushalayim];
 
 /** Таймлайн: линия рисуется от `--p` (useScrollProgress ставит переменную на <ol>). */
 const Timeline = ({ items }: { items: { date: string; text: string }[] }) => {
@@ -30,7 +34,7 @@ export const HistoryView = ({ content: h, chapters, toc }: HistoryViewProps) => 
   const { t } = useLang('sections');
   return (
     <SectionPage titleKey="history">
-      <PageHero hero={h.hero} photo="k1900" ghost="זכור">
+      <PageHero hero={h.hero} photo="k1900" ghost={HERO_GHOSTS}>
         <nav className="sx-toc" aria-label={t('toc')}>
           <p className="eyebrow">{t('toc')}</p>
           <ol>
@@ -63,7 +67,15 @@ export const HistoryView = ({ content: h, chapters, toc }: HistoryViewProps) => 
             pattern={dark ? 0.04 : undefined}
             className="sx-chapter"
           >
-            {dark ? <GhostHebrew text="זכור" className="sx-chapter__ghost" /> : null}
+            {dark ? (
+              <GhostField
+                seed={`history-${ch.id}`}
+                words={CHAPTER_GHOSTS}
+                tone="dark"
+                titleAt={ch.flip ? 'end' : 'start'}
+                density={{ desk: 4, phone: 1 }}
+              />
+            ) : null}
             <Container className={grid}>
               <div className="sx-chapter__text">
                 <Reveal>

@@ -1,4 +1,5 @@
 import { useLang } from '@/i18n/use-lang';
+import { GHOST_WORDS as GW } from '@/ui/judaica';
 import { MagenDavid } from '@/ui/judaica/magen-david';
 import { Placeholder, Text } from '@/ui/kit';
 import { Reveal } from '@/ui/motion';
@@ -11,7 +12,11 @@ export const AboutView = ({ content: a, introSrc }: AboutViewProps) => {
   const { t } = useLang('sections');
   return (
     <SectionPage titleKey="about">
-      <PageHero hero={a.hero} photo="evening2024" ghost="קהילה" />
+      <PageHero
+        hero={a.hero}
+        photo="evening2024"
+        ghost={[GW.kehila, GW.beitKnesset, GW.torah, GW.chesed, GW.emuna, GW.shalom]}
+      />
       <Band tone="cream" title={a.intro.title}>
         <Paras items={a.intro.paragraphs} />
         <SourceLink href={introSrc} />

@@ -15,6 +15,8 @@ import { fileURLToPath } from 'node:url';
 
 import puppeteer from 'puppeteer-core';
 
+import { ghostUnderTitle } from './ghost-check.mjs';
+
 const WEB = process.env.WEB_URL ?? 'http://localhost:8121';
 const CHROME = process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -193,6 +195,8 @@ try {
     await checkEyebrow(page, '1440 ru');
     check(await page.evaluate(() => document.documentElement.dataset.appReady === 'true'), '1440: preloader done, html[data-app-ready]');
     for (const s of SECTIONS) check(!!(await page.$(s)), `1440: section ${s}`);
+    const under = await ghostUnderTitle(page);
+    check(under.length === 0, '1440: ghost words clear of the section titles', under.join('; '));
     check(!!(await page.$('.scrub--live canvas[data-frames]')), '1440: live scene canvas');
     await scrollTo(page, await sceneY(page, 0.1));
     await sleep(1500);

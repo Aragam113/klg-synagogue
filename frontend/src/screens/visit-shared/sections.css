@@ -4,13 +4,6 @@
   overflow: hidden;
   position: relative;
 }
-.sx-hero__ghost {
-  position: absolute;
-  inset-inline-end: -2rem;
-  top: 18%;
-  opacity: 0.5;
-  pointer-events: none;
-}
 .sx-hero__grid {
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
@@ -295,13 +288,6 @@ html[data-motion='on'] .sx-hero__media {
   padding-block: clamp(3.5rem, 7vw, 6rem);
   scroll-margin-top: 5rem;
 }
-.sx-chapter__ghost {
-  position: absolute;
-  inset-inline-start: -2rem;
-  bottom: 6%;
-  opacity: 0.35;
-  pointer-events: none;
-}
 /* Главы /history: раскладка из historyModel (solo | quote | fill | pair | strip), чтобы фото
    не были выше текста и не висели столбиком сбоку; боковая колонка чередует сторону (--flip). */
 .sx-chapter__grid {
@@ -511,10 +497,6 @@ html[data-motion='on'] .sx-timeline::before {
   .sx-hero__media {
     justify-self: center;
     max-width: 20rem;
-  }
-  .sx-hero__ghost,
-  .sx-chapter__ghost {
-    display: none;
   }
   .sx-chapter__grid--flip > .sx-chapter__media {
     order: 0;

@@ -1,4 +1,5 @@
 import { useLang } from '@/i18n/use-lang';
+import { GHOST_WORDS as GW } from '@/ui/judaica';
 import { Button, Link, Placeholder, Text } from '@/ui/kit';
 import { Reveal } from '@/ui/motion';
 
@@ -16,7 +17,11 @@ export const ContactsView = ({
   const { t } = useLang('sections');
   return (
     <SectionPage titleKey="contacts">
-      <PageHero hero={k.hero} photo="nightLit" ghost="ברוכים הבאים">
+      <PageHero
+        hero={k.hero}
+        photo="nightLit"
+        ghost={[GW.bruchim, GW.shalom, GW.kehila, GW.beitKnesset, GW.chesed]}
+      >
         <p className="sx-addr">
           {address} <SourceLink href={addressSrc} />
         </p>

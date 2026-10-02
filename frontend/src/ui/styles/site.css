@@ -120,7 +120,7 @@ a[href^='tel:'] { direction: ltr; unicode-bidi: isolate; }
   overflow: clip;
 }
 @media (min-width: 1440px) { .sec { padding-block: 11.429rem; } }
-/* low specificity: decorative layers (.hexpattern, .ghost-he, custom absolute layers) override it */
+/* low specificity: decorative layers (.hexpattern, .gf, custom absolute layers) override it */
 .sec > :where(*) { position: relative; z-index: 1; }
 .sec--flush { padding: 0; }
 .sec--curtain {
@@ -403,23 +403,23 @@ html[data-motion='on'] .menorah--lit .menorah__flame { animation: flame 2.6s eas
   50% { transform: scale(0.92, 1.08); fill-opacity: 0.45; }
   100% { transform: scale(1.04, 0.95); fill-opacity: 0.3; }
 }
-.sec > .ghost-he, .ghost-he {
-  position: absolute;
-  inset-inline-start: 50%;
-  top: 50%;
-  translate: -50% -50%;
-  z-index: 0;
-  font-family: var(--f-hebrew);
-  font-size: 15.714rem;
-  line-height: 1;
-  white-space: nowrap;
-  color: var(--fg);
-  opacity: 0.04;
-  pointer-events: none;
-  user-select: none;
+/* «Созвездие» (judaica/ghost-field.tsx): Hebrew words behind a section — anchor + satellites, each drifts with
+   the scroll by its own vector (near = bigger, faster) + slow idle float. Only transform/opacity move. */
+.gf, .sec > .gf { position: absolute; inset: 0; z-index: 0; overflow: clip; pointer-events: none; user-select: none; color: var(--fg); --k: 1; }
+.gf--light { color: var(--ink); }
+.gf--dark { color: var(--light); }
+.gf-w { display: block; font-family: var(--f-hebrew); font-size: inherit; line-height: 1; white-space: nowrap; opacity: var(--o); }
+.gf-pos { position: absolute; inset-inline-start: var(--x); top: var(--y); translate: -50% -50%; font-size: calc(var(--s) * var(--k) * 1rem); }
+[dir='rtl'] .gf-pos { translate: 50% -50%; }
+@media (max-width: 767px) {
+  .gf, .sec > .gf { --k: 0.55; }
+  .gf .gf-desk { display: none; }
 }
-[dir='rtl'] .ghost-he { translate: 50% -50%; }
-html[data-motion='on'] .ghost-he { transform: translateX(calc((0.5 - var(--p, 0.5)) * var(--drift, 12vw))); }
+html[data-motion='on'] .gf-pos { transform: translate(calc((0.5 - var(--p, 0.5)) * var(--dx)), calc((0.5 - var(--p, 0.5)) * var(--dy))); }
+html[data-anim='on'] .gf-w { animation: gf-float calc(17s + var(--i) * 3.7s) ease-in-out calc(var(--i) * -2.3s) infinite alternate; }
+html[data-anim='on'] .gf-pos:nth-child(even) .gf-w { animation-name: gf-float-b; }
+@keyframes gf-float { 0% { transform: translate(0, 0) rotate(0deg); } 50% { transform: translate(0.06em, -0.05em) rotate(0.6deg); } 100% { transform: translate(-0.05em, 0.04em) rotate(-0.4deg); } }
+@keyframes gf-float-b { 0% { transform: translate(0, 0) rotate(0deg); } 50% { transform: translate(-0.06em, 0.05em) rotate(-0.5deg); } 100% { transform: translate(0.05em, -0.04em) rotate(0.4deg); } }
 .arch-wrap { position: relative; width: 100%; }
 .arch-wrap--glow::before {
   content: '';

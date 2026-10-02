@@ -1,4 +1,5 @@
 import { useLang } from '@/i18n/use-lang';
+import { GHOST_WORDS as GW } from '@/ui/judaica';
 import { Button } from '@/ui/kit';
 import { Reveal } from '@/ui/motion';
 
@@ -11,7 +12,11 @@ export const HoursView = (p: HoursViewProps) => {
   const h = p.content;
   return (
     <SectionPage titleKey="hours">
-      <PageHero hero={h.hero} photo="facade2019b" />
+      <PageHero
+        hero={h.hero}
+        photo="facade2019b"
+        ghost={[GW.beitKnesset, GW.shabbat, GW.tfila, GW.shalom, GW.kehila, GW.torah]}
+      />
       <Band tone="cream">
         <div className="sx-cols">
           <Reveal className="sx-panel">

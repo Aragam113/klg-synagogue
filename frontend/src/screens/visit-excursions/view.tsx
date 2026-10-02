@@ -1,4 +1,5 @@
 import { useLang } from '@/i18n/use-lang';
+import { GHOST_WORDS as GW } from '@/ui/judaica';
 import { Button, Placeholder, Text } from '@/ui/kit';
 import { Reveal } from '@/ui/motion';
 
@@ -11,7 +12,11 @@ export const ExcursionsView = ({ content: e, prices, priceSrcs, phone }: Excursi
   const { t } = useLang('sections');
   return (
     <SectionPage titleKey="excursions">
-      <PageHero hero={e.hero} photo="domeDarafsh">
+      <PageHero
+        hero={e.hero}
+        photo="domeDarafsh"
+        ghost={[GW.beitKnesset, GW.bruchim, GW.zachor, GW.yerushalayim, GW.kehila, GW.torah]}
+      >
         <div className="btns">
           <Button variant="gold" href="/visit/excursions/book" arrow>
             {t('book')}

@@ -35,7 +35,7 @@ export const FundraiserView = ({
   const progress = f ? fundraiserProgress(f) : null;
   return (
     <Page title={`${f?.title ?? t('fundraiser.eyebrow')}`}>
-      <Section tone="cream" pattern className="don-hero">
+      <Section tone="cream" className="don-hero">
         <div className="don-hero__rosette">
           <Rosette size="40rem" spin={120} />
         </div>

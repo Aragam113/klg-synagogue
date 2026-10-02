@@ -1,4 +1,5 @@
 import { useLang } from '@/i18n/use-lang';
+import { GHOST_WORDS as GW } from '@/ui/judaica';
 import { Link, Text } from '@/ui/kit';
 import { Reveal } from '@/ui/motion';
 
@@ -21,7 +22,11 @@ export const MuseumView = (p: MuseumViewProps) => {
   const m = p.content;
   return (
     <SectionPage titleKey="museum">
-      <PageHero hero={m.hero} photo="k1925" ghost="זכור" />
+      <PageHero
+        hero={m.hero}
+        photo="k1925"
+        ghost={[GW.zachor, GW.beitKnesset, GW.kehila, GW.yerushalayim, GW.emuna, GW.torah]}
+      />
       <Band tone="cream" title={m.about.title}>
         <Paras items={m.about.paragraphs} />
         <SourceLink href={p.aboutSrc} />
