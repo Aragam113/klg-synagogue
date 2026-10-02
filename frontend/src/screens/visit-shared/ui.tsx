@@ -9,7 +9,8 @@ import { getContent, PHOTOS } from '@/content';
 import type { Hero, LinkCard, Quote } from '@/content/types';
 import { useLang } from '@/i18n/use-lang';
 import { ArchFrame } from '@/ui/judaica/arch-frame';
-import { GhostHebrew } from '@/ui/judaica/ghost-hebrew';
+import { GhostField } from '@/ui/judaica/ghost-field';
+import { DEFAULT_GHOST_WORDS, SHALOM } from '@/ui/judaica/ghost-model';
 import { Arrow, Container, Eyebrow, Link, Page, Section, Text, Title, type Tone } from '@/ui/kit';
 import { Reveal } from '@/ui/motion';
 
@@ -30,49 +31,77 @@ export const SectionPage = ({ titleKey, children }: { titleKey: string; children
   );
 };
 
-/** Обложка раздела: тёмная секция с гексаграммами, призрачным ивритом и фото в арке (параллакс от --p). */
+/** Слова «Созвездия» обложки: одно слово → якорь + общий набор; массив — как есть (первое — якорь). */
+const heroGhosts = (ghost: string | readonly string[]): readonly string[] =>
+  typeof ghost === 'string' ? [ghost, ...DEFAULT_GHOST_WORDS.filter((w) => w !== ghost)] : ghost;
+
+/** Обложка раздела: тёмная секция с гексаграммами, «Созвездием» ивритских слов и фото в арке (параллакс от --p). */
 export const PageHero = ({
   hero,
   photo,
-  ghost = 'שלום',
+  ghost = SHALOM,
+  ghostSeed,
   children,
 }: {
   hero: Hero;
   photo?: string;
-  ghost?: string;
+  /** Слова «Созвездия»: якорь (строка) или весь набор (массив, первое — якорь). */
+  ghost?: string | readonly string[];
+  /** Ключ узора; по умолчанию — фото + якорь, чтобы у страниц узоры различались. */
+  ghostSeed?: string;
   children?: ReactNode;
-}) => (
-  <Section tone="deep" pattern={0.05} className="sx-hero" ariaLabel={hero.title}>
-    <GhostHebrew text={ghost} className="sx-hero__ghost" />
-    <Container className={`sx-hero__grid ${photo ? '' : 'sx-hero__grid--solo'}`}>
-      <div className="sx-hero__text">
-        <Reveal>
-          <Eyebrow className="sx-eyebrow-line">{hero.eyebrow}</Eyebrow>
-        </Reveal>
-        <Reveal delay={0.08}>
-          <Title as="h1" size="hero" text={hero.title} italicWord={hero.italic} stroke="reveal" />
-        </Reveal>
-        <Reveal delay={0.16}>
-          <Text lead>{hero.lead}</Text>
-        </Reveal>
-        {children ? <Reveal delay={0.24}>{children}</Reveal> : null}
-      </div>
-      {photo ? (
-        <div className="sx-hero__media">
-          <Figure id={photo} glow />
+}) => {
+  const words = heroGhosts(ghost);
+  return (
+    <Section tone="deep" pattern={0.05} className="sx-hero" ariaLabel={hero.title}>
+      <GhostField
+        seed={ghostSeed ?? `hero|${photo ?? ''}|${words[0]}`}
+        words={words}
+        tone="dark"
+        titleAt={photo ? 'start' : 'center'}
+        anchor="center"
+        density={{ desk: 6, phone: 1 }}
+      />
+      <Container className={`sx-hero__grid ${photo ? '' : 'sx-hero__grid--solo'}`}>
+        <div className="sx-hero__text">
+          <Reveal>
+            <Eyebrow className="sx-eyebrow-line">{hero.eyebrow}</Eyebrow>
+          </Reveal>
+          <Reveal delay={0.08}>
+            <Title as="h1" size="hero" text={hero.title} italicWord={hero.italic} stroke="reveal" />
+          </Reveal>
+          <Reveal delay={0.16}>
+            <Text lead>{hero.lead}</Text>
+          </Reveal>
+          {children ? <Reveal delay={0.24}>{children}</Reveal> : null}
         </div>
-      ) : null}
-    </Container>
-  </Section>
-);
+        {photo ? (
+          <div className="sx-hero__media">
+            <Figure id={photo} glow />
+          </div>
+        ) : null}
+      </Container>
+    </Section>
+  );
+};
 
 /** Фото из `PHOTOS` в арке с подписью: что на фото · автор, лицензия, Wikimedia Commons. */
-export const Figure = ({ id, glow, ratio }: { id: string; glow?: boolean; ratio?: string }) => {
+export const Figure = ({
+  id,
+  glow,
+  ratio,
+  className = '',
+}: {
+  id: string;
+  glow?: boolean;
+  ratio?: string;
+  className?: string;
+}) => {
   const { t, lang } = useLang('sections');
   const p = PHOTOS[id];
   if (!p) return null;
   return (
-    <figure className="sx-figure">
+    <figure className={`sx-figure ${className}`}>
       <div className="sx-figure__frame">
         <ArchFrame src={p.src} alt={p.alt[lang]} glow={glow} ratio={ratio} />
       </div>

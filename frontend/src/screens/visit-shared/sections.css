@@ -4,13 +4,6 @@
   overflow: hidden;
   position: relative;
 }
-.sx-hero__ghost {
-  position: absolute;
-  inset-inline-end: -2rem;
-  top: 18%;
-  opacity: 0.5;
-  pointer-events: none;
-}
 .sx-hero__grid {
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
@@ -292,24 +285,35 @@ html[data-motion='on'] .sx-hero__media {
 .sx-chapter {
   position: relative;
   overflow: hidden;
-  padding-block: clamp(4rem, 9vw, 8rem);
+  padding-block: clamp(3.5rem, 7vw, 6rem);
   scroll-margin-top: 5rem;
 }
-.sx-chapter__ghost {
-  position: absolute;
-  inset-inline-start: -2rem;
-  bottom: 6%;
-  opacity: 0.35;
-  pointer-events: none;
-}
+/* Главы /history: раскладка из historyModel (solo | quote | fill | pair | strip), чтобы фото
+   не были выше текста и не висели столбиком сбоку; боковая колонка чередует сторону (--flip). */
 .sx-chapter__grid {
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
   gap: clamp(2rem, 5vw, 5rem);
   align-items: start;
 }
 .sx-chapter__grid--solo {
-  grid-template-columns: minmax(0, 46rem);
+  grid-template-columns: minmax(0, 1fr);
+}
+/* solo: без фото и цитаты — абзацы в две колонки на всю ширину, а не узкая полоса слева */
+@media (min-width: 1101px) {
+  .sx-chapter__grid--solo .sx-chapter__paras {
+    columns: 2;
+    column-gap: clamp(2rem, 5vw, 5rem);
+  }
+  .sx-chapter__grid--solo .sx-chapter__paras > * {
+    break-inside: avoid;
+  }
+}
+.sx-chapter__grid--flip {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+}
+.sx-chapter__grid--flip > .sx-chapter__media {
+  order: -1;
 }
 .sx-chapter__text {
   min-width: 0;
@@ -321,12 +325,75 @@ html[data-motion='on'] .sx-hero__media {
   margin-bottom: 0.6rem;
 }
 .sx-chapter__media {
-  display: grid;
-  gap: 2rem;
   min-width: 0;
 }
 .sx-chapter__text .sx-quote {
   margin-top: 2rem;
+}
+/* quote / strip: цитата крупно в боковой колонке вместо пустоты */
+.sx-chapter__grid--quote,
+.sx-chapter__grid--strip {
+  align-items: center;
+}
+.sx-chapter__aside {
+  min-width: 0;
+}
+.sx-chapter__aside .sx-quote {
+  margin: 0;
+  padding-inline-start: clamp(1.4rem, 3vw, 2.4rem);
+  border-inline-start: 1px solid var(--gold, #b08d57);
+}
+.sx-chapter__aside .sx-quote blockquote {
+  font-size: clamp(1.4rem, 2.3vw, 2.1rem);
+}
+/* fill: одно фото по высоте текста, кадр обрезается object-fit: cover */
+.sx-chapter__grid--fill {
+  align-items: stretch;
+}
+.sx-chapter__media--fill {
+  position: relative;
+  min-height: 22rem;
+}
+.sx-chapter__media--fill .sx-figure {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+.sx-chapter__media--fill .sx-figure__frame {
+  flex: 1;
+  min-height: 0;
+}
+.sx-chapter__media--fill .arch-wrap,
+.sx-chapter__media--fill .arch {
+  height: 100%;
+}
+/* pair: две арки рядом; если текст длиннее — пара едет рядом с ним (sticky) */
+.sx-chapter__grid--pair {
+  align-items: center;
+}
+.sx-chapter__media--pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1rem, 2vw, 1.6rem);
+  align-self: start;
+  position: sticky;
+  top: 6rem;
+}
+/* strip: три и больше фото — лента широких кадров на всю ширину под текстом */
+.sx-chapter__strip {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: clamp(1rem, 2vw, 1.6rem);
+}
+.sx-chapter__shot {
+  min-width: 0;
+}
+/* Широкий кадр: арка эллипсом, а не полукругом во всю высоту */
+.sx-figure--wide .arch {
+  border-radius: 50% 50% 7px 7px / 30% 30% 7px 7px;
 }
 .sx-timeline {
   list-style: none;
@@ -431,9 +498,30 @@ html[data-motion='on'] .sx-timeline::before {
     justify-self: center;
     max-width: 20rem;
   }
-  .sx-hero__ghost,
-  .sx-chapter__ghost {
-    display: none;
+  .sx-chapter__grid--flip > .sx-chapter__media {
+    order: 0;
+  }
+  .sx-chapter__media--fill {
+    min-height: 0;
+  }
+  .sx-chapter__media--fill .sx-figure {
+    position: static;
+  }
+  .sx-chapter__media--fill .arch {
+    height: auto;
+    aspect-ratio: 4 / 3 !important;
+  }
+  .sx-chapter__media--pair {
+    position: static;
+  }
+  .sx-chapter__strip {
+    grid-auto-columns: 78%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 0.6rem;
+  }
+  .sx-chapter__shot {
+    scroll-snap-align: start;
   }
   .sx-timeline__item {
     grid-template-columns: minmax(0, 1fr);

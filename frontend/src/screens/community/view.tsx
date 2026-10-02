@@ -1,4 +1,5 @@
 import { useLang } from '@/i18n/use-lang';
+import { GHOST_WORDS as GW } from '@/ui/judaica';
 import { Button, Text } from '@/ui/kit';
 import { Reveal } from '@/ui/motion';
 
@@ -22,7 +23,11 @@ export const CommunityView = (p: CommunityViewProps) => {
   const m = p.content;
   return (
     <SectionPage titleKey="community">
-      <PageHero hero={m.hero} photo="facade2019" ghost="קהילה" />
+      <PageHero
+        hero={m.hero}
+        photo="facade2019"
+        ghost={[GW.kehila, GW.torah, GW.chesed, GW.tzedaka, GW.limud, GW.shabbat]}
+      />
       <Band tone="cream">
         <QuoteBlock quote={m.intro} />
         <CardGrid cards={m.cards} />

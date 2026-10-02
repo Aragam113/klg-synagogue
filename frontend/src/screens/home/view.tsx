@@ -8,7 +8,8 @@ import type { EventItem, Fundraiser, NewsItem } from '@/store/api/content';
 import {
   ArchFrame,
   BRUCHIM_HABAIM,
-  GhostHebrew,
+  GHOST_WORDS as GW,
+  GhostField,
   HexPattern,
   MagenDavid,
   Rosette,
@@ -41,6 +42,10 @@ export interface HomeViewProps {
   dedications: { text: string; italic?: boolean }[];
   news: { state: BlockState; items: NewsItem[] };
 }
+
+/** «Созвездие» words of the home sections: the first one is the big anchor. */
+const HERO_GHOSTS = [GW.shalom, GW.kehila, GW.torah, GW.shabbat, GW.beitKnesset, GW.yerushalayim];
+const WELCOME_GHOSTS = [GW.bruchim, GW.chesed, GW.tzedaka, GW.emuna, GW.kehila, GW.shalom];
 
 /** Marquee words: greetings in the three languages of the site. */
 const MARQUEE = [
@@ -172,7 +177,7 @@ export const HomeView = ({
     <div className="home" data-home="root">
       {/* 2. Hero */}
       <Section tone="cream" className="home-hero" id="hero">
-        <GhostHebrew text={SHALOM} />
+        <GhostField seed="home-hero" words={HERO_GHOSTS} />
         <HexPattern opacity={0.04} parallax={-8} />
         <Container>
           <div className="home-hero__inner">
@@ -207,7 +212,7 @@ export const HomeView = ({
 
       {/* 3. Threshold */}
       <Section tone="deep" curtain pattern={0.05} className="home-threshold" id="welcome">
-        <GhostHebrew text={BRUCHIM_HABAIM} />
+        <GhostField seed="home-welcome" words={WELCOME_GHOSTS} tone="dark" />
         <Container size="narrow" className="home-center">
           <Eyebrow>{t('threshold.eyebrow')}</Eyebrow>
           <Title

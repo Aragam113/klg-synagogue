@@ -4,7 +4,7 @@ import { useState } from 'react';
 import {
   ArchFrame,
   BRUCHIM_HABAIM,
-  GhostHebrew,
+  GhostField,
   MagenDavid,
   Menorah,
   Rosette,
@@ -67,7 +67,7 @@ export default function KitPage() {
   return (
     <Page title="UI-кит">
       <Section tone="cream" id="kit-hero">
-        <GhostHebrew text={SHALOM} />
+        <GhostField seed="kit-hero" />
         <Container size="narrow">
           <Eyebrow>UI-кит · только в dev</Eyebrow>
           <Title
@@ -95,7 +95,12 @@ export default function KitPage() {
       </Section>
 
       <Section tone="deep" curtain pattern={0.05} id="kit-threshold">
-        <GhostHebrew text={BRUCHIM_HABAIM} />
+        <GhostField
+          seed="kit-threshold"
+          words={[BRUCHIM_HABAIM, SHALOM]}
+          tone="dark"
+          density={{ desk: 4, phone: 2 }}
+        />
         <Container size="narrow" className="kit-center">
           <Eyebrow>Шторка · решётка из гексаграмм</Eyebrow>
           <Title size="xl" text="Добро пожаловать домой" italicWord="домой" stroke="progress" />

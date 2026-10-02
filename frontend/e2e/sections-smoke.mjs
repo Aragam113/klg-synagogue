@@ -6,7 +6,7 @@
  * Uses a running Expo web on WEB_URL or starts one. No backend needed (TodayWidget stays empty without it).
  * Env: WEB_URL, CHROME_PATH, SMOKE_SHOTS=<dir> — screenshots of every page (top + scrolled).
  * Checks per page: no console errors/page errors, <h1>, html[dir]/[lang], no horizontal scroll,
- * "alive" (Reveal reveals on scroll, hero HexPattern + GhostHebrew, --p moves), header phone tel: link.
+ * "alive" (Reveal reveals on scroll, hero HexPattern + «Созвездие» ghost words clear of the title, --p moves), header phone tel: link.
  * Specials: /visit/how-to-get — OSM iframe + Yandex/Google links with coordinates;
  * /history — TOC anchors resolve to chapters, timeline --p grows while scrolling.
  */
@@ -16,6 +16,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import puppeteer from 'puppeteer-core';
+
+import { ghostUnderTitle } from './ghost-check.mjs';
 
 const WEB = process.env.WEB_URL ?? 'http://localhost:8081';
 const CHROME = process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe';
@@ -119,7 +121,7 @@ try {
           lang: document.documentElement.lang,
           h1: document.querySelector('main h1, h1')?.textContent?.trim() ?? '',
           hex: !!document.querySelector('.sx-hero .hexpattern'),
-          ghost: !!document.querySelector('.sx-hero .ghost-he'),
+          ghost: !!document.querySelector('.sx-hero .gf .gf-w'),
           tel: [...document.querySelectorAll('.hdr a[href^="tel:"]')].map((a) => a.getAttribute('href')),
           motion: document.documentElement.dataset.motion,
           title: document.title,
@@ -134,7 +136,9 @@ try {
         check(top.h1.length > 0, `${tag}: h1`);
         check(top.tel.includes('tel:+74012464345'), `${tag}: header phone`, top.tel.join(','));
         if (!NO_HERO.has(path)) {
-          check(top.hex && top.ghost, `${tag}: hero HexPattern + GhostHebrew`);
+          check(top.hex && top.ghost, `${tag}: hero HexPattern + GhostField`);
+          const under = await ghostUnderTitle(page);
+          check(under.length === 0, `${tag}: ghost words clear of the titles`, under.join('; '));
         }
         if (SHOTS) {
           mkdirSync(SHOTS, { recursive: true });

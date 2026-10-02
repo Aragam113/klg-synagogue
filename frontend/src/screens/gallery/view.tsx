@@ -1,7 +1,7 @@
 import { useLang } from '@/i18n/use-lang';
 import '@/screens/events/styles';
 import { mediaUrl } from '@/store/api/content';
-import { ArchFrame, GhostHebrew } from '@/ui/judaica';
+import { GHOST_WORDS as GW, GhostField, ArchFrame } from '@/ui/judaica';
 import {
   Button,
   Container,
@@ -23,7 +23,13 @@ export const GalleryView = ({ albums, loading, error, onRetry }: GalleryViewProp
   return (
     <Page title={`${t('gallery.eyebrow')}`}>
       <Section tone="deep" pattern className="cnt-head">
-        <GhostHebrew text="תמונות" />
+        <GhostField
+          seed="gallery"
+          words={[GW.tmunot, GW.zachor, GW.beitKnesset, GW.kehila, GW.yerushalayim]}
+          tone="dark"
+          titleAt="start"
+          density={{ desk: 5, phone: 2 }}
+        />
         <Container>
           <Reveal>
             <Eyebrow>{t('gallery.eyebrow')}</Eyebrow>

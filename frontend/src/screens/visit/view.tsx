@@ -1,4 +1,5 @@
 import { useLang } from '@/i18n/use-lang';
+import { GHOST_WORDS as GW } from '@/ui/judaica';
 import { Button } from '@/ui/kit';
 
 import { Band, CardGrid, Figure, PageHero, QuoteBlock, SectionPage } from '../visit-shared/ui';
@@ -9,7 +10,11 @@ export const VisitView = ({ content, gallery }: VisitViewProps) => {
   const { t } = useLang('sections');
   return (
     <SectionPage titleKey="visit">
-      <PageHero hero={content.hero} photo="nightRiver" ghost="ברוכים הבאים">
+      <PageHero
+        hero={content.hero}
+        photo="nightRiver"
+        ghost={[GW.bruchim, GW.shalom, GW.beitKnesset, GW.yerushalayim, GW.kehila, GW.shabbat]}
+      >
         <div className="btns">
           <Button variant="gold" href="/visit/excursions/book" arrow>
             {t('book')}

@@ -6,7 +6,7 @@ import { formatRub, ticketLadder } from '@/screens/events/content-model';
 import { RichText } from '@/screens/events/rich-text';
 import '@/screens/events/styles';
 import { mediaUrl } from '@/store/api/content';
-import { ArchFrame, HexPattern } from '@/ui/judaica';
+import { ArchFrame } from '@/ui/judaica';
 import {
   Arrow,
   Button,
@@ -38,7 +38,6 @@ export const EventView = ({ event: e, notFound, error, onRetry, onRegister }: Ev
   return (
     <Page title={`${e?.title ?? t('events.eyebrow')}`}>
       <Section tone="ink" grain className="cnt-afisha">
-        <HexPattern opacity={0.05} />
         <Container>
           <Link href="/events" className="cnt-back">
             ← {t('events.back')}

@@ -1,4 +1,5 @@
 import { useLang } from '@/i18n/use-lang';
+import { GHOST_WORDS as GW } from '@/ui/judaica';
 import { Button, Text } from '@/ui/kit';
 import { Reveal } from '@/ui/motion';
 
@@ -11,7 +12,11 @@ export const RulesView = ({ content: r, shabbatSrc }: RulesViewProps) => {
   const { t } = useLang('sections');
   return (
     <SectionPage titleKey="rules">
-      <PageHero hero={r.hero} photo="domeSky" ghost="שבת שלום" />
+      <PageHero
+        hero={r.hero}
+        photo="domeSky"
+        ghost={[GW.shabbat, GW.beitKnesset, GW.tfila, GW.shalom, GW.emuna, GW.torah]}
+      />
       <Band tone="cream">
         <div className="sx-list">
           {r.items.map((it, i) => (

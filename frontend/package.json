@@ -21,6 +21,7 @@
     "smoke:sections": "node e2e/sections-smoke.mjs",
     "smoke:payments": "node e2e/payments-smoke.mjs",
     "build:scrub": "node scripts/build-scrub.mjs",
+    "build:favicon": "node scripts/build-favicon.mjs",
     "smoke:home": "node e2e/home-smoke.mjs",
     "smoke:admin": "node e2e/admin-smoke.mjs",
     "smoke:mobile": "node e2e/mobile-smoke.mjs",

@@ -1,5 +1,4 @@
 import { useLang } from '@/i18n/use-lang';
-import { HexPattern } from '@/ui/judaica';
 import { Button, Container, Empty, ErrorBox, Eyebrow, Page, Section, Title } from '@/ui/kit';
 import { SubscribeForm } from '@/ui/layout/slots/subscribe-form';
 import { Reveal } from '@/ui/motion';
@@ -37,7 +36,6 @@ export const EventsView = ({ upcoming, past }: EventsViewProps) => {
   return (
     <Page title={`${t('events.eyebrow')}`}>
       <Section tone="ink" grain className="cnt-afisha">
-        <HexPattern opacity={0.05} />
         <Container>
           <Reveal>
             <Eyebrow>{t('events.eyebrow')}</Eyebrow>
