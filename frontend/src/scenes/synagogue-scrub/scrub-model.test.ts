@@ -95,3 +95,18 @@ describe('improvesFrame — перерисовка по загрузке кад�
     expect(improvesFrame(40, 100, -1)).toBe(true);
   });
 });
+
+describe('parseManifest — light set for phones', () => {
+  it('resolves `light` (the 640px manifest) against the folder', () => {
+    const m = parseManifest(
+      { frames: ['a.webp'], width: 1280, height: 720, light: 'm/manifest.json' },
+      '/media/scrub/'
+    );
+    expect(m?.light).toBe('/media/scrub/m/manifest.json');
+  });
+  it('no `light` → undefined', () => {
+    expect(
+      parseManifest({ frames: ['a.webp'], width: 1, height: 1 }, '/x/')?.light
+    ).toBeUndefined();
+  });
+});

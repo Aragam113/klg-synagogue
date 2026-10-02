@@ -375,6 +375,104 @@ try {
     await page.close();
   }
 
+  // ---- 4c. touch variants ?a=1|2|3 (390×844): engine, fixed sticky height vs the address bar, the scene
+  for (const a of ['1', '2', '3']) {
+    const page = await open(`/?lang=ru&a=${a}`, 390, { height: 844 });
+    const tag = `390 ?a=${a}`;
+    const base = await page.evaluate(() => ({
+      touch: document.documentElement.dataset.touch ?? null,
+      lenis: document.documentElement.classList.contains('lenis'),
+      vhFix: document.documentElement.style.getPropertyValue('--vh-fix'),
+      sceneH: document.querySelector('.scrub').offsetHeight,
+      frames: +(document.querySelector('.scrub canvas')?.dataset.frames ?? 0),
+      noHScroll: document.documentElement.scrollWidth <= innerWidth,
+      ribbon: !!document.querySelector('#community [data-ribbon]'),
+      spin: getComputedStyle(document.querySelector('.home-dawn__spin') ?? document.body).animationName,
+    }));
+    check(base.touch === a && base.vhFix === '844px', `${tag}: engine variant on, viewport fixed in px`, JSON.stringify(base));
+    check(base.noHScroll && base.ribbon && base.spin !== 'none', `${tag}: no h-scroll, community ribbon, Dawn spin kept`, JSON.stringify(base));
+    check(a === '1' ? base.lenis : !base.lenis, `${tag}: Lenis only on ?a=1`, String(base.lenis));
+    if (a !== '3') {
+      check(base.sceneH > 844 * 3, `${tag}: scene runway in fixed px`, String(base.sceneH));
+      if (a === '2') check(base.frames > 0 && base.frames < 110, `${tag}: phone uses the light frame set`, String(base.frames));
+      await page.waitForFunction(() => document.querySelector('.scrub')?.dataset.loaded === 'all', { timeout: 30000 }).catch(() => undefined);
+      await page.evaluate(() => {
+        const s = document.querySelector('.scrub');
+        window.scrollTo(0, s.getBoundingClientRect().top + scrollY + (s.offsetHeight - 844) * 0.3);
+      });
+      await sleep(1200);
+      const read = () =>
+        page.evaluate(() => ({
+          p: +document.querySelector('.scrub').style.getPropertyValue('--p'),
+          f: +document.querySelector('.scrub canvas').dataset.frame,
+          sh: Math.round(document.querySelector('.scrub__sticky').getBoundingClientRect().height),
+          poster: !!document.querySelector('.scrub__poster[data-waiting]'),
+          y: scrollY,
+        }));
+      const r1 = await read();
+      // finger drag (with Lenis syncTouch the drag goes through Lenis)
+      await page.touchscreen.touchStart(195, 600);
+      for (let i = 1; i <= 8; i++) await page.touchscreen.touchMove(195, 600 - i * 40);
+      await page.touchscreen.touchEnd();
+      await sleep(1500);
+      const r2 = await read();
+      check(r2.y > r1.y && r2.f !== r1.f && !r2.poster, `${tag}: a finger drag scrubs the scene`, `${JSON.stringify(r1)} → ${JSON.stringify(r2)}`);
+      await page.screenshot({ path: join(SHOTS, `mscroll_a${a}_smoke.png`) });
+      // the address bar hides: +56px of viewport at the same scrollY — sticky and --p must not jump
+      await page.setViewport({ width: 390, height: 900, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+      await sleep(900);
+      const r3 = await read();
+      check(r3.sh === 844 && Math.abs(r3.p - r2.p) < 0.002, `${tag}: address bar does not move the scene`, `${JSON.stringify(r2)} → ${JSON.stringify(r3)}`);
+    } else {
+      check(Math.abs(base.sceneH - 844) <= 1, `${tag}: scene is one screen (plays by time)`, String(base.sceneH));
+      await page.evaluate(() => document.querySelector('.scrub').scrollIntoView({ block: 'start' }));
+      await page.waitForFunction(() => document.querySelector('.scrub')?.dataset.loaded === 'all', { timeout: 30000 }).catch(() => undefined);
+      const st = () =>
+        page.evaluate(() => ({
+          f: +(document.querySelector('.scrub canvas')?.dataset.frame ?? -1),
+          active: document.querySelector('.scrub').dataset.active,
+          y: scrollY,
+        }));
+      await sleep(700);
+      const t1 = await st();
+      await sleep(3500);
+      const t2 = await st();
+      await page.screenshot({ path: join(SHOTS, `mscroll_a${a}_smoke.png`) });
+      check(t2.y === t1.y && t2.f > t1.f && t2.active !== t1.active, `${tag}: scene plays by time, chapters by timer`, `${JSON.stringify(t1)} → ${JSON.stringify(t2)}`);
+      const par = await page.evaluate(() => {
+        const s = document.querySelector('.sec');
+        return s ? s.style.getPropertyValue('--p') : null;
+      });
+      check(par !== null && par !== '', `${tag}: sections get --p by appearance`, String(par));
+    }
+    await page.close();
+  }
+  {
+    // desktop never changes: ?a=3 on a fine pointer keeps the scroll-linked scene and Lenis
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 800 });
+    await page.evaluateOnNewDocument(() => {
+      localStorage.setItem('synagogue.preloaded', '1');
+      localStorage.setItem('synagogue.cookieConsent', '1');
+    });
+    await page.goto(`${WEB}/?lang=ru&a=3`, { waitUntil: 'networkidle2', timeout: 90000 });
+    await sleep(800);
+    const d = await page.evaluate(() => ({
+      touch: document.documentElement.dataset.touch ?? null,
+      pin: document.documentElement.dataset.pin,
+      frames: +(document.querySelector('.scrub canvas')?.dataset.frames ?? 0),
+      tall: document.querySelector('.scrub').offsetHeight > innerHeight * 3,
+    }));
+    check(d.touch === null && d.pin === 'on' && d.frames === 110 && d.tall, 'desktop ?a=3: unchanged (no touch variant)', JSON.stringify(d));
+    await page.close();
+  }
+  {
+    const page = await open('/?lang=ru&a=3', 390, { reduced: true, height: 844 });
+    const r = await page.evaluate(() => ({ touch: document.documentElement.dataset.touch ?? null, scene: document.querySelector('.scrub').className }));
+    check(r.touch === null && r.scene.includes('scrub--static'), '390 reduced ?a=3: static', JSON.stringify(r));
+    await page.close();
+  }
+
   // ---- 5. reduced motion: nothing moves, everything visible
   {
     const page = await open('/?lang=ru', 390, { reduced: true, height: 844 });

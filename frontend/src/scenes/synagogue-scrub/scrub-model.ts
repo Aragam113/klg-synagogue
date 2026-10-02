@@ -47,8 +47,10 @@ export interface ScrubManifest {
   width: number;
   height: number;
   credits: string;
-  /** Frame shown statically on touch / reduced motion. */
+  /** Frame shown statically (reduced motion) and while the phone set loads. */
   poster: number;
+  /** Absolute URL of the light (640px) manifest for phones, if build:scrub made one. */
+  light?: string;
 }
 
 /** manifest.json → absolute frame URLs (relative names resolve against base); null if unusable. */
@@ -61,10 +63,19 @@ export const parseManifest = (raw: unknown, base: string): ScrubManifest | null 
   const height = Number(r.height);
   if (!names.length || !(width > 0) || !(height > 0)) return null;
   const dir = base.endsWith('/') ? base : base + '/';
-  const frames = names.map((f) => (f.startsWith('/') || /^https?:/.test(f) ? f : dir + f));
+  const abs = (f: string) => (f.startsWith('/') || /^https?:/.test(f) ? f : dir + f);
+  const frames = names.map(abs);
+  const light = typeof r.light === 'string' && r.light ? abs(r.light) : undefined;
   const poster =
     typeof r.poster === 'number' && r.poster >= 0 && r.poster < frames.length
       ? Math.round(r.poster)
       : Math.round((frames.length - 1) / 2);
-  return { frames, width, height, credits: typeof r.credits === 'string' ? r.credits : '', poster };
+  return {
+    frames,
+    width,
+    height,
+    credits: typeof r.credits === 'string' ? r.credits : '',
+    poster,
+    ...(light ? { light } : {}),
+  };
 };

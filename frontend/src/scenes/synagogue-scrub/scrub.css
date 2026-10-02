@@ -64,6 +64,12 @@ html[data-motion='on'] .scrub--live .scrub__text { text-shadow: 0 1px .6rem #152
 @media (pointer: coarse) {
   html[data-motion='on'] .scrub--live .scrub__chapter { filter: none; }
 }
+/* Touch (html[data-touch], ?a=1|2|3): the runway and the sticky viewport use the px height fixed at start
+   (--vh-fix, re-read only on orientation change) — the address bar showing/hiding no longer moves them.
+   Variant 3 plays by time: no runway, the scene is one screen tall. */
+html[data-motion='on'][data-touch] .scrub--live { height: calc(var(--vh-fix, 100svh) * (var(--chapters) + 1)); }
+html[data-motion='on'][data-touch] .scrub--live .scrub__sticky { height: var(--vh-fix, 100svh); }
+html[data-motion='on'][data-touch='3'] .scrub--live { height: var(--vh-fix, 100svh); }
 @media (min-width: 1440px) {
   html[data-motion='on'] .scrub--live .scrub__chapters { inset-inline-start: calc((100vw - var(--container)) / 2); }
 }

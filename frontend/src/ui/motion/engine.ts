@@ -6,11 +6,17 @@ export interface RegisterOptions {
   mode?: ProgressMode;
   /** Called on every written change of `--p` (for discrete state such as the active chapter). */
   onChange?: (p: number) => void;
+  /** Touch variant 3 («by time»): how long the element plays its `--p` once on screen, ms (default 2600). */
+  duration?: number;
+  /** Touch variant 3: time stands still while this returns false (e.g. the scene's frames are still loading). */
+  waitFor?: () => boolean;
 }
 export { progressOf } from './progress';
 export const reducedMotion = (): boolean => true;
 export const motionAllowed = (): boolean => false;
 export const pinAllowed = (): boolean => false;
+/** Active touch variant (1|2|3, see touch-variant.ts) or 0: fine pointer, reduced motion, native. */
+export const touchVariant = (): 0 | 1 | 2 | 3 => 0;
 export const startEngine = (): void => undefined;
 export const stopEngine = (): void => undefined;
 export const registerProgress =

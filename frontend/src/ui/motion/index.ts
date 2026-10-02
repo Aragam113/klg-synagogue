@@ -10,6 +10,7 @@ export {
   pinAllowed,
   reducedMotion,
   scrollToTop,
+  touchVariant,
   type MotionEl,
   type ProgressMode,
 } from './engine';
