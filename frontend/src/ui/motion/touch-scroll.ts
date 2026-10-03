@@ -1,6 +1,6 @@
 /**
  * Pure maths of the touch scroll path (html[data-touch]): native scroll, scrollY polled every rAF, `--p` eases to it;
- * after the finger and the inertia stop inside a snapping scene the page glides to the nearest chapter stop.
+ * after the finger and the inertia stop inside a snapping scene the page glides to a chapter stop (snapTarget).
  * The desktop (fine pointer) never uses it.
  */
 
@@ -27,38 +27,43 @@ export const chapterStops = (n: number): number[] => {
   return [0, ...mid, 1];
 };
 
-/**
- * Absolute scrollY of the stops of a pinned scene (`top`, full `height` incl. the sticky screen, viewport `vh`):
- * the chapter stops along the runway plus the exit (the scene's bottom at the viewport top).
- */
+/** Absolute scrollY of the chapter stops of a pinned scene (`top`, full `height` incl. the sticky screen, `vh`). */
 export const sceneSnapPoints = (top: number, height: number, vh: number, n: number): number[] => {
   const runway = Math.max(0, height - vh);
-  return [...chapterStops(n).map((p) => top + p * runway), top + height];
+  return chapterStops(n).map((p) => top + p * runway);
 };
 
 /** Pixels within which the page already counts as resting on a stop. */
 const ON_STOP = 2;
+/** Share of a chapter (capped by the same share of the screen) after which the page goes on to the next stop. */
+const FORWARD = 0.3;
+/** Just inside the scene (share of the screen past its first stop) the page is left alone: entering / leaving it. */
+const ENTRY = 0.25;
 
 /**
- * Stop a scroll resting at `y` is pulled to: the one before or after it among `points` (ascending). With no
- * direction the nearest; the last movement direction `dir` wins from 35% of the gap. Null outside the points or
- * when already on a stop.
+ * Stop a scroll resting at `y` is pulled to, among the chapter `points` (ascending), after a movement in `dir`:
+ * on to the next stop once the page went FORWARD (30%) of the gap — but no more than 30% of the screen `vh` —
+ * otherwise back to the stop it left. So it never pulls against the movement farther than 0.3·vh. With no direction
+ * the nearest. Null outside the scene, at its entry (first 25% of a screen), at or past the last stop (the exit),
+ * or when already on a stop.
  */
 export const snapTarget = (
   y: number,
   points: readonly number[],
-  dir: -1 | 0 | 1
+  dir: -1 | 0 | 1,
+  vh: number
 ): number | null => {
-  if (points.length < 2 || y < points[0] - ON_STOP || y > points[points.length - 1] + ON_STOP)
-    return null;
+  const last = points[points.length - 1];
+  if (points.length < 2 || y < points[0] + ENTRY * vh || y >= last - ON_STOP) return null;
   if (points.some((p) => Math.abs(p - y) <= ON_STOP)) return null;
   let i = 0;
   while (i < points.length - 2 && y > points[i + 1]) i++;
   const a = points[i];
   const b = points[i + 1];
-  const t = (y - a) / (b - a);
-  const threshold = dir > 0 ? 0.35 : dir < 0 ? 0.65 : 0.5;
-  return t >= threshold ? b : a;
+  const need = Math.min(FORWARD * (b - a), FORWARD * vh);
+  if (dir > 0) return y - a >= need ? b : a;
+  if (dir < 0) return b - y >= need ? a : b;
+  return y - a < b - y ? a : b;
 };
 
 /** cubic-bezier(x1, y1, x2, y2) as a function of time 0..1 (Newton + bisection on x). */
@@ -91,6 +96,6 @@ const bezier = (x1: number, y1: number, x2: number, y2: number) => {
 /** The kit easing `--ease: cubic-bezier(0.22, 1, 0.36, 1)` (site.css). */
 export const easeKit = bezier(0.22, 1, 0.36, 1);
 
-/** Glide duration: 500 ms for a short pull, up to 800 ms for a screen and more. */
+/** Glide duration in proportion to the distance: 300 ms for a short pull, up to 700 ms for a screen and more. */
 export const snapDuration = (distance: number, vh: number): number =>
-  Math.round(Math.min(800, Math.max(500, 450 + (Math.abs(distance) / Math.max(1, vh)) * 350)));
+  Math.round(Math.min(700, Math.max(300, 280 + (Math.abs(distance) / Math.max(1, vh)) * 420)));

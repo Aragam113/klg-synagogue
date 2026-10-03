@@ -75,7 +75,6 @@ const Share = ({
 }) => {
   const { t } = useLang('content');
   const links = shareLinks(shareUrl, title);
-  const ext = { target: '_blank', rel: 'noopener noreferrer' } as const;
   return (
     <div className="nws-share" data-testid="news-share">
       <span className="nws-share__label">{t('news.share')}</span>
@@ -85,30 +84,30 @@ const Share = ({
         </button>
       ) : (
         <>
-          <a
+          <Link
             className="nws-chip"
             href={links.telegram}
-            {...ext}
-            aria-label={t('news.shareVia', { name: 'Telegram' })}
+            external
+            ariaLabel={t('news.shareVia', { name: 'Telegram' })}
           >
             Telegram
-          </a>
-          <a
+          </Link>
+          <Link
             className="nws-chip"
             href={links.whatsapp}
-            {...ext}
-            aria-label={t('news.shareVia', { name: 'WhatsApp' })}
+            external
+            ariaLabel={t('news.shareVia', { name: 'WhatsApp' })}
           >
             WhatsApp
-          </a>
-          <a
+          </Link>
+          <Link
             className="nws-chip"
             href={links.vk}
-            {...ext}
-            aria-label={t('news.shareVia', { name: 'VK' })}
+            external
+            ariaLabel={t('news.shareVia', { name: 'VK' })}
           >
             VK
-          </a>
+          </Link>
         </>
       )}
       <button type="button" className="nws-chip" onClick={onCopy} data-testid="share-copy">
@@ -144,7 +143,6 @@ export const NewsItemView = ({
   const frame = coverFrame(coverImg?.width, coverImg?.height);
   // русский фолбэк на he: направление по самому тексту, иначе пунктуация уезжает («!Бар-мицва»)
   const textDir = item?.fallback ? 'auto' : undefined;
-  const ext = { target: '_blank', rel: 'noopener noreferrer' } as const;
   return (
     <Page title={title}>
       <Section tone="cream" pattern className="nws-top">
@@ -204,10 +202,10 @@ export const NewsItemView = ({
                   {item.sourceUrl ? (
                     <p className="nws-from" data-testid="news-source">
                       {t('news.fromTelegram')}{' '}
-                      <a href={item.sourceUrl} {...ext}>
+                      <Link href={item.sourceUrl} external>
                         {channel ? `@${channel}` : item.sourceUrl}
                         <span aria-hidden="true"> ↗</span>
-                      </a>
+                      </Link>
                     </p>
                   ) : null}
                 </header>
@@ -241,9 +239,9 @@ export const NewsItemView = ({
                     {item.sourceUrl ? (
                       <figcaption>
                         {t('news.fromTelegram')}{' '}
-                        <a href={photos[0]?.credit ?? item.sourceUrl} {...ext}>
+                        <Link href={photos[0]?.credit ?? item.sourceUrl} external>
                           {channel ? `@${channel}` : t('news.postLink')}
-                        </a>
+                        </Link>
                       </figcaption>
                     ) : null}
                   </figure>
@@ -279,9 +277,9 @@ export const NewsItemView = ({
                   {extra.map((u, i) => (
                     <span key={u}>
                       {i ? ', ' : ''}
-                      <a href={u} {...ext}>
+                      <Link href={u} external>
                         {u.replace(/^https:\/\//, '')}
-                      </a>
+                      </Link>
                     </span>
                   ))}
                 </p>

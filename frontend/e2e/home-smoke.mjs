@@ -224,7 +224,7 @@ try {
   // 390 touch: the scene scrubs by native scroll too, no horizontal scroll.
   {
     const { page, errors } = await open('/?lang=ru', 390);
-    check(!!(await page.$('.scrub--live canvas[data-frames]')), '390: live scene on touch');
+    check(!!(await page.$('.scrub--live canvas[data-frames], .scrub--live video[data-frames]')), '390: live scene on touch (video or frames)');
     await sleep(1500);
     await checkEyebrow(page, '390 ru');
     await walk(page, 'home_390');

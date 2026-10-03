@@ -28,7 +28,8 @@
     "bench:mobile": "node e2e/mscroll-bench.mjs",
     "demo:snapshot": "node scripts/demo-snapshot.mjs",
     "build:demo": "node scripts/build-demo.mjs",
-    "serve:demo": "node scripts/serve-demo.mjs"
+    "serve:demo": "node scripts/serve-demo.mjs",
+    "crawl:links": "node e2e/link-crawl.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/frank-ruhl-libre": "^0.4.1",

@@ -49,9 +49,27 @@ export interface ScrubManifest {
   credits: string;
   /** Frame shown statically (reduced motion) and while the phone set loads. */
   poster: number;
-  /** Absolute URL of the light (640px) manifest for phones, if build:scrub made one. */
+  /** Absolute URL of the light (1024px) manifest for phones, if build:scrub made one. */
   light?: string;
+  /** All-intra scrub video for phones (build:scrub --video): the main path on touch, the frames are the fallback. */
+  video?: ScrubVideo;
 }
+
+export interface ScrubVideo {
+  /** Absolute URL of the mp4 (H.264, every frame a keyframe). */
+  src: string;
+  frames: number;
+  fps: number;
+}
+
+const parseVideo = (v: unknown, abs: (f: string) => string): ScrubVideo | undefined => {
+  if (!v || typeof v !== 'object') return undefined;
+  const r = v as Record<string, unknown>;
+  const frames = Number(r.frames);
+  const fps = Number(r.fps);
+  if (typeof r.src !== 'string' || !r.src || !(frames >= 2) || !(fps > 0)) return undefined;
+  return { src: abs(r.src), frames: Math.round(frames), fps };
+};
 
 /** manifest.json → absolute frame URLs (relative names resolve against base); null if unusable. */
 export const parseManifest = (raw: unknown, base: string): ScrubManifest | null => {
@@ -66,6 +84,7 @@ export const parseManifest = (raw: unknown, base: string): ScrubManifest | null 
   const abs = (f: string) => (f.startsWith('/') || /^https?:/.test(f) ? f : dir + f);
   const frames = names.map(abs);
   const light = typeof r.light === 'string' && r.light ? abs(r.light) : undefined;
+  const video = parseVideo(r.video, abs);
   const poster =
     typeof r.poster === 'number' && r.poster >= 0 && r.poster < frames.length
       ? Math.round(r.poster)
@@ -77,6 +96,7 @@ export const parseManifest = (raw: unknown, base: string): ScrubManifest | null 
     credits: typeof r.credits === 'string' ? r.credits : '',
     poster,
     ...(light ? { light } : {}),
+    ...(video ? { video } : {}),
   };
 };
 
@@ -89,23 +109,49 @@ export interface Blend {
 }
 
 /**
- * Inter-frame blending for a fractional frame position `x` (p·(N−1)): the nearest loaded frame at or before `x` and
- * the nearest loaded one after it, `alpha` = how far `x` is between them. All loaded → neighbours i, i+1; on the
- * coarse pass (every 4th) → a longer crossfade. Loaded only on one side → that frame alone; nothing → null.
+ * Inter-frame blending for a fractional frame position `x` (p·(N−1)): only REAL neighbours i = floor(x) and i+1,
+ * both loaded, are crossfaded (alpha = the fraction). Otherwise the loaded frame nearest to round(x) is drawn alone —
+ * never a crossfade of far frames (the coarse pass), which reads as a frozen double image. Nothing loaded → null.
  */
 export const blendFrames = (x: number, loaded: readonly boolean[]): Blend | null => {
   const n = loaded.length;
   if (!n) return null;
   const c = Math.min(n - 1, Math.max(0, Number.isFinite(x) ? x : 0));
-  let a = Math.floor(c);
-  while (a >= 0 && !loaded[a]) a--;
-  let b = Math.ceil(c) === a ? a : Math.ceil(c);
-  while (b < n && b !== a && !loaded[b]) b++;
-  if (b >= n) b = -1;
-  if (a < 0 && b < 0) return null;
-  if (a < 0) return { a: b, b, alpha: 0 };
-  if (b < 0 || b === a) return { a, b: a, alpha: 0 };
-  return { a, b, alpha: (c - a) / (b - a) };
+  const i = Math.floor(c);
+  const f = c - i;
+  if (f === 0 && loaded[i]) return { a: i, b: i, alpha: 0 };
+  if (loaded[i] && loaded[i + 1]) return { a: i, b: i + 1, alpha: f };
+  const k = nearestLoaded(Math.round(c), loaded);
+  return k < 0 ? null : { a: k, b: k, alpha: 0 };
+};
+
+/** Video seek time for scroll progress p: the middle of frame round(p·(N−1)) — exact frame, no boundary rounding. */
+export const videoTime = (p: number, frames: number, fps: number): number =>
+  (frameIndex(p, frames) + 0.5) / fps;
+
+/**
+ * Seek target while the video is still downloading: `t` itself inside a downloaded range, otherwise the nearest
+ * downloaded frame (half a frame `half` inside a range end). A seek into the void would stall the picture on a range
+ * request and break the linear download; the nearest downloaded frame keeps it moving. No ranges → `t`.
+ */
+export const bufferedTime = (
+  t: number,
+  ranges: readonly (readonly [number, number])[],
+  half: number
+): number => {
+  if (!ranges.length) return t;
+  let best = t;
+  let gap = Infinity;
+  for (const [s, e] of ranges) {
+    if (t >= s && t <= e) return t;
+    const near = t < s ? s : Math.max(s, e - half);
+    const d = Math.abs(near - t);
+    if (d < gap) {
+      gap = d;
+      best = near;
+    }
+  }
+  return best;
 };
 
 /** First pass of the phone set: every `step`-th frame plus the last — the scene scrubs once these are in. */

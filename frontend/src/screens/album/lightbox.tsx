@@ -6,6 +6,7 @@ import { shortUrl } from '@/screens/events/content-model';
 import { Linked } from '@/screens/events/rich-text';
 import '@/screens/events/styles';
 import { type Photo, mediaUrl } from '@/store/api/content';
+import { Link } from '@/ui/kit';
 
 /** Сетка миниатюр: клик открывает кадр в лайтбоксе (альбом галереи, галерея новости). */
 export const PhotoGrid = ({
@@ -154,9 +155,9 @@ export const Lightbox = ({
         {p.credit ? (
           <small className="lbx__credit">
             {isUrl ? (
-              <a href={p.credit} target="_blank" rel="noopener noreferrer">
+              <Link href={p.credit}>
                 {creditLabel ?? shortUrl(p.credit)} <span aria-hidden="true">↗</span>
-              </a>
+              </Link>
             ) : (
               <Linked text={p.credit} />
             )}

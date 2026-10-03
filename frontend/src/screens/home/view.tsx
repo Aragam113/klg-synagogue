@@ -15,7 +15,7 @@ import {
   Rosette,
   SHALOM,
 } from '@/ui/judaica';
-import { Button, Container, Eyebrow, Section, Text, Title } from '@/ui/kit';
+import { Button, Container, Eyebrow, Link, Section, Text, Title } from '@/ui/kit';
 import { SubscribeForm } from '@/ui/layout/slots/subscribe-form';
 import { HandStroke, Marquee, Pinned, Reveal } from '@/ui/motion';
 
@@ -346,7 +346,7 @@ export const HomeView = ({
           <div className="grid grid--4 home-visit__grid">
             {VISIT.map((v, i) => (
               <Reveal key={v.id} delay={i * 0.08}>
-                <a className="home-vcard" href={v.href}>
+                <Link className="home-vcard" href={v.href}>
                   <span className="home-vcard__media">
                     <img src={PHOTOS[v.photo]?.src} alt="" loading="lazy" />
                   </span>
@@ -354,7 +354,7 @@ export const HomeView = ({
                   <span className="home-vcard__t">{t(`visit.${v.id}.title`)}</span>
                   <span className="home-vcard__x">{t(`visit.${v.id}.text`)}</span>
                   <span className="link-arrow">{t('community.more')}</span>
-                </a>
+                </Link>
               </Reveal>
             ))}
           </div>

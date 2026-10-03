@@ -172,6 +172,11 @@ export default [
             'MemberExpression[object.name="React"][property.name=/^(use[A-Z]|useEffect|useState|useCallback|useMemo|useRef|useContext|useReducer|useLayoutEffect|useImperativeHandle|useDebugValue)$/]',
           message: 'Импортируйте хуки напрямую вместо React.{Hook}.',
         },
+        {
+          selector: 'JSXOpeningElement[name.name="a"] > JSXAttribute[name.name="href"]',
+          message:
+            'Ссылки — только через Link/Button из @/ui/kit: голый <a href="/…"> на GitHub Pages уходит мимо базового пути (/klg-synagogue).',
+        },
       ],
     },
   },
@@ -179,6 +184,20 @@ export default [
   {
     files: ["app/**/*.{ts,tsx}", "src/**/*.{ts,tsx}"],
     rules: { "react-native/no-raw-text": "off" },
+  },
+  // Raw <a href> only where the href is already built by routeHref (kit Link, admin AdmLink) or is a #hash.
+  {
+    files: ['src/ui/kit/link.tsx', 'src/screens/admin/shared/gate.tsx', 'src/ui/layout/site-shell.tsx'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'MemberExpression[object.name="React"][property.name=/^(use[A-Z]|useEffect|useState|useCallback|useMemo|useRef|useContext|useReducer|useLayoutEffect|useImperativeHandle|useDebugValue)$/]',
+          message: 'Импортируйте хуки напрямую вместо React.{Hook}.',
+        },
+      ],
+    },
   },
   { files: ["e2e/**/*.mjs"], languageOptions: { globals: { ...globals.node, ...globals.browser } } },
 ];

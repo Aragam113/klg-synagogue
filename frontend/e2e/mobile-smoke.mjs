@@ -26,7 +26,7 @@ const WEB = process.env.WEB_URL ?? 'http://localhost:8150';
 const CHROME = process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SHOTS = process.env.SMOKE_SHOTS ?? join(ROOT, 'e2e', 'shots');
-const PREFIX = process.env.SHOT_PREFIX ?? 'm12_after';
+const PREFIX = process.env.SHOT_PREFIX ?? 'm3';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 mkdirSync(SHOTS, { recursive: true });
 
@@ -334,12 +334,12 @@ try {
       }, p);
       await sleep(1200);
       return page.evaluate(() => {
-        const c = document.querySelector('.scrub canvas');
+        const c = document.querySelector('.scrub [data-frames]');
         const st = document.querySelector('.scrub__sticky').getBoundingClientRect();
         const cur = document.querySelector('.scrub__chapter[data-current="true"]');
         return {
           frame: c ? +c.dataset.frame : null,
-          cw: c?.width ?? 0,
+          cw: c ? (c.tagName === 'VIDEO' ? c.clientWidth : c.width) : 0,
           top: Math.round(st.top),
           sh: Math.round(st.height),
           op: cur ? +(+getComputedStyle(cur).opacity).toFixed(2) : null,
@@ -354,12 +354,12 @@ try {
     const c = await sceneAt(0.1);
     check(a.frame !== null && b.frame !== null && a.frame !== b.frame && c.frame === a.frame, `${tag}: scene frame scrubs by scroll and back`, `${a.frame} → ${b.frame} → ${c.frame}`);
     check(Math.abs(a.top) <= 1 && Math.abs(a.sh - h) <= 2, `${tag}: scene sticky at 100svh`, JSON.stringify(a));
-    check(a.cw > 0 && a.cw <= w * 2 + 1, `${tag}: canvas sized to the phone (DPR ≤ 2)`, String(a.cw));
+    check(a.cw > 0 && a.cw <= w * 2 + 1, `${tag}: scene media sized to the phone (canvas DPR ≤ 2)`, String(a.cw));
     check(a.active !== b.active && a.op > 0.9 && b.op > 0.9, `${tag}: scene chapters enter/leave with scroll`, `${a.active}/${a.op} → ${b.active}/${b.op}`);
-    const t1 = await page.evaluate(() => +document.querySelector('.scrub canvas')?.dataset.frame);
-    // c rests on the first chapter stop (p = 0, auto-settle): drag down into the scene
+    const t1 = await page.evaluate(() => +document.querySelector('.scrub [data-frames]')?.dataset.frame);
+    // c rests where the auto-settle left it: drag down into the scene
     await touchScroll(Math.round(h * 0.8));
-    const t2 = await page.evaluate(() => +document.querySelector('.scrub canvas')?.dataset.frame);
+    const t2 = await page.evaluate(() => +document.querySelector('.scrub [data-frames]')?.dataset.frame);
     check(Number.isFinite(t1) && Number.isFinite(t2) && t1 !== t2, `${tag}: a finger drag scrubs the scene`, `${t1} → ${t2}`);
 
     const par = () =>
@@ -379,42 +379,50 @@ try {
     await page.close();
   }
 
-  // ---- 4c. touch scroll path (390×844): engine, light set, fixed sticky height vs the address bar, the scene
+  // ---- 4c. touch scroll path (390×844): engine, scrub video (main path), fixed sticky height vs the address bar
   {
     const page = await open('/?lang=ru', 390, { height: 844 });
     const tag = '390 touch';
-    const base = await page.evaluate(() => ({
-      touch: document.documentElement.dataset.touch ?? null,
-      lenis: document.documentElement.classList.contains('lenis'),
-      vhFix: document.documentElement.style.getPropertyValue('--vh-fix'),
-      sceneH: document.querySelector('.scrub').offsetHeight,
-      frames: +(document.querySelector('.scrub canvas')?.dataset.frames ?? 0),
-      noHScroll: document.documentElement.scrollWidth <= innerWidth,
-      ribbon: !!document.querySelector('#community [data-ribbon]'),
-      spin: getComputedStyle(document.querySelector('.home-dawn__spin') ?? document.body).animationName,
-    }));
-    const light = await (await fetch(`${WEB}/media/scrub/m/manifest.json`)).json();
+    const main = await (await fetch(`${WEB}/media/scrub/manifest.json`)).json();
+    await page.waitForFunction(() => document.querySelector('.scrub')?.dataset.pass === 'video', { timeout: 30000 }).catch(() => undefined);
+    const base = await page.evaluate(() => {
+      const v = document.querySelector('.scrub video');
+      return {
+        touch: document.documentElement.dataset.touch ?? null,
+        lenis: document.documentElement.classList.contains('lenis'),
+        vhFix: document.documentElement.style.getPropertyValue('--vh-fix'),
+        sceneH: document.querySelector('.scrub').offsetHeight,
+        media: document.querySelector('.scrub').dataset.media,
+        pass: document.querySelector('.scrub').dataset.pass,
+        video: v ? { frames: +v.dataset.frames, muted: v.muted, inline: v.playsInline, preload: v.preload, paused: v.paused } : null,
+        canvas: !!document.querySelector('.scrub canvas'),
+        noHScroll: document.documentElement.scrollWidth <= innerWidth,
+        ribbon: !!document.querySelector('#community [data-ribbon]'),
+        spin: getComputedStyle(document.querySelector('.home-dawn__spin') ?? document.body).animationName,
+      };
+    });
     check(base.touch === 'on' && base.vhFix === '844px' && !base.lenis, `${tag}: touch path on (no Lenis), viewport fixed in px`, JSON.stringify(base));
     check(base.noHScroll && base.ribbon && base.spin !== 'none', `${tag}: no h-scroll, community ribbon, Dawn spin kept`, JSON.stringify(base));
     check(base.sceneH > 844 * 3, `${tag}: scene runway in fixed px`, String(base.sceneH));
     check(
-      base.frames === light.frames.length && light.frames.length >= 80 && light.frames.length <= 120 && light.width >= 960,
-      `${tag}: phone uses the sharp light set (≥ 960px, 80..120 frames)`,
-      `${base.frames} frames, ${light.width}px`
+      base.media === 'video' && base.pass === 'video' && !base.canvas && base.video?.frames === main.video?.frames &&
+        base.video.muted && base.video.inline && base.video.preload === 'auto' && base.video.paused,
+      `${tag}: phone scrubs the all-intra video (muted, playsinline, preload auto, paused)`,
+      JSON.stringify({ ...base.video, manifest: main.video })
     );
-    await page.waitForFunction(() => document.querySelector('.scrub')?.dataset.loaded === 'all', { timeout: 30000 }).catch(() => undefined);
     const read = () =>
       page.evaluate(() => ({
         p: +document.querySelector('.scrub').style.getPropertyValue('--p'),
-        f: +document.querySelector('.scrub canvas').dataset.frame,
+        f: +document.querySelector('.scrub [data-frames]').dataset.frame,
         sh: Math.round(document.querySelector('.scrub__sticky').getBoundingClientRect().height),
         poster: !!document.querySelector('.scrub__poster[data-waiting]'),
         y: scrollY,
       }));
-    await page.evaluate(() => {
+    const geo = await page.evaluate(() => {
       const s = document.querySelector('.scrub');
-      window.scrollTo(0, s.getBoundingClientRect().top + scrollY + (s.offsetHeight - 844) * 0.3625);
+      return { top: s.getBoundingClientRect().top + scrollY, runway: s.offsetHeight - 844 };
     });
+    await page.evaluate((g) => window.scrollTo(0, g.top + g.runway * 0.3625), geo);
     await sleep(1200);
     const r1 = await read();
     await page.touchscreen.touchStart(195, 600);
@@ -422,90 +430,141 @@ try {
     await page.touchscreen.touchEnd();
     await sleep(1800);
     const r2 = await read();
-    check(r2.y > r1.y && r2.f !== r1.f && !r2.poster, `${tag}: a finger drag scrubs the scene`, `${JSON.stringify(r1)} → ${JSON.stringify(r2)}`);
+    check(r2.y > r1.y && r2.f !== r1.f && !r2.poster, `${tag}: a finger drag scrubs the video`, `${JSON.stringify(r1)} → ${JSON.stringify(r2)}`);
+    await page.screenshot({ path: join(SHOTS, 'm3_video_scene.png') });
     // the address bar hides: +56px of viewport at the same scrollY — sticky and --p must not jump
     await page.setViewport({ width: 390, height: 900, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
     await sleep(900);
     const r3 = await read();
     check(r3.sh === 844 && Math.abs(r3.p - r2.p) < 0.002, `${tag}: address bar does not move the scene`, `${JSON.stringify(r2)} → ${JSON.stringify(r3)}`);
-    // blending: a resting fractional position shows two frames mixed (data-blend in 0..1)
-    const blendSeen = await page.evaluate(async () => {
-      const s = document.querySelector('.scrub');
-      const c = document.querySelector('.scrub canvas');
-      const top = s.getBoundingClientRect().top + scrollY;
-      const seen = new Set();
-      for (let i = 0; i < 40; i++) {
-        window.scrollTo(0, top + 300 + i * 7);
-        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-        seen.add(c.dataset.blend);
-      }
-      return [...seen].filter((b) => +b > 0 && +b < 1).length;
-    });
-    check(blendSeen >= 3, `${tag}: canvas crossfades neighbouring frames`, `${blendSeen} distinct alphas`);
+    await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+    // the very end of the scene: the last frame shows up although the browser stops preloading short of the end
+    await page.evaluate((g) => window.scrollTo(0, g.top + g.runway), geo);
+    await page.waitForFunction((n) => +document.querySelector('.scrub video').dataset.frame >= n - 3, { timeout: 8000 }, main.video.frames).catch(() => undefined);
+    const rEnd = await read();
+    check(rEnd.f >= main.video.frames - 3, `${tag}: the end of the scene shows the last frames`, `frame ${rEnd.f} of ${main.video.frames}`);
+    await page.screenshot({ path: join(SHOTS, 'm3_video_end.png') });
     await page.close();
   }
 
-  // ---- 4d. auto-settle: a drag that stops mid-chapter → the page glides to the chapter stop by itself
+  // ---- 4c'. fallback: the video does not load → the light frame set; crossfade only between real neighbours
+  {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+    await page.evaluateOnNewDocument(() => {
+      localStorage.setItem('synagogue.preloaded', '1');
+      localStorage.setItem('synagogue.cookieConsent', '1');
+    });
+    await page.setRequestInterception(true);
+    page.on('request', (r) => (/\.mp4(\?|$)/.test(r.url()) ? r.abort() : r.continue()));
+    await page.goto(`${WEB}/?lang=ru`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+    const tag = '390 fallback';
+    const light = await (await fetch(`${WEB}/media/scrub/m/manifest.json`)).json();
+    await page.waitForFunction(() => document.querySelector('.scrub')?.dataset.loaded === 'all', { timeout: 40000 }).catch(() => undefined);
+    const fb = await page.evaluate(() => ({
+      media: document.querySelector('.scrub').dataset.media,
+      frames: +(document.querySelector('.scrub canvas')?.dataset.frames ?? 0),
+      video: !!document.querySelector('.scrub video'),
+    }));
+    check(fb.media === 'frames' && !fb.video && fb.frames === light.frames.length, `${tag}: no video → the light frame set (${light.frames.length})`, JSON.stringify(fb));
+    const pairs = await page.evaluate(async () => {
+      const s = document.querySelector('.scrub');
+      const c = document.querySelector('.scrub canvas');
+      const top = s.getBoundingClientRect().top + scrollY;
+      const out = { alphas: new Set(), far: 0 };
+      for (let i = 0; i < 40; i++) {
+        window.scrollTo(0, top + 300 + i * 7);
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        const [a, b] = (c.dataset.pair ?? '').split('-').map(Number);
+        if (Math.abs(a - b) > 1) out.far++;
+        out.alphas.add(c.dataset.blend);
+      }
+      return { far: out.far, alphas: [...out.alphas].filter((x) => +x > 0 && +x < 1).length };
+    });
+    check(pairs.far === 0 && pairs.alphas >= 3, `${tag}: crossfades only neighbouring frames (i, i+1)`, JSON.stringify(pairs));
+    await page.screenshot({ path: join(SHOTS, 'm3_frames_fallback.png') });
+    await page.close();
+  }
+
+  // ---- 4d. auto-settle: once at rest, along the last movement, not at the entry/exit, a touch cancels it
   {
     const page = await open('/?lang=ru', 390, { height: 844 });
     const tag = '390 snap';
-    await page.waitForFunction(() => document.querySelector('.scrub')?.dataset.pass === 'coarse', { timeout: 30000 }).catch(() => undefined);
+    await page.waitForFunction(() => !!document.querySelector('.scrub')?.dataset.pass, { timeout: 30000 }).catch(() => undefined);
     const geo = await page.evaluate(() => {
       const s = document.querySelector('.scrub');
       const top = Math.round(s.getBoundingClientRect().top + scrollY);
       return { top, runway: s.offsetHeight - 844, h: s.offsetHeight };
     });
-    // stops of 4 chapters: 0, .3625, .6125, 1 of the runway, then the exit (touch-scroll.ts chapterStops)
-    const stop1 = geo.top + 0.3625 * geo.runway;
-    await page.evaluate((y) => window.scrollTo(0, y), geo.top);
-    await sleep(1200);
+    // stops of 4 chapters: 0, .3625, .6125, 1 of the runway (touch-scroll.ts chapterStops); a chapter = 844px
+    const stop1 = Math.round(geo.top + 0.3625 * geo.runway);
+    const stop2 = Math.round(geo.top + 0.6125 * geo.runway);
+    const y = () => page.evaluate(() => scrollY);
     const drag = async (dy, lift = true) => {
-      await page.touchscreen.touchStart(195, 700);
-      for (let i = 1; i <= 10; i++) await page.touchscreen.touchMove(195, Math.round(700 - (dy * i) / 10));
+      await page.touchscreen.touchStart(195, 600);
+      for (let i = 1; i <= 10; i++) await page.touchscreen.touchMove(195, Math.round(600 - (dy * i) / 10));
       await sleep(200); // finger still: no fling
       if (lift) await page.touchscreen.touchEnd();
     };
-    await drag(560, false);
-    const yBefore = await page.evaluate(() => scrollY);
+    const settle = async (to) => {
+      const t0 = Date.now();
+      let at = await y();
+      for (let i = 0; i < 30 && Math.abs(at - to) > 2; i++) {
+        await sleep(100);
+        at = await y();
+      }
+      return { at, ms: Date.now() - t0 };
+    };
+    const goTo = async (to) => {
+      await page.evaluate((v) => window.scrollTo(0, v), to);
+      await sleep(900);
+    };
+    // forward: half a chapter down from chapter 02 → on to chapter 03
+    await goTo(stop1);
+    await drag(422, false);
+    const yHeld0 = await y();
     await sleep(500);
-    await page.screenshot({ path: join(SHOTS, 'm2_snap_before.png') });
-    const yHeld = await page.evaluate(() => scrollY);
-    check(Math.abs(yHeld - yBefore) <= 1, `${tag}: no glide while the finger is down`, `${yBefore} → ${yHeld}`);
+    await page.screenshot({ path: join(SHOTS, 'm3_snap_before.png') });
+    const yHeld = await y();
+    check(Math.abs(yHeld - yHeld0) <= 1, `${tag}: no glide while the finger is down`, `${yHeld0} → ${yHeld}`);
     await page.touchscreen.touchEnd();
-    const t0 = Date.now();
-    let yAfter = yHeld;
-    for (let i = 0; i < 40; i++) {
-      await sleep(100);
-      yAfter = await page.evaluate(() => scrollY);
-      if (Math.abs(yAfter - stop1) <= 2) break;
-    }
-    const took = Date.now() - t0;
+    const fwd = await settle(stop2);
     await sleep(300);
-    await page.screenshot({ path: join(SHOTS, 'm2_snap_after.png') });
-    const rest = await page.evaluate(() => ({ y: scrollY, active: document.querySelector('.scrub').dataset.active }));
-    check(
-      Math.abs(rest.y - stop1) <= 2 && rest.active === '1' && took < 1500,
-      `${tag}: stopped mid-chapter → glides to the chapter 02 stop`,
-      `y ${yHeld} → ${rest.y} (stop ${Math.round(stop1)}, ${took} ms, chapter ${rest.active})`
-    );
+    await page.screenshot({ path: join(SHOTS, 'm3_snap_after.png') });
+    const act = await page.evaluate(() => document.querySelector('.scrub').dataset.active);
+    check(Math.abs(fwd.at - stop2) <= 2 && act === '2' && fwd.ms < 1200, `${tag}: half a chapter down → glides on to chapter 03`, `${yHeld} → ${fwd.at} (stop ${stop2}, ${fwd.ms} ms, chapter ${act})`);
+    // back: 15% of a chapter down → back to the chapter it left (≤ 0.3 screen against the movement)
+    await drag(127);
+    const back = await settle(stop2);
+    check(Math.abs(back.at - stop2) <= 2, `${tag}: a short pull down → back to the current chapter`, `${stop2 + 127} → ${back.at}`);
+    // up: half a chapter up → on to chapter 02 (the direction of the movement)
+    await drag(-422);
+    const upw = await settle(stop1);
+    check(Math.abs(upw.at - stop1) <= 2, `${tag}: half a chapter up → glides on up to chapter 02`, `${stop2 - 422} → ${upw.at}`);
+    // once per rest: after the glide the page stays
+    await sleep(800);
+    const still = await y();
+    check(Math.abs(still - stop1) <= 2, `${tag}: one glide per rest, no repeat`, `${upw.at} → ${still}`);
     // a touch during the glide stops it where it is
-    await drag(-300);
-    await sleep(300); // the glide back to the stop has started (160 ms idle)
+    await drag(300);
+    await sleep(260); // 150 ms of rest, the glide on to chapter 03 has started
     await page.touchscreen.touchStart(195, 400);
-    const yCut = await page.evaluate(() => scrollY);
+    const yCut = await y();
     await sleep(700);
-    const yCut2 = await page.evaluate(() => scrollY);
+    const yCut2 = await y();
     await page.touchscreen.touchEnd();
-    check(Math.abs(yCut2 - yCut) <= 1 && Math.abs(yCut2 - stop1) > 5, `${tag}: a touch cancels the glide at once`, `${yCut} → ${yCut2}`);
-    // outside the scene nothing is pulled
-    await page.evaluate((y) => window.scrollTo(0, y), geo.top + geo.h + 400);
-    await sleep(1200);
-    const yOut = await page.evaluate(() => scrollY);
-    check(yOut === geo.top + geo.h + 400, `${tag}: no pull outside the scene`, `${geo.top + geo.h + 400} → ${yOut}`);
+    check(Math.abs(yCut2 - yCut) <= 1 && Math.abs(yCut2 - stop2) > 5, `${tag}: a touch cancels the glide at once`, `${yCut} → ${yCut2}`);
+    // the entry and the exit of the scene, and outside it: nothing is pulled
+    for (const [what, at] of [['entry', geo.top + 100], ['exit', geo.top + geo.runway + 200], ['outside', geo.top + geo.h + 400]]) {
+      await goTo(at);
+      await sleep(600);
+      const now = await y();
+      check(Math.abs(now - at) <= 1, `${tag}: no pull at the ${what} of the scene`, `${at} → ${now}`);
+    }
     await page.close();
   }
   {
-    // desktop never changes: the full set, Lenis, pinned chapters; no auto-settle after a programmatic scroll
+    // desktop never changes: the full set, Lenis, pinned chapters, no video
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 800 });
     await page.evaluateOnNewDocument(() => {
@@ -518,9 +577,10 @@ try {
       touch: document.documentElement.dataset.touch ?? null,
       pin: document.documentElement.dataset.pin,
       frames: +(document.querySelector('.scrub canvas')?.dataset.frames ?? 0),
+      video: !!document.querySelector('.scrub video'),
       tall: document.querySelector('.scrub').offsetHeight > innerHeight * 3,
     }));
-    check(d.touch === null && d.pin === 'on' && d.frames === 110 && d.tall, 'desktop: unchanged (full set, no touch path)', JSON.stringify(d));
+    check(d.touch === null && d.pin === 'on' && d.frames === 110 && !d.video && d.tall, 'desktop: unchanged (full set, no touch path, no video)', JSON.stringify(d));
     await page.close();
   }
   {
