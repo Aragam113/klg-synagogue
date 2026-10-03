@@ -3,7 +3,7 @@ import { type FormEvent } from 'react';
 import { useAdminT } from '@/screens/admin/shared/gate';
 import { AdmError, fmtDate, Head, LocField, fieldError } from '@/screens/admin/shared/ui';
 import type { ScheduleOverride } from '@/store/api/calendar';
-import { Field } from '@/ui/kit';
+import { Field, Link } from '@/ui/kit';
 
 import {
   DAY_KINDS,
@@ -58,9 +58,9 @@ export const ScheduleView = (p: ScheduleViewProps) => {
   return (
     <>
       <Head title={t('nav.schedule')}>
-        <a className="adm-btn" href="/schedule" target="_blank" rel="noreferrer">
+        <Link className="adm-btn" href="/schedule" external>
           {t('common.onSite')}
-        </a>
+        </Link>
       </Head>
       <AdmError error={p.loadError} />
       {p.loading ? <p className="adm-save__note">{t('common.loading')}</p> : null}

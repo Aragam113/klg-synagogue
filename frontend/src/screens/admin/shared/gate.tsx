@@ -12,6 +12,7 @@ import {
   useState,
 } from 'react';
 
+import { routeHref } from '@/config/demo';
 import { store } from '@/store';
 import { onAdminAuthLost } from '@/store/api/admin-auth';
 import { clearAdminToken, getAdminToken } from '@/store/api/admin-token';
@@ -148,7 +149,12 @@ export const AdmLink = ({
     if (confirmLeave()) router.push(href as never);
   };
   return (
-    <a href={href} className={className} onClick={go} aria-current={current ? 'page' : undefined}>
+    <a
+      href={routeHref(href)}
+      className={className}
+      onClick={go}
+      aria-current={current ? 'page' : undefined}
+    >
       {children}
     </a>
   );

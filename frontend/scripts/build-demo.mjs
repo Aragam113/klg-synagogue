@@ -11,9 +11,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const dist = path.join(root, 'dist');
+// DEMO_OUT=<dir> — build elsewhere (a parallel build/serve of dist/ is not disturbed).
+const dist = path.resolve(root, process.env.DEMO_OUT || 'dist');
 
-const res = spawnSync('npx', ['expo', 'export', '-p', 'web', '--clear'], {
+const res = spawnSync('npx', ['expo', 'export', '-p', 'web', '--clear', '--output-dir', dist], {
   cwd: root,
   stdio: 'inherit',
   shell: process.platform === 'win32',

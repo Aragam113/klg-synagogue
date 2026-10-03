@@ -3,7 +3,7 @@ import { type FormEvent } from 'react';
 import { AdmLink, useAdminT } from '@/screens/admin/shared/gate';
 import { AdmError, Chip, Head, Pager } from '@/screens/admin/shared/ui';
 import type { AdminRequest, RequestStatus } from '@/store/api/admin-requests';
-import { Empty, Field, Select } from '@/ui/kit';
+import { Empty, Field, Link, Select } from '@/ui/kit';
 import { fmtDateTime } from '@/utils/kld-time';
 
 import { payloadEntries, REQUEST_STATUSES, REQUEST_TYPES, type RequestFilters } from './model';
@@ -119,11 +119,19 @@ export const RequestCardView = (p: RequestCardViewProps) => {
               <dd>{r.contactName || '—'}</dd>
               <dt>{t('fields.phone')}</dt>
               <dd>
-                {r.contactPhone ? <a href={`tel:${r.contactPhone}`}>{r.contactPhone}</a> : '—'}
+                {r.contactPhone ? (
+                  <Link href={`tel:${r.contactPhone}`}>{r.contactPhone}</Link>
+                ) : (
+                  '—'
+                )}
               </dd>
               <dt>{t('fields.email')}</dt>
               <dd>
-                {r.contactEmail ? <a href={`mailto:${r.contactEmail}`}>{r.contactEmail}</a> : '—'}
+                {r.contactEmail ? (
+                  <Link href={`mailto:${r.contactEmail}`}>{r.contactEmail}</Link>
+                ) : (
+                  '—'
+                )}
               </dd>
               {payloadEntries(r.payload).map(([k, v]) => (
                 <Row key={k} k={label(k)} v={v} />

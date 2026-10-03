@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 
+import { routeHref } from '@/config/demo';
 import { loginTarget, tokenExpired } from '@/screens/admin/shared/auth-model';
 import { useAdminT } from '@/screens/admin/shared/gate';
 import { useAdminLoginMutation } from '@/store/api/admin';
@@ -15,7 +16,7 @@ import { LoginView } from './view';
  * вложенный маршрут expo-router уводил на /admin → /admin/requests вместо `next`.
  */
 const goTo = (href: string) => {
-  if (typeof window !== 'undefined') window.location.replace(href);
+  if (typeof window !== 'undefined') window.location.replace(routeHref(href));
   else router.replace(href as never);
 };
 

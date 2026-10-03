@@ -91,15 +91,15 @@ export const EventView = ({ event: e, notFound, error, onRetry, onRegister }: Ev
                   ) : null}
                 </dl>
                 <div className="btns">
-                  <a
+                  <Link
                     href={registerHref(e.slug)}
                     className="btn btn--gold btn--lg"
                     onClick={register}
-                    data-testid="event-register-link"
+                    testID="event-register-link"
                   >
                     <span>{e.isPaid ? t('events.buy') : t('events.register')}</span>
                     <Arrow />
-                  </a>
+                  </Link>
                 </div>
               </Reveal>
               {e.cover ? (

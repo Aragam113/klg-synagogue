@@ -12,7 +12,7 @@ import {
 } from '@/screens/admin/shared/ui';
 import type { Row } from '@/store/api/admin';
 import { mediaUrl } from '@/store/api/content';
-import { Checkbox, Empty, Field, Select } from '@/ui/kit';
+import { Checkbox, Empty, Field, Link, Select } from '@/ui/kit';
 
 import {
   type EntitySpec,
@@ -96,9 +96,9 @@ export const EntityListView = (p: EntityListViewProps) => {
                 </div>
                 <div className="adm-row__actions">
                   {pub ? (
-                    <a className="adm-btn" href={pub} target="_blank" rel="noreferrer">
+                    <Link className="adm-btn" href={pub} external>
                       {t('common.onSite')}
-                    </a>
+                    </Link>
                   ) : null}
                   <AdmLink href={`${base}/${row.id}`}>{t('common.edit')}</AdmLink>
                   <button
@@ -277,9 +277,9 @@ export const EntityEditView = (p: EntityEditViewProps) => {
         back={{ href: base, label: t(`nav.${p.spec.key === 'albums' ? 'gallery' : p.spec.key}`) }}
       >
         {p.publicUrl ? (
-          <a className="adm-btn" href={p.publicUrl} target="_blank" rel="noreferrer">
+          <Link className="adm-btn" href={p.publicUrl} external>
             {t('common.onSite')}
-          </a>
+          </Link>
         ) : null}
       </Head>
       <AdmError error={p.loadError} />

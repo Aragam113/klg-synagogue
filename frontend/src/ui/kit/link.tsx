@@ -1,7 +1,7 @@
 import { type Href, router } from 'expo-router';
 import { type MouseEvent, type ReactNode } from 'react';
 
-import { assetUrl } from '@/config/demo';
+import { routeHref, stripBase } from '@/config/demo';
 
 export interface LinkProps {
   href: string;
@@ -9,14 +9,19 @@ export interface LinkProps {
   className?: string;
   /** Opens in a new tab (auto for http(s) links). */
   external?: boolean;
-  onClick?: () => void;
+  /** Runs first; `e.preventDefault()` cancels the navigation. */
+  onClick?: (e: MouseEvent<HTMLAnchorElement>) => void;
+  testID?: string;
   ariaLabel?: string;
   ariaCurrent?: boolean;
 }
 
 const isExternal = (href: string) => /^(https?:|mailto:|tel:)/.test(href);
 
-/** Real <a href> (SEO, middle click) with client-side navigation for internal paths. */
+/**
+ * The site's only way to render a link: real <a href> (SEO, middle click, base URL via `routeHref`)
+ * with client-side navigation for internal paths. Raw `<a href>` is banned by lint outside the kit.
+ */
 export const Link = ({
   href,
   children,
@@ -25,10 +30,11 @@ export const Link = ({
   onClick,
   ariaLabel,
   ariaCurrent,
+  testID,
 }: LinkProps) => {
   const ext = external ?? /^https?:/.test(href);
   const handle = (e: MouseEvent<HTMLAnchorElement>) => {
-    onClick?.();
+    onClick?.(e);
     if (
       ext ||
       isExternal(href) ||
@@ -40,15 +46,16 @@ export const Link = ({
     )
       return;
     e.preventDefault();
-    router.push(href as Href);
+    router.push(stripBase(href) as Href);
   };
   return (
     <a
-      href={assetUrl(href)}
+      href={routeHref(href)}
       className={className}
       onClick={handle}
       aria-label={ariaLabel}
       aria-current={ariaCurrent ? 'page' : undefined}
+      data-testid={testID}
       target={ext ? '_blank' : undefined}
       rel={ext ? 'noopener noreferrer' : undefined}
     >

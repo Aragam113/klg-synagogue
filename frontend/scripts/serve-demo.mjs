@@ -3,7 +3,7 @@
  * Serves `dist/` like GitHub Pages does: under the base path, unknown paths → 404 + 404.html (SPA fallback);
  * outside the base path — a bare 404 (like github.io itself), so links that lose the base path show up.
  * Byte ranges (206) as on Pages: the scene's scrub video seeks by range requests.
- * `node scripts/serve-demo.mjs [port=8231] [base=/klg-synagogue]`
+ * `node scripts/serve-demo.mjs [port=8231] [base=/klg-synagogue]` (DEMO_DIST=<dir> instead of dist/)
  */
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
@@ -11,7 +11,7 @@ import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist');
+const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', process.env.DEMO_DIST || 'dist');
 const port = Number(process.argv[2] || 8231);
 const base = (process.argv[3] || '/klg-synagogue').replace(/\/+$/, '');
 const TYPES = {
