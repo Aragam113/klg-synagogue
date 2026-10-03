@@ -58,7 +58,7 @@ html[data-motion='on'] .home-threshold__note { opacity: clamp(0, (var(--p) - 0.4
 .home-clock { font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
 
 /* Community (pinned) */
-html:not([data-pin='on']) .home-community { padding: 6.286rem var(--gutter); }
+html:not([data-motion='on']) .home-community { padding: 6.286rem var(--gutter); }
 .home-chapter { display: flex; flex-direction: column; gap: 1rem; align-items: flex-start; max-width: 32rem; }
 .home-chapter__n { font-size: clamp(3.5rem, 7vw, 6rem); }
 /* A large window. Phone/tablet: the full container width. Desktop: the arch takes the right column for the
@@ -66,7 +66,7 @@ html:not([data-pin='on']) .home-community { padding: 6.286rem var(--gutter); }
 .home-arch { width: 100%; margin-inline: auto; }
 @media (min-width: 1024px) {
   .home-arch { width: min(100%, calc(72svh * 0.75)); }
-  html[data-pin='on'] .home-community .pinned__sticky {
+  html[data-motion='on'] .home-community .pinned__sticky {
     display: grid;
     grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
     grid-template-rows: auto auto;
@@ -74,10 +74,10 @@ html:not([data-pin='on']) .home-community { padding: 6.286rem var(--gutter); }
     column-gap: 3.429rem;
     row-gap: 2.286rem;
   }
-  html[data-pin='on'] .home-community .pinned__body { display: contents; }
-  html[data-pin='on'] .home-community .pinned__head { grid-column: 1; grid-row: 1; }
-  html[data-pin='on'] .home-community .pinned__stage { grid-column: 1; grid-row: 2; }
-  html[data-pin='on'] .home-community .pinned__aside { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+  html[data-motion='on'] .home-community .pinned__body { display: contents; }
+  html[data-motion='on'] .home-community .pinned__head { grid-column: 1; grid-row: 1; }
+  html[data-motion='on'] .home-community .pinned__stage { grid-column: 1; grid-row: 2; }
+  html[data-motion='on'] .home-community .pinned__aside { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
 }
 
 /* Ledger */
@@ -167,8 +167,16 @@ html[data-motion='on'] .home-dawn__note { opacity: clamp(0.15, (var(--p) - 0.25)
   .home-empty { padding: 1.4rem; }
 }
 
-/* Touch: the community arch is a picture above the swipe ribbon, not a full-width wall */
-html:not([data-pin='on']) .home-community .home-arch { width: min(100%, 22rem); }
+/* Phone/tablet: the community arch is a picture above the chapter, not a full-width wall; pinned (motion on) it
+   is sized by the fixed screen height so the head, the arch and the chapter text fit one screen without overlap */
+@media (max-width: 1023px) {
+  html[data-motion='on'] .home-community { padding-inline: var(--gutter); }
+  .home-community .home-arch { width: min(100%, 22rem); }
+  html[data-motion='on'] .home-community .home-arch { height: 100%; width: auto; max-width: 100%; }
+  html[data-motion='on'] .home-community .home-arch .arch { height: 100%; width: auto; }
+  html[data-motion='on'] .home-community .home-chapter { gap: 0.571rem; }
+  html[data-motion='on'] .home-community .home-chapter__n { font-size: 2.857rem; line-height: 1; }
+}
 /* he: the Hebrew greeting under the title would repeat the title itself */
 :root[lang='he'] .home-threshold__he { display: none; }
 @media (max-width: 599px) { .home-threshold { min-height: 0; } }

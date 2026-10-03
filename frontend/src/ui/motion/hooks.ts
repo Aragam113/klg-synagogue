@@ -60,5 +60,5 @@ const useMediaFlag = (read: () => boolean): boolean => {
 /** Live `motionAllowed()` (no reduced motion; touch included): follows the same media queries as the engine. */
 export const useMotionOn = (): boolean => useMediaFlag(motionAllowed);
 
-/** Live `pinAllowed()` (fine pointer, no reduced motion): pinned chapters instead of the swipe ribbon. */
+/** Live `pinAllowed()` (fine pointer, no reduced motion: the Lenis desktop path). */
 export const usePinOn = (): boolean => useMediaFlag(pinAllowed);

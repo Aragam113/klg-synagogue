@@ -25,8 +25,8 @@ import {
  * the progress maths) and re-read only when the width changes (orientation) — not when the address bar moves.
  * IntersectionObserver switches far-away elements off and sets one-shot `data-revealed`.
  * `html[data-motion]` (scroll-driven `--p` CSS, the scroll scene) and `html[data-anim]` (Reveal, marquee, hero
- * entrance, idle turns) are "on" whenever reduced motion is off, touch included. `html[data-pin]` gates the pinned
- * chapters (`<Pinned>`) and is "on" only for a fine pointer: on a phone they stay a swipe ribbon.
+ * entrance, idle turns) are "on" whenever reduced motion is off, touch included. `html[data-pin]` is "on" only for a fine
+ * pointer (Lenis); `<Pinned>` chapters follow `data-motion` (pinned on touch too, at the `--vh-fix` height).
  * All "off" (reduced motion) = everything static and visible.
  */
 interface Entry {
