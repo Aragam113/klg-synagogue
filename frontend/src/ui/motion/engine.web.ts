@@ -16,9 +16,11 @@ import {
  * every frame reads all rects first and writes after (no read/write interleaving → no forced layouts).
  * Fine pointer: Lenis (lerp .1) driven by a continuous rAF loop — the desktop path.
  * Touch (`html[data-touch]`): native scroll, scrollY polled every rAF (no reliance on throttled scroll events),
- * `--p` eases to it (TOUCH_LERP). Elements registered with `snap` (a pinned scene) pull the page to their nearest
- * chapter stop once the finger is up and the inertia has died out (SNAP_IDLE ms of stillness): an animated scroll
- * with the kit easing, 500..800 ms; any touch, wheel, key or foreign scroll cancels it at once (touch-scroll.ts).
+ * `--p` eases to it (TOUCH_LERP). Elements registered with `snap` (a pinned scene) pull the page to a chapter
+ * stop once the finger is up and the page has stood still SNAP_IDLE ms — once per rest, along the last movement
+ * (≥ 30% of a chapter on, else back, never more than 0.3 screen against it), not at the entry/exit of the scene:
+ * an animated scroll with the kit easing, 300..700 ms; any touch, wheel, key or foreign scroll cancels it at once;
+ * an address-bar resize does not (touch-scroll.ts).
  * On touch the viewport height is fixed in px at start (`--vh-fix` on <html>, used by the sticky runways and by
  * the progress maths) and re-read only when the width changes (orientation) — not when the address bar moves.
  * IntersectionObserver switches far-away elements off and sets one-shot `data-revealed`.
@@ -41,7 +43,9 @@ interface Entry {
 }
 
 /** Touch: ms of stillness (finger up, inertia over) before the page glides to a stop. */
-const SNAP_IDLE = 160;
+const SNAP_IDLE = 150;
+/** Touch: px of travel that set the direction of the last movement (address-bar / rounding jitter is not one). */
+const DIR_PX = 8;
 
 const entries = new Map<Element, Entry>();
 let lenis: Lenis | null = null;
@@ -56,7 +60,15 @@ let revealIO: IntersectionObserver | null = null;
 let layoutRO: ResizeObserver | null = null;
 const mqs: MediaQueryList[] = [];
 /** touch: scroll state polled every rAF */
-const tp = { y: -1, movedAt: 0, dir: 0 as -1 | 0 | 1, finger: false, settled: false };
+const tp = {
+  y: -1,
+  anchor: -1,
+  movedAt: 0,
+  dir: 0 as -1 | 0 | 1,
+  finger: false,
+  settled: false,
+  resizedAt: -1e9,
+};
 /** touch: the running glide */
 let glide: { from: number; to: number; start: number; dur: number; set: number } | null = null;
 
@@ -115,18 +127,27 @@ const cancelGlide = () => {
   glide = null;
 };
 
-/** Touch: polls scrollY, runs the glide, starts one when the page has rested SNAP_IDLE ms inside a snapping scene. */
+/**
+ * Touch: polls scrollY, runs the glide, starts one — once per rest — when the page has stood still SNAP_IDLE ms with
+ * the finger up inside a snapping scene. The glide follows the direction of the last movement (snapTarget).
+ */
 const touchStep = (t: number) => {
   const y = window.scrollY;
   if (glide) {
-    // someone else moved the page (a new fling, a link, the keyboard): let go at once
-    if (Math.abs(y - glide.set) > 3) cancelGlide();
-    else {
+    const off = Math.abs(y - glide.set) > 3;
+    // the address bar resized the viewport (the page shifted under the glide): carry on from here
+    if (off && t - tp.resizedAt < 400) glide.set = y;
+    // someone else moved the page (a link, the keyboard): let go at once, no new glide until the next rest
+    else if (off) {
+      cancelGlide();
+      tp.settled = true;
+    } else {
       const k = Math.min(1, (t - glide.start) / glide.dur);
       const next = Math.round(glide.from + (glide.to - glide.from) * easeKit(k));
       if (next !== glide.set) scrollToY(next);
       glide.set = next;
       tp.y = next;
+      tp.anchor = next;
       tp.movedAt = t;
       if (k >= 1) {
         cancelGlide();
@@ -136,10 +157,14 @@ const touchStep = (t: number) => {
     }
   }
   if (y !== tp.y) {
-    if (tp.y >= 0) tp.dir = y > tp.y ? 1 : -1;
+    if (tp.anchor < 0 || t - tp.resizedAt < 400) tp.anchor = y;
+    else if (Math.abs(y - tp.anchor) >= DIR_PX) {
+      tp.dir = y > tp.anchor ? 1 : -1;
+      tp.anchor = y;
+    }
     tp.y = y;
     tp.movedAt = t;
-    tp.settled = false;
+    if (t - tp.resizedAt >= 400) tp.settled = false;
     return;
   }
   if (tp.finger || tp.settled || t - tp.movedAt < SNAP_IDLE) return;
@@ -147,7 +172,7 @@ const touchStep = (t: number) => {
   for (const e of entries.values()) {
     if (!e.snap || !e.active) continue;
     const r = e.el.getBoundingClientRect();
-    const to = snapTarget(y, sceneSnapPoints(r.top + y, r.height, vhFix, e.snap), tp.dir);
+    const to = snapTarget(y, sceneSnapPoints(r.top + y, r.height, vhFix, e.snap), tp.dir, vhFix);
     if (to === null) continue;
     glide = { from: y, to, start: t, dur: snapDuration(to - y, vhFix), set: y };
     return;
@@ -176,6 +201,7 @@ const schedule = () => {
 const onResize = () => {
   // orientation (width) change: new fixed height; the address bar (height only) is ignored
   if (touch && window.innerWidth !== vhW) fixViewport();
+  tp.resizedAt = performance.now();
   schedule();
 };
 
@@ -183,6 +209,7 @@ const onResize = () => {
 const onFingerDown = () => {
   tp.finger = true;
   tp.settled = false;
+  tp.anchor = window.scrollY;
   cancelGlide();
 };
 const onFingerUp = (ev: Event) => {
@@ -191,7 +218,8 @@ const onFingerUp = (ev: Event) => {
   tp.movedAt = performance.now();
 };
 const onInterrupt = () => {
-  tp.settled = false;
+  // a wheel / key / mouse: stop a glide and keep the page where the visitor leaves it until they scroll again
+  tp.settled = !!glide || tp.settled;
   tp.movedAt = performance.now();
   cancelGlide();
 };

@@ -96,3 +96,8 @@ html[data-motion='on'][data-touch] .scrub--live .scrub__sticky { height: var(--v
 .scrub--static .scrub__chapters[data-ribbon]::-webkit-scrollbar { display: none; }
 .scrub--static .scrub__chapters[data-ribbon] > .scrub__chapter { flex: 0 0 100%; max-width: none; min-width: 0;
   padding-inline: var(--gutter); scroll-snap-align: start; scroll-snap-stop: always; }
+
+.scrub__video {
+  object-fit: cover;
+  pointer-events: none;
+}

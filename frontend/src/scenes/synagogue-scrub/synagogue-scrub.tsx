@@ -8,6 +8,7 @@ import { useScrollProgress } from '@/ui/motion/hooks';
 import {
   type Blend,
   blendFrames,
+  bufferedTime,
   coarsePass,
   coverRect,
   frameIndex,
@@ -15,6 +16,7 @@ import {
   nearestLoaded,
   parseManifest,
   type ScrubManifest,
+  videoTime,
 } from './scrub-model';
 import './styles';
 
@@ -45,19 +47,38 @@ const pad = (n: number) => String(n).padStart(2, '0');
 const COARSE = 4;
 /** Blend alpha is drawn in steps of 1/ALPHA_STEPS: a tiny `--p` change does not repaint the canvas. */
 const ALPHA_STEPS = 32;
+/** Phones: no first video frame this long after the first touch (or an error) → the frames instead. */
+const VIDEO_WAIT_MS = 12000;
+/** A seek that has not finished this long is superseded by the next one (a slow range request on a bad network). */
+const SEEK_STALE_MS = 600;
+
+const rangesOf = (b: TimeRanges): [number, number][] =>
+  Array.from({ length: b.length }, (_, i) => [b.start(i), b.end(i)] as [number, number]);
+
+const canPlayMp4 = (): boolean => {
+  try {
+    return !!document.createElement('video').canPlayType('video/mp4; codecs="avc1.4D401E"');
+  } catch {
+    return false;
+  }
+};
 
 /**
  * Pinned scroll scene: a sticky 100svh canvas inside a (chapters + 1) × 100svh runway.
  * Desktop: the full set, frame = round(p·(N−1)) strictly by scroll; the frame for the current progress loads first,
  * the rest after it, nearest first; until a frame arrives the nearest loaded one is drawn.
- * Touch (`html[data-touch]`): the light set (`manifest.light`), loaded progressively — the poster, then every 4th
- * frame (the poster stays on top until this first pass is in, then the scene scrubs), then the frames between.
- * The canvas crossfades the two loaded frames around the fractional position p·(N−1) (frame a, then b with
- * globalAlpha = the fraction) and repaints only when (a, b, alpha/32) changes. The engine pulls the page to the
- * nearest chapter stop once the scroll rests inside (`snap`).
+ * Touch (`html[data-touch]`), main path: the all-intra scrub video (`manifest.video`, every frame a keyframe) —
+ * `muted playsinline preload="auto"`, `currentTime` = the middle of frame round(p·(N−1)) of the smoothed `--p`,
+ * a new seek only once the previous one has finished (`seeked`), primed by play+pause on the first touch (iOS).
+ * Fallback (no H.264, an error, no first frame VIDEO_WAIT_MS after the first touch): the light frame set
+ * (`manifest.light`), loaded progressively — the poster, then every 4th frame (the poster stays on top until this
+ * first pass is in), then the frames between, nearest to the current position first. The canvas crossfades only real
+ * neighbours i, i+1 (`blendFrames`), otherwise draws the nearest loaded frame alone, and repaints only when
+ * (a, b, alpha/32) changes. The engine pulls the page to a chapter stop once the scroll rests inside (`snap`).
  * Chapters enter/leave by `--p` in CSS. Reduced motion: static poster frame + chapters as a swipe ribbon.
- * `data-frame` (dominant frame), `data-blend` (alpha) and `data-draws` (repaints) on the canvas; on the root
- * `data-pass="coarse"` once it scrubs on a phone and `data-loaded="all"` once every frame is in.
+ * `data-frame` (frame on screen), `data-frames`, `data-blend`/`data-pair` (canvas) and `data-draws` on the media;
+ * on the root `data-media="video|frames"`, `data-pass="video|coarse"` once it scrubs on a phone and
+ * `data-loaded="all"` once all of the media is in.
  */
 export const SynagogueScrub = ({
   chapters,
@@ -68,6 +89,8 @@ export const SynagogueScrub = ({
 }: SynagogueScrubProps) => {
   const root = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const video = useRef<HTMLVideoElement>(null);
+  const seekAt = useRef(0);
   const imgs = useRef<HTMLImageElement[]>([]);
   const loaded = useRef<boolean[]>([]);
   const progress = useRef(0);
@@ -82,12 +105,35 @@ export const SynagogueScrub = ({
   /** touch: the coarse pass is in (scrubs); desktop: every frame is in */
   const [ready, setReady] = useState(false);
   const [all, setAll] = useState(false);
+  /** video: the browser has enough to play through (it may stop preloading short of the end) */
+  const [enough, setEnough] = useState(false);
   const readyRef = useRef(false);
   const n = chapters.length;
   /** Phones: the light set, poster until its first pass is in. */
   const light = motion && touch;
   const lightRef = useRef(false);
   lightRef.current = light;
+  /** Phones: the scrub video is tried first; false → the frames (fallback). */
+  const [videoOk, setVideoOk] = useState(true);
+  const vid = light && videoOk && m?.video ? m.video : null;
+  const vidRef = useRef(vid);
+  vidRef.current = vid;
+
+  /** Video: seek to the frame for the current progress, unless a seek is still running. */
+  const pump = useCallback(() => {
+    const v = video.current;
+    const vi = vidRef.current;
+    if (!v || !vi || v.readyState < 1) return;
+    const now = performance.now();
+    if (v.seeking && now - seekAt.current < SEEK_STALE_MS) return;
+    const want = videoTime(progress.current, vi.frames, vi.fps);
+    // while it is downloading: only into what is already here (no stall on a range request, the download stays
+    // linear); once the browser has paused the download (preload stops short of the end) — anywhere, it resumes
+    const t = v.networkState === 2 ? bufferedTime(want, rangesOf(v.buffered), 0.5 / vi.fps) : want;
+    if (Math.abs(v.currentTime - t) < 0.25 / vi.fps) return;
+    seekAt.current = now;
+    v.currentTime = t;
+  }, []);
 
   const draw = useCallback(() => {
     const c = canvas.current;
@@ -137,6 +183,7 @@ export const SynagogueScrub = ({
     drawn.current = bl.alpha < 0.5 ? bl.a : bl.b;
     c.dataset.frame = String(drawn.current);
     c.dataset.blend = String(bl.alpha);
+    c.dataset.pair = `${bl.a}-${bl.b}`;
     c.dataset.draws = String(++draws.current);
   }, []);
 
@@ -146,7 +193,8 @@ export const SynagogueScrub = ({
     onChange: (p) => {
       progress.current = p;
       if (motion) setActive(Math.min(n - 1, Math.floor(p * n)));
-      draw();
+      if (vidRef.current) pump();
+      else draw();
     },
   });
 
@@ -174,13 +222,16 @@ export const SynagogueScrub = ({
         const parsed = parseManifest(raw, base);
         if (!parsed) return setFailed(true);
         if (!parsed.light || !motionAllowed() || !touchMode()) return setM(parsed);
+        setVideoOk(!!parsed.video && canPlayMp4());
         const lightUrl = parsed.light;
         return fetch(lightUrl)
           .then((r) => (r.ok ? r.json() : null))
           .then((lr) => {
             if (gone) return;
             const lb = lightUrl.slice(0, lightUrl.lastIndexOf('/') + 1);
-            setM(parseManifest(lr, lb) ?? parsed);
+            const lp = parseManifest(lr, lb);
+            // the video is listed in the main manifest only
+            setM(lp ? { ...lp, ...(parsed.video ? { video: parsed.video } : {}) } : parsed);
           })
           .catch(() => !gone && setM(parsed));
       })
@@ -192,8 +243,93 @@ export const SynagogueScrub = ({
 
   // Frames. Desktop: the one for the current progress first, then the rest (6 at a time), nearest first.
   // Phones: the poster, then the coarse pass (every 4th) → scrubs, then the frames between, nearest first.
+  // Phones, video: ready on the first decoded frame; seeks chained on `seeked`; the shown frame from
+  // requestVideoFrameCallback; primed on the first touch (iOS loads nothing before a gesture); fallback to frames.
+  const vSrc = vid?.src;
   useEffect(() => {
-    if (!m || !motion) return;
+    const v = video.current;
+    const vi = vidRef.current;
+    if (!v || !vi || !vSrc) return;
+    let gone = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let shown = 0;
+    readyRef.current = false;
+    setReady(false);
+    setAll(false);
+    const fail = () => {
+      if (!gone) setVideoOk(false);
+    };
+    const wait = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (v.readyState < 2) fail();
+      }, VIDEO_WAIT_MS);
+    };
+    const onData = () => {
+      if (gone || readyRef.current) return;
+      clearTimeout(timer);
+      readyRef.current = true;
+      setReady(true);
+      pump();
+    };
+    const mark = (t: number) => {
+      v.dataset.frame = String(Math.min(vi.frames - 1, Math.max(0, Math.floor(t * vi.fps + 0.01))));
+      v.dataset.draws = String(++shown);
+    };
+    type Rvfc = (cb: (now: number, meta: { mediaTime: number }) => void) => number;
+    const rvfc = (
+      v as HTMLVideoElement & { requestVideoFrameCallback?: Rvfc }
+    ).requestVideoFrameCallback?.bind(v);
+    const onFrame = (_: number, meta: { mediaTime: number }) => {
+      if (gone) return;
+      mark(meta.mediaTime);
+      rvfc?.(onFrame);
+    };
+    rvfc?.(onFrame);
+    const onSeeked = () => {
+      if (!rvfc) mark(v.currentTime);
+      pump();
+    };
+    const onProgress = () => {
+      const have = rangesOf(v.buffered).reduce((sum, [s, e]) => sum + e - s, 0);
+      if (v.duration > 0 && have >= v.duration - 0.3) setAll(true);
+      else if (v.readyState >= 4) setEnough(true);
+      pump();
+    };
+    const prime = () => {
+      wait();
+      if (v.readyState >= 2) return;
+      v.play()
+        .then(() => {
+          v.pause();
+          pump();
+        })
+        .catch(() => undefined);
+    };
+    v.addEventListener('loadeddata', onData);
+    v.addEventListener('seeked', onSeeked);
+    v.addEventListener('progress', onProgress);
+    v.addEventListener('canplaythrough', onProgress);
+    v.addEventListener('suspend', onProgress);
+    v.addEventListener('error', fail);
+    window.addEventListener('touchstart', prime, { once: true, passive: true });
+    if (v.readyState >= 2) onData();
+    onProgress();
+    return () => {
+      gone = true;
+      clearTimeout(timer);
+      v.removeEventListener('loadeddata', onData);
+      v.removeEventListener('seeked', onSeeked);
+      v.removeEventListener('progress', onProgress);
+      v.removeEventListener('canplaythrough', onProgress);
+      v.removeEventListener('suspend', onProgress);
+      v.removeEventListener('error', fail);
+      window.removeEventListener('touchstart', prime);
+    };
+  }, [vSrc, pump]);
+
+  useEffect(() => {
+    if (!m || !motion || vSrc) return;
     let gone = false;
     const N = m.frames.length;
     const phone = lightRef.current;
@@ -280,7 +416,7 @@ export const SynagogueScrub = ({
         img.removeAttribute('src');
       });
     };
-  }, [m, motion, draw]);
+  }, [m, motion, draw, vSrc]);
 
   // Touch / reduced motion: the chapters are a swipe ribbon (scroll-snap) and the dots follow it.
   const ribbon = useRef<HTMLOListElement>(null);
@@ -303,14 +439,27 @@ export const SynagogueScrub = ({
       className={`scrub ${motion ? 'scrub--live' : 'scrub--static'}`}
       style={{ ['--chapters' as string]: n }}
       data-active={active}
-      data-pass={light && ready ? 'coarse' : undefined}
-      data-loaded={all ? 'all' : undefined}
+      data-media={light ? (vid ? 'video' : 'frames') : undefined}
+      data-pass={light && ready ? (vid ? 'video' : 'coarse') : undefined}
+      data-loaded={all ? 'all' : enough ? 'enough' : undefined}
       aria-label={ariaLabel}
       role="region"
     >
       <div className="scrub__sticky">
         <div className="scrub__media">
-          {motion && m ? (
+          {motion && m && vid ? (
+            <video
+              ref={video}
+              className="scrub__canvas scrub__video"
+              src={vid.src}
+              data-frames={vid.frames}
+              muted
+              playsInline
+              preload="auto"
+              disablePictureInPicture
+              aria-hidden
+            />
+          ) : motion && m ? (
             <canvas
               ref={canvas}
               className="scrub__canvas"

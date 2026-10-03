@@ -27,6 +27,12 @@
  *   --light-quality <q>  starting webp quality of the light set (default 74)
  *   --light-budget <MB>  size limit of the light set, quality drops by 4 until it fits (default 5.5)
  *
+ *   --video          also encode the segment as an all-intra H.264 video for phones (every frame a keyframe:
+ *                    -g 1 -keyint_min 1 -bf 0, +faststart, no audio) → public/media/scrub/v/scene.mp4; the main
+ *                    manifest gets "video": {src, frames, fps, width, height}. Tuning: --video-width 960,
+ *                    --video-fps 10, --video-crf 28 (raised by 2 until it fits), --video-budget 7 (MB)
+ *   --video-only     only (re)encode the video, the frames and the light set stay as they are
+ *
  *   npm run build:scrub -- --light-only [--light 1024 --light-step 1 --light-quality 74 --light-budget 5.5]
  *                    re-encodes only the light set from the frames already in public/media/scrub/
  */
@@ -46,12 +52,12 @@ const VIDEO = /\.(mp4|webm|mov|mkv|avi|m4v)$/i;
 const IMAGE = /\.(jpe?g|png|webp)$/i;
 
 const parseArgs = (argv) => {
-  const opts = { frames: 110, width: 1600, quality: 72, budget: 12, from: 0, to: null, credit: '', light: 1024, lightStep: 1, lightQuality: 74, lightBudget: 5.5, lightOnly: false };
+  const opts = { frames: 110, width: 1600, quality: 72, budget: 12, from: 0, to: null, credit: '', light: 1024, lightStep: 1, lightQuality: 74, lightBudget: 5.5, lightOnly: false, video: false, videoOnly: false, videoWidth: 960, videoFps: 10, videoCrf: 28, videoBudget: 7 };
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--light-only') {
-      opts.lightOnly = true;
+    if (a === '--light-only' || a === '--video' || a === '--video-only') {
+      opts[a === '--light-only' ? 'lightOnly' : a === '--video' ? 'video' : 'videoOnly'] = true;
       continue;
     }
     if (!a.startsWith('--')) {
@@ -64,7 +70,7 @@ const parseArgs = (argv) => {
     opts[key] = key === 'credit' ? val : Number(val);
     if (key !== 'credit' && !Number.isFinite(opts[key])) throw new Error(`${a} needs a number`);
   }
-  if (!rest[0] && !opts.lightOnly) throw new Error('usage: npm run build:scrub -- <video | photo folder> [options]');
+  if (!rest[0] && !opts.lightOnly && !opts.videoOnly) throw new Error('usage: npm run build:scrub -- <video | photo folder> [options]');
   opts.source = rest[0] ? path.resolve(process.cwd(), rest[0]) : '';
   opts.frames = Math.max(2, Math.min(120, Math.round(opts.frames)));
   return opts;
@@ -204,8 +210,47 @@ const writeLight = async (all, width, step, quality, budget) => {
   console.log(`scrub light: ${frames.length} frames ${meta.width}x${meta.height}, webp q${q}, ${(bytes / 1048576).toFixed(1)} MB → ${path.relative(ROOT, dir)}`);
 };
 
+/** Every frame a keyframe: a seek anywhere decodes exactly one frame. CRF goes up by 2 until it fits the budget. */
+const VIDEO_DIR = 'v';
+const writeVideo = (o) => {
+  const dir = path.join(OUT, VIDEO_DIR);
+  fs.mkdirSync(dir, { recursive: true });
+  const out = path.join(dir, 'scene.mp4');
+  const seg = ['-ss', String(o.from), ...(o.to !== null ? ['-to', String(o.to)] : [])];
+  const width = Math.round(o.videoWidth / 2) * 2;
+  let crf = o.videoCrf;
+  for (;;) {
+    run(['-y', ...seg, '-i', o.source, '-an', '-vf', `fps=${o.videoFps},scale=${width}:-2:flags=lanczos`, '-c:v', 'libx264', '-preset', 'slow', '-crf', String(crf), '-g', '1', '-keyint_min', '1', '-bf', '0', '-pix_fmt', 'yuv420p', '-profile:v', 'main', '-movflags', '+faststart', out]);
+    if (fs.statSync(out).size <= o.videoBudget * 1048576 || crf >= 40) break;
+    crf += 2;
+  }
+  const dur = (o.to ?? probeDuration(o.source)) - o.from;
+  const frames = Math.max(2, Math.round(dur * o.videoFps));
+  const height = Math.round((width * 9) / 16 / 2) * 2;
+  const mainPath = path.join(OUT, 'manifest.json');
+  const main = JSON.parse(fs.readFileSync(mainPath, 'utf8'));
+  const probe = (() => {
+    try {
+      execFileSync(ffmpegPath, ['-hide_banner', '-i', out], { stdio: 'pipe' });
+    } catch (e) {
+      const m = /, (\d+)x(\d+)/.exec(String(e.stderr ?? ''));
+      if (m) return { w: Number(m[1]), h: Number(m[2]) };
+    }
+    return { w: width, h: height };
+  })();
+  const video = { src: `${VIDEO_DIR}/scene.mp4`, frames, fps: o.videoFps, width: probe.w, height: probe.h };
+  fs.writeFileSync(mainPath, `${JSON.stringify({ ...main, video }, null, 2)}
+`);
+  console.log(`scrub video: ${frames} frames ${probe.w}x${probe.h} @${o.videoFps} fps, crf ${crf}, ${(fs.statSync(out).size / 1048576).toFixed(1)} MB → ${path.relative(ROOT, out)}`);
+};
+
 const main = async () => {
   const o = parseArgs(process.argv.slice(2));
+  if (o.videoOnly) {
+    if (!fs.existsSync(o.source) || !VIDEO.test(o.source)) throw new Error('--video-only needs a video file');
+    writeVideo(o);
+    return;
+  }
   if (o.lightOnly) {
     const m = JSON.parse(fs.readFileSync(path.join(OUT, 'manifest.json'), 'utf8'));
     await writeLight(m.frames.map((f) => path.join(OUT, f)), o.light || 1024, o.lightStep, o.lightQuality, o.lightBudget);
@@ -238,6 +283,7 @@ const main = async () => {
     fs.writeFileSync(path.join(OUT, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
     writeCredits(credits);
     if (o.light > 0) await writeLight(raw, o.light, o.lightStep, o.lightQuality, o.lightBudget);
+    if (o.video && !isDir) writeVideo(o);
     console.log(
       `scrub: ${frames.length} frames ${meta.width}x${meta.height}, webp q${q}, ${(total() / 1048576).toFixed(1)} MB → ${path.relative(ROOT, OUT)}`
     );
