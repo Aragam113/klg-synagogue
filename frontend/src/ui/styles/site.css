@@ -1,8 +1,8 @@
 /*
  * Site styles (web). Design tokens of the site come first.
  * Scroll-driven `--p` choreography is gated by html[data-motion='on'] (no reduced motion, touch included — native
- * scroll there); the pinned chapters by html[data-pin='on'] (fine pointer only: phones keep the swipe
- * ribbon); cheap reveal/time animations (Reveal, marquee, hero entrance) by html[data-anim='on'] (no reduced
+ * scroll there) — the pinned chapters too (on touch at the fixed --vh-fix height); html[data-pin='on'] only marks the
+ * fine pointer (Lenis); cheap reveal/time animations (Reveal, marquee, hero entrance) by html[data-anim='on'] (no reduced
  * motion). Without them everything is static and visible.
  * Layout uses logical properties (inline/block) so dir=rtl mirrors it.
  */
@@ -458,8 +458,11 @@ html[data-anim='on'] .stroke--reveal path { stroke-dashoffset: 1; transition: st
 html[data-anim='on'] .stroke--reveal[data-revealed='true'] path { stroke-dashoffset: 0; }
 
 .pinned { position: relative; }
-html[data-pin='on'] .pinned { height: calc(100svh * (var(--chapters) + 1)); }
-html[data-pin='on'] .pinned__sticky {
+/* Pinned wherever motion is on, touch included; on touch the heights are the fixed px viewport (--vh-fix: the
+   address bar showing/hiding does not move the runway). Reduced motion: a static column (rules further down). */
+html[data-motion='on'] .pinned { height: calc(100svh * (var(--chapters) + 1)); }
+html[data-motion='on'][data-touch] .pinned { height: calc(var(--vh-fix, 100svh) * (var(--chapters) + 1)); }
+html[data-motion='on'] .pinned__sticky {
   position: sticky;
   top: 0;
   height: 100svh;
@@ -469,8 +472,9 @@ html[data-pin='on'] .pinned__sticky {
   justify-content: center;
   gap: 2.286rem;
 }
+html[data-motion='on'][data-touch] .pinned__sticky { height: var(--vh-fix, 100svh); }
 .pinned__progress { display: none; }
-html[data-pin='on'] .pinned__progress { display: block; position: absolute; inset-inline: 0; top: 0; height: 2px; background: var(--line); }
+html[data-motion='on'] .pinned__progress { display: block; position: absolute; inset-inline: 0; top: 0; height: 2px; background: var(--line); }
 .pinned__progress::after {
   content: '';
   position: absolute;
@@ -481,16 +485,16 @@ html[data-pin='on'] .pinned__progress { display: block; position: absolute; inse
 }
 [dir='rtl'] .pinned__progress::after { transform-origin: right center; }
 .pinned__head { display: flex; justify-content: space-between; align-items: flex-end; gap: 1.429rem; }
-.pinned__counter { display: none; font-family: var(--f-ui-sb); font-size: 1rem; color: var(--fg); gap: 0.429rem; align-items: baseline; }
-html[data-pin='on'] .pinned__counter { display: inline-flex; }
+.pinned__counter { display: none; flex-shrink: 0; white-space: nowrap; font-family: var(--f-ui-sb); font-size: 1rem; color: var(--fg); gap: 0.429rem; align-items: baseline; }
+html[data-motion='on'] .pinned__counter { display: inline-flex; }
 .pinned__total { color: var(--fg-mute); }
 .drum { display: inline-block; height: 1.2em; line-height: 1.2em; overflow: hidden; vertical-align: bottom; }
 .drum__reel { display: flex; flex-direction: column; transition: transform 0.7s var(--ease); }
 .pinned__body { display: grid; gap: 2.286rem; }
 @media (min-width: 1024px) { .pinned__body:has(.pinned__aside) { grid-template-columns: 1.3fr 1fr; align-items: center; } }
 .pinned__stage { display: flex; flex-direction: column; gap: 3.429rem; }
-html[data-pin='on'] .pinned__stage { display: block; position: relative; min-height: 50svh; }
-html[data-pin='on'] .pinned__chapter {
+html[data-motion='on'] .pinned__stage { display: block; position: relative; min-height: 50svh; }
+html[data-motion='on'] .pinned__chapter {
   --local: clamp(0, calc(var(--p, 0) * var(--chapters) - var(--i)), 1);
   --in: clamp(0, calc(var(--local) / 0.2), 1);
   --out: clamp(0, calc((var(--local) - 0.72) / 0.28), 1);
@@ -502,30 +506,28 @@ html[data-pin='on'] .pinned__chapter {
   opacity: calc(var(--in) - var(--out));
   transform: translateY(calc((1 - var(--in)) * 3.143rem - var(--out) * 3.143rem));
 }
-html[data-pin='on'] .pinned__chapter:first-child { --in: 1; }
-html[data-pin='on'] .pinned__chapter:last-child { --out: 0; }
-.pinned__chapter[data-current='false'] { pointer-events: none; }
-html:not([data-pin='on']) .pinned__chapter { pointer-events: auto; }
-/* touch / reduced motion: chapters become a swipe ribbon (scroll-snap) with dots under the aside */
-html:not([data-pin='on']) .pinned__body { display: flex; flex-direction: column; gap: 1.429rem; }
-html:not([data-pin='on']) .pinned__aside { order: -2; }
-html:not([data-pin='on']) .pinned__dots { order: -1; }
-html:not([data-pin='on']) .pinned__stage[data-ribbon] {
-  flex-direction: row;
-  gap: 0;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
+html[data-motion='on'] .pinned__chapter:first-child { --in: 1; }
+html[data-motion='on'] .pinned__chapter:last-child { --out: 0; }
+html[data-motion='on'] .pinned__chapter[data-current='false'] { pointer-events: none; }
+/* Phone, pinned: head, the picture, then the chapter text under it — all inside one fixed screen. The stage keeps a
+   fixed height (the longest chapter at 360px); the picture takes what is left (sized by its height). */
+@media (max-width: 1023px) {
+  html[data-motion='on'] .pinned__sticky { justify-content: flex-start; gap: 0.857rem; padding-block: 3.429rem 1.143rem; box-sizing: border-box; }
+  html[data-motion='on'] .pinned__body { display: flex; flex-direction: column; gap: 0.857rem; flex: 1 1 0; min-height: 0; }
+  html[data-motion='on'] .pinned__aside { order: -1; flex: 1 1 0; min-height: 0; display: flex; justify-content: center; }
+  html[data-motion='on'] .pinned__stage { flex: 0 0 20rem; min-height: 0; }
+  html[data-motion='on'] .pinned__chapter { justify-content: flex-start; }
 }
-.pinned__stage[data-ribbon]::-webkit-scrollbar { display: none; }
-html:not([data-pin='on']) .pinned__stage[data-ribbon] > .pinned__chapter { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; padding-inline-end: 0.5rem; }
+/* reduced motion: every chapter in a static column, the picture first */
+html:not([data-motion='on']) .pinned__body { display: flex; flex-direction: column; gap: 1.429rem; }
+html:not([data-motion='on']) .pinned__aside { order: -1; }
+/* the scroll scene's reduced-motion swipe ribbon keeps these dots */
 .pinned__dots { display: flex; justify-content: center; gap: 0; }
 .pinned__dot { width: 44px; height: 44px; padding: 0; border: 0; background: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
 .pinned__dot::after { content: ''; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--fg-mute); opacity: 0.6; transition: transform 0.3s var(--ease), background-color 0.3s, opacity 0.3s; }
 .pinned__dot[aria-current='true']::after { background: var(--gold); opacity: 1; transform: scale(1.4); }
 @media (min-width: 768px) {
-  html:not([data-pin='on']) .pinned__aside { max-width: 30rem; width: 100%; margin-inline: auto; }
+  html:not([data-motion='on']) .pinned__aside { max-width: 30rem; width: 100%; margin-inline: auto; }
 }
 
 .marquee { position: relative; overflow: hidden; padding-block: 2rem; border-block: 1px solid var(--line); }

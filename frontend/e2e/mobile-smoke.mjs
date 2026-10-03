@@ -6,8 +6,9 @@
  *
  * Checks: side margins ≥ 16px in every home section at 360; the logo does not overlap the header icons;
  * the mobile menu is above the cookie banner; touch targets ≥ 44px (header icons, burger, menu languages,
- * close, checkbox label); the marquee moves; Reveal fires on scroll; the community chapters ribbon swipes
- * (scroll-snap, dots follow); the scene credit is one short line; with reduced motion nothing moves.
+ * close, checkbox label); the marquee moves; Reveal fires on scroll; «Жизнь общины» is pinned on touch too
+ * (chapters change by scroll down and up, the arch photo follows, nothing overlaps, m4_community_ch1..4_390);
+ * the scene credit is one short line; with reduced motion nothing moves.
  * On touch the synagogue scene scrubs by native scroll (frame at p≈0.1 ≠ p≈0.9 and back,
  * sticky 100svh), the Dawn rosette turns by itself (two marks 3 s apart) and with scroll, the hexagram
  * background parallaxes — at 390×844 and 360×740; shots e2e/shots/g12_*.
@@ -215,7 +216,7 @@ try {
     await page.close();
   }
 
-  // ---- 4. motion on a phone: marquee, reveal, chapters ribbon
+  // ---- 4. motion on a phone: marquee, reveal
   if (!ONLY) {
     const page = await open('/?lang=ru', 390);
     check(await page.evaluate(() => document.documentElement.dataset.motion === 'on'), '390: scroll-driven motion on touch');
@@ -250,29 +251,79 @@ try {
     check(after.rev === 'true' && +after.op > 0.99, '390: Reveal fires on scroll', JSON.stringify(after));
 
 
-    await page.evaluate(() => document.querySelector('#community').scrollIntoView({ block: 'start' }));
-    await sleep(500);
-    await shot(page, 'community_390_ru');
-    const rib = await page.evaluate(() => {
-      const t = document.querySelector('#community [data-ribbon]');
-      if (!t) return null;
-      const dots = document.querySelectorAll('#community .pinned__dot');
-      return { snap: getComputedStyle(t).scrollSnapType, sw: t.scrollWidth, cw: t.clientWidth, dots: dots.length, active: document.querySelector('#community .pinned').dataset.active };
+    await page.close();
+  }
+
+  // ---- 4a. «Жизнь общины» on a phone: pinned scroll-triggered chapters (touch path), 390×844
+  {
+    const page = await open('/?lang=ru', 390, { height: 844 });
+    const tag = '390 community';
+    const geo = await page.evaluate(() => {
+      const el = document.querySelector('#community .pinned');
+      return { top: el.getBoundingClientRect().top + scrollY, h: el.offsetHeight, n: +getComputedStyle(el).getPropertyValue('--chapters') };
     });
-    check(!!rib && rib.sw > rib.cw * 1.5 && rib.snap.includes('x') && rib.dots === 4 && rib.active === '0', '390: community chapters are a swipe ribbon with dots', JSON.stringify(rib));
-    if (rib) {
-      await page.evaluate(() => {
-        const t = document.querySelector('#community [data-ribbon]');
-        t.scrollTo({ left: t.clientWidth * 1.02, behavior: 'instant' });
+    check(geo.n === 4 && geo.h === 844 * 5 && !(await page.evaluate(() => !!document.querySelector('#community [data-ribbon], #community .pinned__dot'))),
+      `${tag}: pinned runway in fixed px (--vh-fix × (4+1)), no swipe ribbon`, JSON.stringify(geo));
+    const runway = geo.h - 844;
+    /** Chapter stops of the auto-settle (touch-scroll chapterStops for 4): entry, 1.45/4, 2.45/4, end. */
+    const STOPS = [0, 1.45 / 4, 2.45 / 4, 1];
+    const at = async (i) => {
+      await page.evaluate((y) => window.scrollTo(0, y), Math.round(geo.top + runway * STOPS[i]));
+      await sleep(1300);
+      return page.evaluate(() => {
+        const root = document.querySelector('#community .pinned');
+        const sticky = root.querySelector('.pinned__sticky').getBoundingClientRect();
+        const cur = root.querySelector('.pinned__chapter[data-current="true"]');
+        const box = (el) => {
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          return { t: Math.round(r.top), b: Math.round(r.bottom), l: Math.round(r.left), r: Math.round(r.right) };
+        };
+        const parts = cur ? [...cur.querySelectorAll('.home-chapter__n, h3, p, .btn')].map(box) : [];
+        return {
+          active: root.dataset.active,
+          op: cur ? +getComputedStyle(cur).opacity : 0,
+          stickyTop: Math.round(sticky.top),
+          stickyH: Math.round(sticky.height),
+          head: box(root.querySelector('.pinned__head')),
+          arch: box(root.querySelector('.home-arch')),
+          img: root.querySelector('.home-arch img')?.getAttribute('src') ?? '',
+          counter: getComputedStyle(root.querySelector('.pinned__counter')).display,
+          progress: getComputedStyle(root.querySelector('.pinned__progress')).display,
+          parts,
+          noHScroll: document.documentElement.scrollWidth <= innerWidth,
+        };
       });
-      await sleep(700);
-      const act = await page.evaluate(() => ({
-        active: document.querySelector('#community .pinned').dataset.active,
-        dot: [...document.querySelectorAll('#community .pinned__dot')].findIndex((d) => d.getAttribute('aria-current') === 'true'),
-      }));
-      check(act.active === '1' && act.dot === 1, '390: swiping the ribbon moves the dots', JSON.stringify(act));
-      await shot(page, 'community_390_ru_swiped');
+    };
+    const over = (a, b) => a && b && a.t < b.b - 1 && b.t < a.b - 1 && a.l < b.r - 1 && b.l < a.r - 1;
+    const seen = [];
+    for (let i = 0; i < geo.n; i++) {
+      const r = await at(i);
+      seen.push(r);
+      await page.screenshot({ path: join(SHOTS, `m4_community_ch${i + 1}_390.png`) });
+      const clash = r.parts.some((p) => over(p, r.arch) || over(p, r.head)) || over(r.head, r.arch);
+      const inside = r.parts.every((p) => p.t >= 0 && p.b <= 844 && p.l >= 15.5 && p.r <= 390 - 15.5);
+      check(r.active === String(i) && r.op > 0.95 && r.stickyTop === 0 && r.stickyH === 844 && r.counter !== 'none' && r.progress === 'block',
+        `${tag}: chapter ${i + 1} on scroll down, section pinned`, JSON.stringify({ active: r.active, op: r.op, stickyTop: r.stickyTop, stickyH: r.stickyH }));
+      check(!clash && inside && r.parts.length >= 4 && r.noHScroll, `${tag}: chapter ${i + 1} — number, text, arch and head do not overlap, fit the screen, no h-scroll`, JSON.stringify(r));
     }
+    check(new Set(seen.map((r) => r.img)).size >= 2, `${tag}: the arch photo changes with the chapter`, seen.map((r) => r.img.split('/').pop()).join(' '));
+    // back up: the chapters go back in order
+    const up = [];
+    for (let i = geo.n - 2; i >= 0; i--) up.push((await at(i)).active);
+    check(up.join() === '2,1,0', `${tag}: chapters change on scroll up`, up.join());
+    // a finger drag inside the section moves the chapter (native touch scroll, then the auto-settle)
+    await at(0);
+    await page.touchscreen.touchStart(195, 700);
+    for (let i = 1; i <= 20; i++) {
+      await page.touchscreen.touchMove(195, 700 - i * 25);
+      await sleep(25);
+    }
+    await sleep(250); // hold still before lifting: no fling
+    await page.touchscreen.touchEnd();
+    await sleep(1800);
+    const dragged = await page.evaluate(() => document.querySelector('#community .pinned').dataset.active);
+    check(dragged === '1', `${tag}: a finger drag of ~0.6 screen moves to chapter 2 (auto-settle)`, dragged);
     await page.close();
   }
 
@@ -397,17 +448,17 @@ try {
         video: v ? { frames: +v.dataset.frames, muted: v.muted, inline: v.playsInline, preload: v.preload, paused: v.paused } : null,
         canvas: !!document.querySelector('.scrub canvas'),
         noHScroll: document.documentElement.scrollWidth <= innerWidth,
-        ribbon: !!document.querySelector('#community [data-ribbon]'),
+        pinned: getComputedStyle(document.querySelector('#community .pinned__sticky')).position === 'sticky',
         spin: getComputedStyle(document.querySelector('.home-dawn__spin') ?? document.body).animationName,
       };
     });
     check(base.touch === 'on' && base.vhFix === '844px' && !base.lenis, `${tag}: touch path on (no Lenis), viewport fixed in px`, JSON.stringify(base));
-    check(base.noHScroll && base.ribbon && base.spin !== 'none', `${tag}: no h-scroll, community ribbon, Dawn spin kept`, JSON.stringify(base));
+    check(base.noHScroll && base.pinned && base.spin !== 'none', `${tag}: no h-scroll, community pinned, Dawn spin kept`, JSON.stringify(base));
     check(base.sceneH > 844 * 3, `${tag}: scene runway in fixed px`, String(base.sceneH));
     check(
       base.media === 'video' && base.pass === 'video' && !base.canvas && base.video?.frames === main.video?.frames &&
         base.video.muted && base.video.inline && base.video.preload === 'auto' && base.video.paused,
-      `${tag}: phone scrubs the all-intra video (muted, playsinline, preload auto, paused)`,
+      `${tag}: phone scrubs the scene video (muted, playsinline, preload auto, paused)`,
       JSON.stringify({ ...base.video, manifest: main.video })
     );
     const read = () =>
@@ -431,7 +482,7 @@ try {
     await sleep(1800);
     const r2 = await read();
     check(r2.y > r1.y && r2.f !== r1.f && !r2.poster, `${tag}: a finger drag scrubs the video`, `${JSON.stringify(r1)} → ${JSON.stringify(r2)}`);
-    await page.screenshot({ path: join(SHOTS, 'm3_video_scene.png') });
+    await page.screenshot({ path: join(SHOTS, 'm4_scene_mid_390.png') });
     // the address bar hides: +56px of viewport at the same scrollY — sticky and --p must not jump
     await page.setViewport({ width: 390, height: 900, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
     await sleep(900);
@@ -443,7 +494,7 @@ try {
     await page.waitForFunction((n) => +document.querySelector('.scrub video').dataset.frame >= n - 3, { timeout: 8000 }, main.video.frames).catch(() => undefined);
     const rEnd = await read();
     check(rEnd.f >= main.video.frames - 3, `${tag}: the end of the scene shows the last frames`, `frame ${rEnd.f} of ${main.video.frames}`);
-    await page.screenshot({ path: join(SHOTS, 'm3_video_end.png') });
+    await page.screenshot({ path: join(SHOTS, 'm4_scene_end_390.png') });
     await page.close();
   }
 
@@ -482,7 +533,7 @@ try {
       return { far: out.far, alphas: [...out.alphas].filter((x) => +x > 0 && +x < 1).length };
     });
     check(pairs.far === 0 && pairs.alphas >= 3, `${tag}: crossfades only neighbouring frames (i, i+1)`, JSON.stringify(pairs));
-    await page.screenshot({ path: join(SHOTS, 'm3_frames_fallback.png') });
+    await page.screenshot({ path: join(SHOTS, 'm4_scene_fallback_390.png') });
     await page.close();
   }
 
@@ -524,13 +575,13 @@ try {
     await drag(422, false);
     const yHeld0 = await y();
     await sleep(500);
-    await page.screenshot({ path: join(SHOTS, 'm3_snap_before.png') });
+    await page.screenshot({ path: join(SHOTS, 'm4_scene_snap_before_390.png') });
     const yHeld = await y();
     check(Math.abs(yHeld - yHeld0) <= 1, `${tag}: no glide while the finger is down`, `${yHeld0} → ${yHeld}`);
     await page.touchscreen.touchEnd();
     const fwd = await settle(stop2);
     await sleep(300);
-    await page.screenshot({ path: join(SHOTS, 'm3_snap_after.png') });
+    await page.screenshot({ path: join(SHOTS, 'm4_scene_snap_after_390.png') });
     const act = await page.evaluate(() => document.querySelector('.scrub').dataset.active);
     check(Math.abs(fwd.at - stop2) <= 2 && act === '2' && fwd.ms < 1200, `${tag}: half a chapter down → glides on to chapter 03`, `${yHeld} → ${fwd.at} (stop ${stop2}, ${fwd.ms} ms, chapter ${act})`);
     // back: 15% of a chapter down → back to the chapter it left (≤ 0.3 screen against the movement)
@@ -604,6 +655,17 @@ try {
       };
     });
     check(+st.op === 1 && st.anim === 'none' && st.motion !== 'on' && st.scene.includes('scrub--static') && st.chapters, '390 reduced: static and visible', JSON.stringify(st));
+    const comm = await page.evaluate(() => {
+      const root = document.querySelector('#community .pinned');
+      const ch = [...root.querySelectorAll('.pinned__chapter')];
+      return {
+        sticky: getComputedStyle(root.querySelector('.pinned__sticky')).position,
+        ribbon: !!root.querySelector('[data-ribbon], .pinned__dot'),
+        visible: ch.filter((c) => +getComputedStyle(c).opacity === 1 && c.getBoundingClientRect().height > 0).length,
+        n: ch.length,
+      };
+    });
+    check(comm.sticky !== 'sticky' && !comm.ribbon && comm.visible === comm.n && comm.n === 4, '390 reduced: «Жизнь общины» is a static column of all chapters', JSON.stringify(comm));
     const rot = () =>
       page.evaluate(() => {
         const out = [];

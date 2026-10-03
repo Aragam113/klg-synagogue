@@ -57,7 +57,7 @@ const rangesOf = (b: TimeRanges): [number, number][] =>
 
 const canPlayMp4 = (): boolean => {
   try {
-    return !!document.createElement('video').canPlayType('video/mp4; codecs="avc1.4D401E"');
+    return !!document.createElement('video').canPlayType('video/mp4; codecs="avc1.64001E"');
   } catch {
     return false;
   }
@@ -67,9 +67,10 @@ const canPlayMp4 = (): boolean => {
  * Pinned scroll scene: a sticky 100svh canvas inside a (chapters + 1) × 100svh runway.
  * Desktop: the full set, frame = round(p·(N−1)) strictly by scroll; the frame for the current progress loads first,
  * the rest after it, nearest first; until a frame arrives the nearest loaded one is drawn.
- * Touch (`html[data-touch]`), main path: the all-intra scrub video (`manifest.video`, every frame a keyframe) —
- * `muted playsinline preload="auto"`, `currentTime` = the middle of frame round(p·(N−1)) of the smoothed `--p`,
- * a new seek only once the previous one has finished (`seeked`), primed by play+pause on the first touch (iOS).
+ * Touch (`html[data-touch]`), main path: the scrub video (`manifest.video`, the source's 25 fps, a keyframe every
+ * 4 frames, no B-frames) — `muted playsinline preload="auto"`, `currentTime` = the middle of frame round(p·(N−1))
+ * of the lerped `--p`, a new seek only once the previous one is on screen (requestVideoFrameCallback; `seeked`
+ * without it), always to the newest target; primed by play+pause on the first touch (iOS).
  * Fallback (no H.264, an error, no first frame VIDEO_WAIT_MS after the first touch): the light frame set
  * (`manifest.light`), loaded progressively — the poster, then every 4th frame (the poster stays on top until this
  * first pass is in), then the frames between, nearest to the current position first. The canvas crossfades only real
@@ -91,6 +92,8 @@ export const SynagogueScrub = ({
   const canvas = useRef<HTMLCanvasElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   const seekAt = useRef(0);
+  /** a seek was set and its frame is not on screen yet (requestVideoFrameCallback; `seeked` without it) */
+  const seekBusy = useRef(false);
   const imgs = useRef<HTMLImageElement[]>([]);
   const loaded = useRef<boolean[]>([]);
   const progress = useRef(0);
@@ -119,19 +122,24 @@ export const SynagogueScrub = ({
   const vidRef = useRef(vid);
   vidRef.current = vid;
 
-  /** Video: seek to the frame for the current progress, unless a seek is still running. */
+  /**
+   * Video: seek to the frame for the current (lerped) progress, unless the previous seek has not been painted yet —
+   * one seek per presented frame (requestVideoFrameCallback), the newest target only: targets passed while the
+   * decoder was busy are skipped, never queued.
+   */
   const pump = useCallback(() => {
     const v = video.current;
     const vi = vidRef.current;
     if (!v || !vi || v.readyState < 1) return;
     const now = performance.now();
-    if (v.seeking && now - seekAt.current < SEEK_STALE_MS) return;
+    if ((seekBusy.current || v.seeking) && now - seekAt.current < SEEK_STALE_MS) return;
     const want = videoTime(progress.current, vi.frames, vi.fps);
     // while it is downloading: only into what is already here (no stall on a range request, the download stays
     // linear); once the browser has paused the download (preload stops short of the end) — anywhere, it resumes
     const t = v.networkState === 2 ? bufferedTime(want, rangesOf(v.buffered), 0.5 / vi.fps) : want;
     if (Math.abs(v.currentTime - t) < 0.25 / vi.fps) return;
     seekAt.current = now;
+    seekBusy.current = true;
     v.currentTime = t;
   }, []);
 
@@ -243,7 +251,7 @@ export const SynagogueScrub = ({
 
   // Frames. Desktop: the one for the current progress first, then the rest (6 at a time), nearest first.
   // Phones: the poster, then the coarse pass (every 4th) → scrubs, then the frames between, nearest first.
-  // Phones, video: ready on the first decoded frame; seeks chained on `seeked`; the shown frame from
+  // Phones, video: ready on the first decoded frame; a seek waits for the previous one to be painted; the shown frame from
   // requestVideoFrameCallback; primed on the first touch (iOS loads nothing before a gesture); fallback to frames.
   const vSrc = vid?.src;
   useEffect(() => {
@@ -283,12 +291,18 @@ export const SynagogueScrub = ({
     const onFrame = (_: number, meta: { mediaTime: number }) => {
       if (gone) return;
       mark(meta.mediaTime);
+      // the frame of the last seek is on screen: the next seek may go
+      seekBusy.current = false;
       rvfc?.(onFrame);
+      pump();
     };
     rvfc?.(onFrame);
     const onSeeked = () => {
-      if (!rvfc) mark(v.currentTime);
-      pump();
+      if (!rvfc) {
+        mark(v.currentTime);
+        seekBusy.current = false;
+        pump();
+      }
     };
     const onProgress = () => {
       const have = rangesOf(v.buffered).reduce((sum, [s, e]) => sum + e - s, 0);

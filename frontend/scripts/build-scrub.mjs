@@ -27,10 +27,11 @@
  *   --light-quality <q>  starting webp quality of the light set (default 74)
  *   --light-budget <MB>  size limit of the light set, quality drops by 4 until it fits (default 5.5)
  *
- *   --video          also encode the segment as an all-intra H.264 video for phones (every frame a keyframe:
- *                    -g 1 -keyint_min 1 -bf 0, +faststart, no audio) → public/media/scrub/v/scene.mp4; the main
- *                    manifest gets "video": {src, frames, fps, width, height}. Tuning: --video-width 960,
- *                    --video-fps 10, --video-crf 28 (raised by 2 until it fits), --video-budget 7 (MB)
+ *   --video          also encode the segment as an H.264 scrub video for phones (High profile, a keyframe every
+ *                    --video-gop frames, no B-frames: a seek decodes at most gop frames; +faststart, no audio)
+ *                    → public/media/scrub/v/scene.mp4; the main manifest gets "video": {src, frames, fps, width,
+ *                    height}. Tuning: --video-width 854, --video-fps 0 (= the source's own rate), --video-gop 4
+ *                    (1 = every frame a keyframe), --video-crf 28 (raised by 2 until it fits), --video-budget 12 (MB)
  *   --video-only     only (re)encode the video, the frames and the light set stay as they are
  *
  *   npm run build:scrub -- --light-only [--light 1024 --light-step 1 --light-quality 74 --light-budget 5.5]
@@ -52,7 +53,7 @@ const VIDEO = /\.(mp4|webm|mov|mkv|avi|m4v)$/i;
 const IMAGE = /\.(jpe?g|png|webp)$/i;
 
 const parseArgs = (argv) => {
-  const opts = { frames: 110, width: 1600, quality: 72, budget: 12, from: 0, to: null, credit: '', light: 1024, lightStep: 1, lightQuality: 74, lightBudget: 5.5, lightOnly: false, video: false, videoOnly: false, videoWidth: 960, videoFps: 10, videoCrf: 28, videoBudget: 7 };
+  const opts = { frames: 110, width: 1600, quality: 72, budget: 12, from: 0, to: null, credit: '', light: 1024, lightStep: 1, lightQuality: 74, lightBudget: 5.5, lightOnly: false, video: false, videoOnly: false, videoWidth: 854, videoFps: 0, videoGop: 4, videoCrf: 28, videoBudget: 12 };
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -210,7 +211,21 @@ const writeLight = async (all, width, step, quality, budget) => {
   console.log(`scrub light: ${frames.length} frames ${meta.width}x${meta.height}, webp q${q}, ${(bytes / 1048576).toFixed(1)} MB → ${path.relative(ROOT, dir)}`);
 };
 
-/** Every frame a keyframe: a seek anywhere decodes exactly one frame. CRF goes up by 2 until it fits the budget. */
+/** Source frame rate (r_frame_rate as ffmpeg prints it: "25 fps"). */
+const probeFps = (file) => {
+  try {
+    execFileSync(ffmpegPath, ['-hide_banner', '-i', file], { stdio: 'pipe' });
+  } catch (e) {
+    const m = /, ([\d.]+) fps/.exec(String(e.stderr ?? ''));
+    if (m) return Number(m[1]);
+  }
+  throw new Error(`cannot read the frame rate of ${file}`);
+};
+
+/**
+ * Scrub video at the source's own frame rate: a keyframe every `videoGop` frames and no B-frames, so a seek anywhere
+ * decodes at most gop frames (1 = all-intra). CRF goes up by 2 until it fits the budget.
+ */
 const VIDEO_DIR = 'v';
 const writeVideo = (o) => {
   const dir = path.join(OUT, VIDEO_DIR);
@@ -219,13 +234,15 @@ const writeVideo = (o) => {
   const seg = ['-ss', String(o.from), ...(o.to !== null ? ['-to', String(o.to)] : [])];
   const width = Math.round(o.videoWidth / 2) * 2;
   let crf = o.videoCrf;
+  const fps = o.videoFps > 0 ? o.videoFps : probeFps(o.source);
+  const gop = String(Math.max(1, Math.round(o.videoGop)));
   for (;;) {
-    run(['-y', ...seg, '-i', o.source, '-an', '-vf', `fps=${o.videoFps},scale=${width}:-2:flags=lanczos`, '-c:v', 'libx264', '-preset', 'slow', '-crf', String(crf), '-g', '1', '-keyint_min', '1', '-bf', '0', '-pix_fmt', 'yuv420p', '-profile:v', 'main', '-movflags', '+faststart', out]);
+    run(['-y', ...seg, '-i', o.source, '-an', '-vf', `fps=${fps},scale=${width}:-2:flags=lanczos`, '-c:v', 'libx264', '-preset', 'slow', '-crf', String(crf), '-g', gop, '-keyint_min', gop, '-sc_threshold', '0', '-bf', '0', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-movflags', '+faststart', out]);
     if (fs.statSync(out).size <= o.videoBudget * 1048576 || crf >= 40) break;
     crf += 2;
   }
   const dur = (o.to ?? probeDuration(o.source)) - o.from;
-  const frames = Math.max(2, Math.round(dur * o.videoFps));
+  const frames = Math.max(2, Math.round(dur * fps));
   const height = Math.round((width * 9) / 16 / 2) * 2;
   const mainPath = path.join(OUT, 'manifest.json');
   const main = JSON.parse(fs.readFileSync(mainPath, 'utf8'));
@@ -238,10 +255,10 @@ const writeVideo = (o) => {
     }
     return { w: width, h: height };
   })();
-  const video = { src: `${VIDEO_DIR}/scene.mp4`, frames, fps: o.videoFps, width: probe.w, height: probe.h };
+  const video = { src: `${VIDEO_DIR}/scene.mp4`, frames, fps, width: probe.w, height: probe.h };
   fs.writeFileSync(mainPath, `${JSON.stringify({ ...main, video }, null, 2)}
 `);
-  console.log(`scrub video: ${frames} frames ${probe.w}x${probe.h} @${o.videoFps} fps, crf ${crf}, ${(fs.statSync(out).size / 1048576).toFixed(1)} MB → ${path.relative(ROOT, out)}`);
+  console.log(`scrub video: ${frames} frames ${probe.w}x${probe.h} @${fps} fps, gop ${gop}, crf ${crf}, ${(fs.statSync(out).size / 1048576).toFixed(1)} MB → ${path.relative(ROOT, out)}`);
 };
 
 const main = async () => {

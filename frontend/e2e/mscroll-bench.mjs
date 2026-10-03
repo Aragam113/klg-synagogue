@@ -29,6 +29,12 @@
  *   backPx    longest such glide, px
  *   missed    % of moving rAFs where --p stayed still;  jerks — shown frame jumps > 4 frames in one rAF
  *   barJump   |Δ--p| when the viewport height changes by 56px (address bar) at a fixed scrollY
+ *   uniform   a slow even drag (~200 px/s, finger down the whole time, after the media is in):
+ *             picHz   picture changes per second on screen (data-frame from requestVideoFrameCallback / canvas)
+ *             maxSrc  largest jump between two pictures shown one after another, in frames of the SOURCE film
+ *                     (25 fps: a 10 fps scene video jumps ≥ 2.5 source frames at every step)
+ *             p95Src  95th percentile of that jump
+ *             lagMs   mean / max ms from the scroll position asking for a frame until that frame is on screen
  */
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -41,6 +47,8 @@ const CHROME = process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Applic
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SHOTS = process.env.SMOKE_SHOTS ?? join(ROOT, 'e2e', 'shots');
 const ARGS = process.argv.slice(2);
+/** Frame rate of the source film the scene video is cut from (kldsynagogue film 2017). */
+const SRC_FPS = 25;
 const FAST = ARGS.includes('--fast');
 const TAG = ARGS.find((a) => !a.startsWith('--')) ?? 'm3';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -163,6 +171,53 @@ const summarize = (rows) => {
   };
 };
 
+/** Slow even drag: per-rAF picture changes, the jump between shown pictures, the catch-up lag. */
+const uniformStats = (rows, scene, vh, fps) => {
+  const span = scene.h - vh;
+  const frames = rows[0]?.[8] ?? 0;
+  const live = rows.filter((r) => r[9]);
+  if (live.length < 10 || !frames) return null;
+  const rawWant = (r) => Math.round(Math.min(1, Math.max(0, (r[1] - scene.top) / span)) * (frames - 1));
+  let changes = 0, maxStep = 0;
+  const steps = [];
+  const askedAt = new Map();
+  const lags = [];
+  for (let i = 1; i < live.length; i++) {
+    const w = rawWant(live[i]);
+    for (let k = rawWant(live[i - 1]) + 1; k <= w; k++) if (!askedAt.has(k)) askedAt.set(k, live[i][0]);
+    const a = +live[i - 1][3];
+    const b = +live[i][3];
+    if (live[i - 1][3] === '' || live[i][3] === '' || a === b) continue;
+    changes++;
+    const step = Math.abs(b - a) * (SRC_FPS / fps);
+    steps.push(step);
+    maxStep = Math.max(maxStep, step);
+    for (let k = a + 1; k <= b; k++) if (askedAt.has(k)) lags.push(live[i][0] - askedAt.get(k));
+  }
+  steps.sort((x, y) => x - y);
+  const secs = (live.at(-1)[0] - live[0][0]) / 1000;
+  return {
+    picHz: +(changes / Math.max(0.01, secs)).toFixed(1),
+    maxSrc: +maxStep.toFixed(1),
+    p95Src: steps.length ? +steps[Math.floor(steps.length * 0.95)].toFixed(1) : null,
+    lagMs: lags.length ? [Math.round(lags.reduce((x, y) => x + y, 0) / lags.length), Math.round(Math.max(...lags))] : null,
+  };
+};
+
+/** Finger down, an even drag of `dy` px over `ms`, a short hold, finger up. */
+const evenDrag = async (cdp, dy, ms) => {
+  await touch(cdp, 'touchStart', 760);
+  const t0 = Date.now();
+  for (;;) {
+    const k = Math.min(1, (Date.now() - t0) / ms);
+    await touch(cdp, 'touchMove', 760 - dy * k);
+    if (k >= 1) break;
+    await sleep(16);
+  }
+  await sleep(400);
+  await touch(cdp, 'touchEnd');
+};
+
 const touch = (cdp, type, y) =>
   cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x: 195, y }] });
 
@@ -256,6 +311,23 @@ const run = async () => {
     await drag(cdp, -chapter * 0.5);
   });
   const stats = summarize(rows);
+  // slow even scroll through the middle of the scene (~200 px/s), finger down the whole time
+  const fps = await page.evaluate(async () => {
+    const v = document.querySelector('.scrub video');
+    if (!v) return null;
+    const m = await fetch(v.currentSrc.replace(/v\/scene\.mp4.*$/,'manifest.json')).then((r) => r.json()).catch(() => null);
+    return m?.video?.fps ?? null;
+  });
+  let uniform = null;
+  if (fps) {
+    await page.evaluate((s) => window.scrollTo(0, s.top + (s.h - innerHeight) * 0.3), sceneTop);
+    await sleep(1600);
+    const urows = await record(page, async () => {
+      await evenDrag(cdp, 640, 3200);
+      await evenDrag(cdp, 640, 3200);
+    });
+    uniform = uniformStats(urows, sceneTop, 844, fps);
+  }
   await page.screenshot({ path: join(SHOTS, `mscroll_${TAG}${FAST ? '_fast' : ''}_scene.png`) });
   // address bar: viewport height +56px at a fixed scrollY (mid-scene)
   let barJump = null;
@@ -268,7 +340,7 @@ const run = async () => {
     const p2 = await page.evaluate(() => +document.querySelector('.scrub').style.getPropertyValue('--p'));
     barJump = +Math.abs(p2 - p1).toFixed(4);
   }
-  console.log(JSON.stringify({ run: TAG, phone: FAST ? 'fast' : 'slow', engine, media, firstS, loadS, ...stats, early, barJump, totalS: +((Date.now() - t0) / 1000).toFixed(0) }));
+  console.log(JSON.stringify({ run: TAG, phone: FAST ? 'fast' : 'slow', engine, media, firstS, loadS, ...stats, early, uniform, barJump, totalS: +((Date.now() - t0) / 1000).toFixed(0) }));
   await page.close();
 };
 
