@@ -229,7 +229,7 @@ export const PHOTOS: Record<string, Photo> = {
 
 /**
  * Portrait crops for full-height phone frames («Community life» on the home page): 1200×2000, cut from the Commons
- * originals (`.autopilot/ref/kld-img`, 3840px wide — no upscaling) around the building; same files, same credit.
+ * originals (3840px wide — no upscaling) around the building; same files, same credit.
  */
 const tall = (file: string) => assetUrl(`/media/sections/${file}`);
 export const PHOTO_TALL: Partial<Record<keyof typeof PHOTOS, string>> = {
