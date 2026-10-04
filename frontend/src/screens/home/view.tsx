@@ -1,6 +1,6 @@
 import { Fragment, useRef, type PointerEvent as RPointerEvent } from 'react';
 
-import { PHOTOS } from '@/content';
+import { PHOTO_TALL, PHOTOS } from '@/content';
 import { SynagogueScrub } from '@/scenes/synagogue-scrub';
 import { EventCard, FundraiserCard, NewsCard } from '@/screens/events/cards';
 import { countdownText } from '@/screens/schedule/model';
@@ -22,6 +22,7 @@ import { HandStroke, Marquee, Pinned, Reveal } from '@/ui/motion';
 import {
   COMMUNITY,
   LEDGER,
+  type LifeVariant,
   VISIT,
   type BlockState,
   type SceneChapter,
@@ -34,6 +35,8 @@ type T = (key: string, opts?: Record<string, unknown>) => string;
 export interface HomeViewProps {
   t: T;
   lang: string;
+  /** Phone layout of «Community life» (`?life=1|2`, ≤ 767px touch only; desktop ignores it). */
+  life?: LifeVariant;
   chapters: SceneChapter[];
   today: { state: BlockState; block: TodayBlock | null };
   events: { state: BlockState; items: EventItem[] };
@@ -159,6 +162,7 @@ const Slider = ({ children, t }: { children: React.ReactNode; t: T }) => {
 export const HomeView = ({
   t,
   lang,
+  life = 1,
   chapters,
   today,
   events,
@@ -279,33 +283,79 @@ export const HomeView = ({
         </Container>
       </Section>
 
-      {/* 5. Community life — pinned chapters */}
-      <Section tone="deeper" flush pattern={0.03} className="home-community" id="community">
+      {/* 5. Community life — pinned chapters. Phone (≤ 767px, touch): `?life=1` full-screen photo with the chapter
+          over it, `?life=2` a big arch; the extra nodes below are hidden elsewhere (home.css, «Community life»). */}
+      <Section
+        tone="deeper"
+        flush
+        pattern={0.03}
+        className={`home-community home-community--life${life}`}
+        id="community"
+      >
         <Container>
           <Pinned
-            header={<Head t={t} ns="community" light />}
-            chapters={COMMUNITY.map((c, i) => (
-              <div key={c.id} className="home-chapter">
-                <span className="num num--outline home-chapter__n">
-                  {String(i + 1).padStart(2, '0')}
+            header={
+              <>
+                <Head t={t} ns="community" light />
+                <p className="home-life__compact" aria-hidden>
+                  {t('community.title')}
+                </p>
+                <span className="home-life__segments" aria-hidden>
+                  {COMMUNITY.map((c, i) => (
+                    <span key={c.id} style={{ ['--i' as string]: i }} />
+                  ))}
                 </span>
-                <Title size="md" as="h3" text={t(`community.${c.id}.title`)} />
-                <Text>{t(`community.${c.id}.text`)}</Text>
-                <Button href={c.href} variant="light" arrow>
-                  {t('community.more')}
-                </Button>
-              </div>
-            ))}
+              </>
+            }
+            chapters={COMMUNITY.map((c, i) => {
+              const p = PHOTOS[c.photo];
+              return (
+                <div key={c.id} className="home-chapter">
+                  <img
+                    className="home-chapter__photo"
+                    src={PHOTO_TALL[c.photo] ?? p?.src}
+                    alt=""
+                    loading="lazy"
+                  />
+                  <span className="num num--outline home-chapter__n">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <Title size="md" as="h3" text={t(`community.${c.id}.title`)} />
+                  <Text className="home-chapter__text">{t(`community.${c.id}.text`)}</Text>
+                  <Button href={c.href} variant="light" arrow>
+                    {t('community.more')}
+                  </Button>
+                </div>
+              );
+            })}
             renderAside={(active) => {
               const p = PHOTOS[COMMUNITY[active].photo];
               return (
-                <ArchFrame
-                  src={p?.src}
-                  alt={p?.alt[lang as 'ru'] ?? ''}
-                  ratio="3 / 4"
-                  glow
-                  className="home-arch"
-                />
+                <>
+                  <ArchFrame
+                    src={p?.src}
+                    alt={p?.alt[lang as 'ru'] ?? ''}
+                    ratio="3 / 4"
+                    glow
+                    className="home-arch"
+                  />
+                  <div className="home-life__frame">
+                    <div className="home-life__photos">
+                      {COMMUNITY.map((c, i) => (
+                        <img
+                          key={c.id}
+                          className="home-life__photo"
+                          src={PHOTO_TALL[c.photo] ?? PHOTOS[c.photo]?.src}
+                          alt={i === active ? (PHOTOS[c.photo]?.alt[lang as 'ru'] ?? '') : ''}
+                          loading="lazy"
+                          data-current={i === active}
+                          style={{ ['--i' as string]: i }}
+                        />
+                      ))}
+                    </div>
+                    <span className="home-life__shade" aria-hidden />
+                  </div>
+                </>
               );
             }}
           />

@@ -4,7 +4,7 @@ import { content as ru } from './ru/sections';
 import type { SectionsContent } from './types';
 
 export type { SectionsContent } from './types';
-export { PHOTOS, type Photo } from './photos';
+export { PHOTOS, PHOTO_TALL, type Photo } from './photos';
 
 const ALL: Record<'ru' | 'en' | 'he', SectionsContent> = { ru, en, he };
 
