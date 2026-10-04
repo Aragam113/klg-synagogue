@@ -181,23 +181,33 @@ html[data-motion='on'] .home-dawn__note { opacity: clamp(0.15, (var(--p) - 0.25)
 :root[lang='he'] .home-threshold__he { display: none; }
 @media (max-width: 599px) { .home-threshold { min-height: 0; } }
 
-/* ---- «Community life» on a phone (≤ 767px, touch, motion on), `?life=1|2` (HomeView `life`) ----
-   1 — the pinned screen is the chapter's photo (portrait crop, Ken Burns from --p, crossfade between chapters) with
-       the chapter over it at the bottom; the big section title lives through chapter 1, then shrinks to the eyebrow.
-   2 — a big arch (≤ 60% of the screen, 16px side margins) with a short chapter under it; the big title only at the
-       entry, then a compact one-line title + counter on top. Both: stories-like 4-segment progress, only
-       transform/opacity follow --p. Reduced motion (any variant): a static column, a full-width photo per chapter.
-   Everywhere else these nodes stay hidden and the layout above is untouched. */
-.home-life__compact, .home-life__segments, .home-life__frame, .home-chapter__photo { display: none; }
+/* ---- «Community life» on a phone (≤ 767px, touch, motion on): a big arch that opens into a full-screen photo ----
+   The pinned screen is one stack: the chapter photos fill the whole screen (portrait crops, Ken Burns from --p,
+   crossfade between chapters), the chapter lies over them at the bottom, the head on top. At the entry the photo is
+   clipped to a big arch (16px side margins, a round top) between the big section title and the first chapter
+   (`--life-top`/`--life-bottom`, measured by useLifeMorph/lifeArch only when sizes change). Over the first 30% of
+   the first chapter (`--m`, strictly from --p, so scrolling back folds it into the arch again) the clip opens to
+   the full screen, the round top goes to 0, the big title shrinks to the eyebrow, the shade, the plate under the
+   text, the chapter number, the counter and the stories-like progress come in, the text rides down 12px
+   (LIFE_TEXT_LIFT). Only clip-path/transform/opacity follow --p. Reduced motion: a static column, a full-width photo
+   per chapter. Everywhere else these nodes stay hidden and the layout above is untouched. */
+.home-life__segments, .home-life__frame, .home-chapter__photo { display: none; }
 @media (max-width: 767px) {
-  html[data-motion='on'][data-touch] .home-community .pinned__sticky { --pn: calc(var(--p, 0) * var(--chapters)); }
+  html[data-motion='on'][data-touch] .home-community { padding-inline: 0; }
+  html[data-motion='on'][data-touch] .home-community .pinned__sticky {
+    --pn: calc(var(--p, 0) * var(--chapters));
+    --m: clamp(0, calc(var(--pn) / 0.3), 1);
+    --um: calc(1 - var(--m));
+    display: block; padding: 0; }
   html[data-motion='on'][data-touch] .home-community .pinned__progress,
   html[data-motion='on'][data-touch] .home-community .home-arch { display: none; }
-  html[data-motion='on'][data-touch] .home-community .pinned__counter { color: var(--light); }
+  html[data-motion='on'][data-touch] .home-community .pinned__body { display: block; }
+  html[data-motion='on'][data-touch] .home-community .pinned__aside { position: absolute; inset: 0; z-index: 0; display: block; }
 
-  /* stories-like progress: segment i fills while chapter i scrolls by */
+  /* stories-like progress: segment i fills while chapter i scrolls by; it comes in with the full-screen photo */
   html[data-motion='on'][data-touch] .home-community .home-life__segments {
-    display: flex; gap: 4px; position: absolute; z-index: 4; top: 0.857rem; inset-inline: var(--gutter); height: 2px; }
+    display: flex; gap: 4px; position: absolute; z-index: 4; top: 0.857rem; inset-inline: var(--gutter); height: 2px;
+    opacity: var(--m); }
   html[data-motion='on'][data-touch] .home-community .home-life__segments > span {
     position: relative; flex: 1 1 0; overflow: hidden; border-radius: 1px; background: #f6f1e64d; }
   html[data-motion='on'][data-touch] .home-community .home-life__segments > span::after {
@@ -205,9 +215,15 @@ html[data-motion='on'] .home-dawn__note { opacity: clamp(0.15, (var(--p) - 0.25)
     transform: scaleX(clamp(0, calc(var(--pn) - var(--i)), 1)); }
   html[dir='rtl'][data-motion='on'][data-touch] .home-community .home-life__segments > span::after { transform-origin: right center; }
 
-  /* the photo stack: later chapters on top, each fades in across its chapter boundary; slow Ken Burns while visible */
-  html[data-motion='on'][data-touch] .home-community .home-life__frame { display: block; position: relative; overflow: hidden; }
+  /* the photo: full screen, clipped to the arch at the entry; the radius is half the arch width (a round top); the top
+     edge opens eased (um²) so it rises under the big title only once the title has faded */
+  html[data-motion='on'][data-touch] .home-community .home-life__frame {
+    --r: calc(var(--um) * (50vw - 16px));
+    display: block; position: absolute; inset: 0; overflow: hidden; background: var(--line);
+    clip-path: inset(calc(var(--um) * var(--um) * var(--life-top, 11rem)) calc(var(--um) * 16px) calc(var(--um) * var(--life-bottom, 21rem))
+      round var(--r) var(--r) calc(var(--um) * 7px) calc(var(--um) * 7px)); }
   .home-life__photos { position: absolute; inset: 0; }
+  /* later chapters on top, each fades in across its chapter boundary; slow Ken Burns while visible */
   html[data-motion='on'][data-touch] .home-community .home-life__photo {
     --kb: clamp(0, calc((var(--pn) - var(--i) + 0.3) / 1.6), 1);
     --kx: 1;
@@ -220,70 +236,39 @@ html[data-motion='on'] .home-dawn__note { opacity: clamp(0.15, (var(--p) - 0.25)
   html[dir='rtl'][data-motion='on'][data-touch] .home-community .home-life__photo { --kx: -1; }
   html[dir='rtl'][data-motion='on'][data-touch] .home-community .home-life__photo:nth-child(even) { --kx: 1; }
   .home-life__shade { position: absolute; inset: 0; pointer-events: none; }
-
-  /* ---- 1: full-screen photo ---- */
-  html[data-motion='on'][data-touch] .home-community--life1 { padding-inline: 0; }
-  html[data-motion='on'][data-touch] .home-community--life1 .pinned__sticky {
-    --s: clamp(0, calc((var(--pn) - 0.7) / 0.3), 1); display: block; padding: 0; }
-  html[data-motion='on'][data-touch] .home-community--life1 .pinned__body { display: block; }
-  html[data-motion='on'][data-touch] .home-community--life1 .pinned__aside { position: absolute; inset: 0; z-index: 0; display: block; }
-  html[data-motion='on'][data-touch] .home-community--life1 .home-life__frame { position: absolute; inset: 0; }
-  html[data-motion='on'][data-touch] .home-community--life1 .home-life__shade { background:
+  html[data-motion='on'][data-touch] .home-community .home-life__shade { opacity: var(--m); background:
     linear-gradient(180deg, #0b151ae6 0%, #0b151a99 22%, #0b151a00 40%, #0b151a00 44%, #0b151ab3 66%, #0b151af2 100%); }
-  html[data-motion='on'][data-touch] .home-community--life1 .pinned__head {
-    position: absolute; z-index: 3; top: 0; inset-inline: var(--gutter); padding-top: 1.714rem; align-items: flex-start; }
-  html[data-motion='on'][data-touch] .home-community--life1 .pinned__head > div:first-child { flex: 1 1 auto; min-width: 0; }
-  html[data-motion='on'][data-touch] .home-community--life1 .home-head { margin: 0; gap: 0.571rem; }
-  html[data-motion='on'][data-touch] .home-community--life1 .home-head .eyebrow { color: var(--light); text-shadow: 0 1px 0.4rem #0b151ae6; }
-  html[data-motion='on'][data-touch] .home-community--life1 .home-head .title {
-    color: var(--light); text-shadow: 0 1px 3px #0b151ab3, 0 0 1.6rem #0b151a99;
-    transform-origin: top left; opacity: calc(1 - var(--s));
-    transform: translateY(calc(var(--s) * -0.714rem)) scale(calc(1 - var(--s) * 0.3)); }
-  html[dir='rtl'][data-motion='on'][data-touch] .home-community--life1 .home-head .title { transform-origin: top right; }
-  html[data-motion='on'][data-touch] .home-community--life1 .pinned__counter { text-shadow: 0 1px 0.4rem #0b151ae6; }
-  html[data-motion='on'][data-touch] .home-community--life1 .pinned__stage {
-    position: absolute; z-index: 2; inset-inline: var(--gutter); bottom: 1.714rem; height: 20rem; min-height: 0; }
-  /* the plate under the chapter, as under the scroll-scene chapters on a phone */
-  html[data-motion='on'][data-touch] .home-community--life1 .pinned__stage::before {
-    content: ''; position: absolute; z-index: -1; pointer-events: none; inset: 2rem calc(-1 * var(--gutter)) -1.714rem;
-    background: radial-gradient(farthest-side at 40% 72%, #0b151ad9 0%, #0b151ab3 45%, #0b151a59 75%, #0b151a00 100%); }
-  html[data-motion='on'][data-touch] .home-community--life1 .pinned__chapter { justify-content: flex-end; }
-  html[data-motion='on'][data-touch] .home-community--life1 .home-chapter__n {
-    font-size: 3.429rem; line-height: 1; -webkit-text-stroke-color: #dcc08c; text-shadow: 0 0 1.2rem #0b151acc; }
-  html[data-motion='on'][data-touch] .home-community--life1 .home-chapter .title {
-    color: var(--light); text-shadow: 0 1px 3px #0b151ab3, 0 0 1.6rem #0b151a99; }
-  html[data-motion='on'][data-touch] .home-community--life1 .home-chapter__text { color: var(--light); text-shadow: 0 1px 0.6rem #0b151ae6; }
 
-  /* ---- 2: big arch ---- */
-  html[data-motion='on'][data-touch] .home-community--life2 { padding-inline: 16px; }
-  html[data-motion='on'][data-touch] .home-community--life2 .pinned__sticky {
-    --s: clamp(0, calc(var(--pn) / 0.35), 1); padding-block: 1.714rem 1.143rem; gap: 0.857rem; }
-  /* the head row is the positioned box here: the segments sit above it, at the top of the screen */
-  html[data-motion='on'][data-touch] .home-community--life2 .home-life__segments { top: -0.857rem; inset-inline: 0; }
-  html[data-motion='on'][data-touch] .home-community--life2 .pinned__head { position: relative; z-index: 2; align-items: center; min-height: 2rem; }
-  html[data-motion='on'][data-touch] .home-community--life2 .pinned__head > div:first-child { flex: 1 1 auto; min-width: 0; }
-  html[data-motion='on'][data-touch] .home-community--life2 .home-head {
-    position: absolute; top: 0; inset-inline: 0; margin: 0; pointer-events: none; transform-origin: top left;
-    opacity: calc(1 - var(--s)); transform: translateY(calc(var(--s) * -1rem)) scale(calc(1 - var(--s) * 0.3)); }
-  html[dir='rtl'][data-motion='on'][data-touch] .home-community--life2 .home-head { transform-origin: top right; }
-  html[data-motion='on'][data-touch] .home-community--life2 .home-life__compact {
-    display: block; margin: 0; font-family: var(--f-display); font-size: 1.286rem; line-height: 1.3; color: var(--light);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: var(--s); }
-  html[data-motion='on'][data-touch] .home-community--life2 .pinned__counter { opacity: var(--s); }
-  /* the arch takes all the height it may (≤ 60% of the screen; the rest goes to the text); at the entry it is
-     smaller, standing on its base under the big title, and grows to full size as the title shrinks */
-  html[data-motion='on'][data-touch] .home-community--life2 .pinned__body { gap: 1rem; justify-content: center; }
-  html[data-motion='on'][data-touch] .home-community--life2 .pinned__aside {
-    flex: 0 1 calc(var(--vh-fix, 100svh) * 0.6); display: block;
-    transform-origin: 50% 100%; transform: scale(calc(1 - (1 - var(--s)) * 0.3)); }
-  html[data-motion='on'][data-touch] .home-community--life2 .home-life__frame {
-    width: 100%; height: 100%; border-radius: var(--r-pill) var(--r-pill) 7px 7px; background: var(--line); }
-  html[data-motion='on'][data-touch] .home-community--life2 .home-life__shade { background: linear-gradient(180deg, #0b151a00 70%, #0b151a59 100%); }
-  html[data-motion='on'][data-touch] .home-community--life2 .pinned__stage { flex: 0 0 13rem; }
-  html[data-motion='on'][data-touch] .home-community--life2 .home-chapter__n { display: none; }
-  html[data-motion='on'][data-touch] .home-community--life2 .home-chapter .title { font-size: 1.571rem; margin: 0; }
-  html[data-motion='on'][data-touch] .home-community--life2 .home-chapter__text {
-    margin: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
+  /* the head: the big title through the entry, then only the eyebrow and the counter */
+  html[data-motion='on'][data-touch] .home-community .pinned__head {
+    position: absolute; z-index: 3; top: 0; inset-inline: var(--gutter); padding-top: 1.714rem; align-items: flex-start; }
+  html[data-motion='on'][data-touch] .home-community .pinned__head > div:first-child { flex: 1 1 auto; min-width: 0; }
+  html[data-motion='on'][data-touch] .home-community .home-head { margin: 0; gap: 0.571rem; }
+  html[data-motion='on'][data-touch] .home-community .home-head .eyebrow { color: var(--light); text-shadow: 0 1px 0.4rem #0b151ae6; }
+  html[data-motion='on'][data-touch] .home-community .home-head .title {
+    color: var(--light); text-shadow: 0 1px 3px #0b151ab3, 0 0 1.6rem #0b151a99;
+    transform-origin: top left; opacity: clamp(0, calc(1 - var(--m) * 2), 1);
+    transform: translateY(calc(var(--m) * -0.714rem)) scale(calc(1 - var(--m) * 0.3)); }
+  html[dir='rtl'][data-motion='on'][data-touch] .home-community .home-head .title { transform-origin: top right; }
+  html[data-motion='on'][data-touch] .home-community .pinned__counter {
+    color: var(--light); opacity: var(--m); text-shadow: 0 1px 0.4rem #0b151ae6; }
+
+  /* the chapter at the bottom: under the arch at the entry (lifted by LIFE_TEXT_LIFT), over the shade after */
+  html[data-motion='on'][data-touch] .home-community .pinned__stage {
+    position: absolute; z-index: 2; inset-inline: var(--gutter); bottom: 1.714rem; height: 20rem; min-height: 0;
+    transform: translateY(calc(var(--um) * -12px)); }
+  /* the plate under the chapter, as under the scroll-scene chapters on a phone */
+  html[data-motion='on'][data-touch] .home-community .pinned__stage::before {
+    content: ''; position: absolute; z-index: -1; pointer-events: none; inset: 2rem calc(-1 * var(--gutter)) -1.714rem;
+    opacity: var(--m);
+    background: radial-gradient(farthest-side at 40% 72%, #0b151ad9 0%, #0b151ab3 45%, #0b151a59 75%, #0b151a00 100%); }
+  html[data-motion='on'][data-touch] .home-community .pinned__chapter { justify-content: flex-end; }
+  html[data-motion='on'][data-touch] .home-community .home-chapter__n {
+    font-size: 3.429rem; line-height: 1; -webkit-text-stroke-color: #dcc08c; text-shadow: 0 0 1.2rem #0b151acc;
+    opacity: var(--m); }
+  html[data-motion='on'][data-touch] .home-community .home-chapter .title {
+    color: var(--light); text-shadow: 0 1px 3px #0b151ab3, 0 0 1.6rem #0b151a99; }
+  html[data-motion='on'][data-touch] .home-community .home-chapter__text { color: var(--light); text-shadow: 0 1px 0.6rem #0b151ae6; }
 
   /* reduced motion: every chapter with its own full-width photo */
   html:not([data-motion='on']) .home-community .pinned__aside { display: none; }

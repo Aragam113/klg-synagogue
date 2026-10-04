@@ -54,12 +54,28 @@ export const COMMUNITY = [
   { id: 'help', href: '/help', photo: 'orphanage2025' },
 ] as const;
 
-/** Phone layout of «Community life» (≤ 767px, touch): 1 — full-screen photo, 2 — big arch. */
-export type LifeVariant = 1 | 2;
+/** Lift of the chapter text at the entry of the phone «Community life» (px; home.css `--life-lift`): it rides
+ *  down by this much as the arch opens. */
+export const LIFE_TEXT_LIFT = 12;
 
-/** `?life=1|2` → layout variant; anything else → 1. */
-export const lifeVariant = (raw: string | string[] | undefined): LifeVariant =>
-  (Array.isArray(raw) ? raw[0] : raw) === '2' ? 2 : 1;
+/**
+ * The arch the phone «Community life» enters with (≤ 767px, touch), as insets of the full-screen photo (px): under
+ * the big head (`headBottom`, from the top of the pinned screen) and above the first chapter's title (`textTop`,
+ * where it stands once the photo is full screen; at the entry it is `LIFE_TEXT_LIFT` higher). home.css opens these
+ * insets to 0 by `--p` (clip-path), so the arch becomes the full-screen photo.
+ */
+export const lifeArch = ({
+  screenH,
+  headBottom,
+  textTop,
+}: {
+  screenH: number;
+  headBottom: number;
+  textTop: number;
+}): { top: number; bottom: number } => ({
+  top: Math.round(headBottom + 12),
+  bottom: Math.round(screenH - (textTop - LIFE_TEXT_LIFT - 16)),
+});
 
 /** «For visitors» cards: links into the visit section; texts in `home:visit.<id>`. */
 export const VISIT = [
