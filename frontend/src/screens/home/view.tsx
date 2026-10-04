@@ -22,7 +22,6 @@ import { HandStroke, Marquee, Pinned, Reveal } from '@/ui/motion';
 import {
   COMMUNITY,
   LEDGER,
-  type LifeVariant,
   VISIT,
   type BlockState,
   type SceneChapter,
@@ -35,8 +34,6 @@ type T = (key: string, opts?: Record<string, unknown>) => string;
 export interface HomeViewProps {
   t: T;
   lang: string;
-  /** Phone layout of «Community life» (`?life=1|2`, ≤ 767px touch only; desktop ignores it). */
-  life?: LifeVariant;
   chapters: SceneChapter[];
   today: { state: BlockState; block: TodayBlock | null };
   events: { state: BlockState; items: EventItem[] };
@@ -162,7 +159,6 @@ const Slider = ({ children, t }: { children: React.ReactNode; t: T }) => {
 export const HomeView = ({
   t,
   lang,
-  life = 1,
   chapters,
   today,
   events,
@@ -283,23 +279,14 @@ export const HomeView = ({
         </Container>
       </Section>
 
-      {/* 5. Community life — pinned chapters. Phone (≤ 767px, touch): `?life=1` full-screen photo with the chapter
-          over it, `?life=2` a big arch; the extra nodes below are hidden elsewhere (home.css, «Community life»). */}
-      <Section
-        tone="deeper"
-        flush
-        pattern={0.03}
-        className={`home-community home-community--life${life}`}
-        id="community"
-      >
+      {/* 5. Community life — pinned chapters. Phone (≤ 767px, touch): enters as a big arch that opens into a
+          full-screen photo with the chapter over it; the extra nodes below are hidden elsewhere (home.css). */}
+      <Section tone="deeper" flush pattern={0.03} className="home-community" id="community">
         <Container>
           <Pinned
             header={
               <>
                 <Head t={t} ns="community" light />
-                <p className="home-life__compact" aria-hidden>
-                  {t('community.title')}
-                </p>
                 <span className="home-life__segments" aria-hidden>
                   {COMMUNITY.map((c, i) => (
                     <span key={c.id} style={{ ['--i' as string]: i }} />

@@ -6,10 +6,10 @@
  *
  * Checks: side margins ≥ 16px in every home section at 360; the logo does not overlap the header icons;
  * the mobile menu is above the cookie banner; touch targets ≥ 44px (header icons, burger, menu languages,
- * close, checkbox label); the marquee moves; Reveal fires on scroll; «Жизнь общины» is pinned on touch too
- * in both phone layouts `?life=1|2` (1 full-screen photo, 2 big arch; no parameter = 1): chapters change by scroll
- * down and up, the photo follows, stories progress, the big title shrinks, nothing overlaps at 360/390/414 and he
- * (life_v{1,2}_*); reduced motion — a static column with a full-width photo per chapter;
+ * close, checkbox label); the marquee moves; Reveal fires on scroll; «Жизнь общины» is pinned on touch too:
+ * it enters as a big arch under the big title and opens into the full-screen photo over the first 30% of chapter 1
+ * (forward and back by scroll position), then chapters change by scroll down and up, the photo follows, stories
+ * progress, nothing overlaps at 360/390/414 and he (morph_*); reduced motion — a static column with a full-width photo per chapter;
  * the scene credit is one short line; with reduced motion nothing moves.
  * On touch the synagogue scene scrubs by native scroll (frame at p≈0.1 ≠ p≈0.9 and back,
  * sticky 100svh), the Dawn rosette turns by itself (two marks 3 s apart) and with scroll, the hexagram
@@ -256,34 +256,45 @@ try {
     await page.close();
   }
 
-  // ---- 4a. «Жизнь общины» on a phone: pinned chapters (touch path) in both `?life=` layouts —
-  //      1 full-screen photo, 2 big arch; 390×844 (shots life_v{1,2}_ch1..4_390), 360×740, 414×896, he
+  // ---- 4a. «Жизнь общины» on a phone: pinned chapters (touch path); the section enters as a big arch that opens into
+  //      the full-screen photo over the first 30% of chapter 1 (from --p only, back the same way). 390×844 — the
+  //      sequence (morph_390_p00..p30, _ch2..4, _back_*), 360×740, 414×896, he (morph_{360,he}_*).
   /** Chapter stops of the auto-settle (touch-scroll chapterStops for 4): entry, 1.45/4, 2.45/4, end. */
   const STOPS = [0, 1.45 / 4, 2.45 / 4, 1];
+  /** Chapter 1 once the arch has opened (pn 0.5). */
+  const CH1 = 0.5 / 4;
   const over = (a, b) => a && b && a.t < b.b - 1 && b.t < a.b - 1 && a.l < b.r - 1 && b.l < a.r - 1;
-  const lifeRun = async (v, w, h, lang, { shots = [], deep = false } = {}) => {
-    const page = await open(`/?lang=${lang}${v ? `&life=${v}` : ''}`, w, { height: h });
-    const life = v ?? 1;
-    const tag = `life ${life} ${w}×${h} ${lang}`;
+  const lifeRun = async (w, h, lang, { shots = {}, deep = false } = {}) => {
+    const page = await open(`/?lang=${lang}`, w, { height: h });
+    const tag = `life ${w}×${h} ${lang}`;
     const geo = await page.evaluate(() => {
       const el = document.querySelector('#community .pinned');
       return {
         top: el.getBoundingClientRect().top + scrollY,
         h: el.offsetHeight,
         n: +getComputedStyle(el).getPropertyValue('--chapters'),
-        cls: document.querySelector('#community').className,
       };
     });
-    check(geo.n === 4 && geo.h === h * 5 && geo.cls.includes(`home-community--life${life}`) &&
-      !(await page.evaluate(() => !!document.querySelector('#community [data-ribbon], #community .pinned__dot'))),
-      `${tag}: pinned runway in fixed px (--vh-fix × (4+1)), layout class, no swipe ribbon`, JSON.stringify(geo));
+    check(geo.n === 4 && geo.h === h * 5 &&
+      !(await page.evaluate(() => !!document.querySelector('#community [data-ribbon], #community .pinned__dot, .home-community--life1, .home-community--life2'))),
+      `${tag}: pinned runway in fixed px (--vh-fix × (4+1)), one layout, no swipe ribbon`, JSON.stringify(geo));
     const runway = geo.h - h;
-    const at = async (i, frac = STOPS[i]) => {
+    /** Scroll to a share of the runway and read the state; `hold` keeps a finger down (a synthetic touchstart) so the
+     *  auto-settle leaves a passing state (the morph, the opened chapter 1) where it is. */
+    const at = async (frac, { hold = false } = {}) => {
+      if (hold) await page.evaluate(() => window.dispatchEvent(new Event('touchstart')));
       await page.evaluate((y) => window.scrollTo(0, y), Math.round(geo.top + runway * frac));
       await sleep(1300);
-      return page.evaluate(() => {
+      const r = await read();
+      if (hold) await page.evaluate(() => window.dispatchEvent(new Event('touchend')));
+      return r;
+    };
+    const read = () =>
+      page.evaluate(() => {
         const root = document.querySelector('#community .pinned');
-        const sticky = root.querySelector('.pinned__sticky').getBoundingClientRect();
+        const stickyEl = root.querySelector('.pinned__sticky');
+        const sticky = stickyEl.getBoundingClientRect();
+        const cs = getComputedStyle(stickyEl);
         const cur = root.querySelector('.pinned__chapter[data-current="true"]');
         const box = (el) => {
           if (!el) return null;
@@ -291,32 +302,51 @@ try {
           if (!r.width || !r.height) return null;
           return { t: Math.round(r.top), b: Math.round(r.bottom), l: Math.round(r.left), r: Math.round(r.right) };
         };
-        const parts = cur
-          ? [...cur.querySelectorAll('.home-chapter__n, h3, p, .btn')].filter((e) => getComputedStyle(e).display !== 'none').map(box)
-          : [];
-        const photos = [...root.querySelectorAll('.home-life__photo')].map((p) => +getComputedStyle(p).opacity);
-        const top = photos.reduce((acc, o, k) => (o > 0.95 ? k : acc), -1);
-        const segs = [...root.querySelectorAll('.home-life__segments > span')].map((s) =>
-          Math.round(new DOMMatrix(getComputedStyle(s, '::after').transform).a * 100) / 100);
-        const title = root.querySelector('.home-head .title');
         /** Rendered opacity: the element's times its ancestors'. */
         const eop = (el) => {
           let o = 1;
           for (let e = el; e && e !== root; e = e.parentElement) o *= +getComputedStyle(e).opacity;
           return o;
         };
-        const compact = root.querySelector('.home-life__compact');
+        const parts = cur
+          ? [...cur.querySelectorAll('.home-chapter__n, h3, p, .btn')]
+            .filter((e) => getComputedStyle(e).display !== 'none' && eop(e) > 0.5).map(box)
+          : [];
+        const photos = [...root.querySelectorAll('.home-life__photo')].map((p) => +getComputedStyle(p).opacity);
+        const top = photos.reduce((acc, o, k) => (o > 0.95 ? k : acc), -1);
+        const segs = [...root.querySelectorAll('.home-life__segments > span')].map((s) =>
+          Math.round(new DOMMatrix(getComputedStyle(s, '::after').transform).a * 100) / 100);
+        const title = root.querySelector('.home-head .title');
+        const frame = root.querySelector('.home-life__frame');
+        // the arch the photo is clipped to, from the same inputs as the CSS: --p → m, the measured insets
+        const p = parseFloat(cs.getPropertyValue('--p')) || 0;
+        const m = Math.min(1, Math.max(0, (p * 4) / 0.3));
+        const um = 1 - m;
+        const lt = parseFloat(stickyEl.style.getPropertyValue('--life-top'));
+        const lb = parseFloat(stickyEl.style.getPropertyValue('--life-bottom'));
+        const W = innerWidth;
+        const H = sticky.height;
+        const arch = { t: Math.round(um * um * lt), b: Math.round(H - um * lb), l: Math.round(um * 16), r: Math.round(W - um * 16) };
+        // the clip is real: in the side field next to the arch the photo is not hit at the entry, it is when opened
+        const hit = (x, y) => !!document.elementFromPoint(x, y)?.closest('.home-life__frame');
         return {
           active: root.dataset.active,
           op: cur ? +getComputedStyle(cur).opacity : 0,
           stickyTop: Math.round(sticky.top),
           stickyH: Math.round(sticky.height),
-          // what must stay clear of the chapter text: the visible head row (title shrunk → eyebrow/compact + counter)
-          head: [root.querySelector('.home-head .eyebrow'), title, compact, root.querySelector('.pinned__counter')]
+          m: Math.round(m * 100) / 100,
+          lt,
+          lb,
+          arch,
+          clip: getComputedStyle(frame).clipPath.slice(0, 6),
+          sideHit: hit(6, Math.round((arch.t + arch.b) / 2)),
+          cornerHit: hit(6, 4),
+          head: [root.querySelector('.home-head .eyebrow'), title, root.querySelector('.pinned__counter')]
             .filter((e) => e && getComputedStyle(e).display !== 'none' && eop(e) > 0.5).map(box),
           titleOp: Math.round(eop(title) * 100) / 100,
           titleBox: box(title),
-          frame: box(root.querySelector('.home-life__frame')),
+          segOp: +getComputedStyle(root.querySelector('.home-life__segments')).opacity,
+          shade: +getComputedStyle(root.querySelector('.home-life__shade')).opacity,
           oldArch: getComputedStyle(root.querySelector('.home-arch')).display,
           src: root.querySelectorAll('.home-life__photo')[Math.max(0, top)]?.getAttribute('src') ?? '',
           top,
@@ -325,43 +355,86 @@ try {
           noHScroll: document.documentElement.scrollWidth <= innerWidth,
         };
       });
-    };
-    const seen = [];
-    for (let i = 0; i < geo.n; i++) {
-      const r = await at(i);
-      seen.push(r);
-      const name = shots.includes(i) ? (shots.length > 1 ? `life_v${life}_ch${i + 1}_${w}` : `life_v${life}_${lang === 'he' ? 'he' : w}`) : null;
-      if (name) await page.screenshot({ path: join(SHOTS, `${name}.png`) });
+    const snap = (name) => (name ? page.screenshot({ path: join(SHOTS, `morph_${name}.png`) }) : undefined);
+    /** Text and head apart, inside the 16px fields; while the arch is not open, the text and the head off it. */
+    const layoutOk = (r, what) => {
       const inside = r.parts.every((p) => p && p.t >= 0 && p.b <= h && p.l >= 15.5 && p.r <= w - 15.5);
       const clashHead = r.parts.some((p) => r.head.some((hd) => over(p, hd)));
-      // 1: the text lies over the photo by design; 2: the arch, the head row and the text are apart
-      const clashMedia = life === 2 && (r.parts.some((p) => over(p, r.frame)) || r.head.some((hd) => over(hd, r.frame)));
-      const media = life === 1
-        ? r.frame && r.frame.t <= 0 && r.frame.b >= h && r.frame.l <= 0 && r.frame.r >= w
-        : r.frame && r.frame.b - r.frame.t >= h * (i === 0 ? 0.4 : 0.55) && r.frame.l >= 15.5 && r.frame.r <= w - 15.5 && r.frame.r - r.frame.l >= (i === 0 ? 0.6 * w : w - 40);
-      check(r.active === String(i) && r.op > 0.95 && r.stickyTop === 0 && r.stickyH === h && r.top === i && r.oldArch === 'none',
-        `${tag}: chapter ${i + 1} — pinned, its photo on top`, JSON.stringify({ active: r.active, op: r.op, sticky: [r.stickyTop, r.stickyH], top: r.top }));
-      check(media && !clashHead && !clashMedia && inside && r.parts.length >= 3 && r.noHScroll,
-        `${tag}: chapter ${i + 1} — ${life === 1 ? 'full-screen photo' : 'big arch'}, text clear of the head${life === 2 ? ' and the arch' : ''}, fits, no h-scroll`,
-        JSON.stringify({ frame: r.frame, head: r.head, parts: r.parts }));
+      const clashArch = r.m < 0.2 && (r.parts.some((p) => over(p, r.arch)) || r.head.some((hd) => over(hd, r.arch)));
+      check(inside && !clashHead && !clashArch && r.parts.length >= 2 && r.noHScroll && r.stickyTop === 0 && r.stickyH === h,
+        `${tag}: ${what} — text clear of the head${r.m < 0.2 ? ' and the arch' : ''}, fits, no h-scroll`,
+        JSON.stringify({ m: r.m, arch: r.arch, head: r.head, parts: r.parts }));
+    };
+    /** The entry: the big title, under it the arch (16px fields, a real clip), the chapter text under the arch. */
+    const entryOk = (r, what) => {
+      const ah = r.arch.b - r.arch.t;
+      check(r.m === 0 && r.clip === 'inset(' && !r.sideHit && r.titleOp > 0.95 && r.titleBox && r.titleBox.b <= r.arch.t &&
+        r.arch.l === 16 && r.arch.r === w - 16 && ah >= h * 0.3 && r.segOp < 0.05 && r.shade < 0.05 && r.active === '0',
+        `${tag}: ${what} — big title, an arch under it (${ah}px of ${h}), no progress yet`,
+        JSON.stringify({ m: r.m, clip: r.clip, side: r.sideHit, titleOp: r.titleOp, title: r.titleBox, arch: r.arch, seg: r.segOp }));
+      layoutOk(r, what);
+    };
+    /** Opened: the photo is the whole screen, the title shrunk to the eyebrow, progress and counter in. */
+    const openOk = (r, i, what) => {
+      check(r.m === 1 && r.sideHit && r.cornerHit && r.titleOp < 0.05 && r.segOp > 0.95 && r.shade > 0.95 &&
+        r.active === String(i) && r.op > 0.95 && r.top === i && r.oldArch === 'none',
+        `${tag}: ${what} — full-screen photo of chapter ${i + 1}, title shrunk to the eyebrow`,
+        JSON.stringify({ m: r.m, side: r.sideHit, corner: r.cornerHit, titleOp: r.titleOp, seg: r.segOp, active: r.active, op: r.op, top: r.top }));
       check(r.segs.length === 4 && r.segs.slice(0, i).every((s) => s > 0.99) && r.segs.slice(i + 1).every((s) => s < 0.01),
-        `${tag}: chapter ${i + 1} — stories progress`, r.segs.join(' '));
-      // the big title: 1 — through chapter 1, then gone; 2 — only at the entry
-      if (life === 1) check(i === 0 ? r.titleOp > 0.95 : r.titleOp < 0.05, `${tag}: chapter ${i + 1} — big title ${i === 0 ? 'shown' : 'shrunk'}`, String(r.titleOp));
-      if (life === 2 && i > 0) check(r.titleOp < 0.05, `${tag}: chapter ${i + 1} — big title shrunk`, String(r.titleOp));
+        `${tag}: ${what} — stories progress`, r.segs.join(' '));
+      layoutOk(r, what);
+    };
+
+    const entry = await at(0);
+    await snap(shots.entry);
+    entryOk(entry, 'entry');
+    if (deep) {
+      // the morph forward: pn 0.1, 0.2 — part way; 0.3 — open
+      const mids = [];
+      for (const [pn, name] of [[0.1, 'p10'], [0.2, 'p20']]) {
+        const r = await at(pn / 4, { hold: true });
+        await snap(`${w}_${name}`);
+        mids.push(r);
+        layoutOk(r, `morph pn ${pn}`);
+      }
+      const [a, b] = mids;
+      check(a.m > 0.2 && a.m < 0.45 && b.m > 0.55 && b.m < 0.8 && a.arch.t > b.arch.t && a.arch.l > b.arch.l && a.arch.b < b.arch.b &&
+        entry.titleOp > a.titleOp && a.titleOp > b.titleOp && a.segOp < b.segOp,
+        `${tag}: the arch opens step by step, the title shrinks, progress comes in`,
+        JSON.stringify(mids.map((r) => ({ m: r.m, arch: r.arch, title: r.titleOp, seg: r.segOp }))));
+      const opened = await at(0.3 / 4, { hold: true });
+      await snap(`${w}_p30`);
+      openOk(opened, 0, 'morph pn 0.3');
+    }
+    const seen = [await at(CH1, { hold: true })];
+    openOk(seen[0], 0, 'chapter 1');
+    for (let i = 1; i < geo.n; i++) {
+      const r = await at(STOPS[i]);
+      seen.push(r);
+      await snap(shots[`ch${i + 1}`]);
+      openOk(r, i, `chapter ${i + 1}`);
     }
     check(new Set(seen.map((r) => r.src)).size === 4, `${tag}: the photo changes with every chapter`, seen.map((r) => r.src.split('/').pop()).join(' '));
     if (deep) {
-      if (life === 2) {
-        // the entry: the big title on top, the arch waits under it
-        const e = await at(0, 0);
-        check(e.titleOp > 0.95 && e.frame && e.titleBox && e.frame.t >= e.titleBox.b - 24, `${tag}: entry — big title, the arch under it`, JSON.stringify({ t: e.titleBox, f: e.frame }));
-        await page.screenshot({ path: join(SHOTS, `life_v2_entry_${w}.png`) });
-      }
-      // back up: the chapters go back in order
+      // back up: chapters in reverse, then the photo folds back into the arch — the same states as on the way in
       const back = [];
-      for (let i = geo.n - 2; i >= 0; i--) back.push((await at(i)).active);
+      for (let i = geo.n - 2; i >= 1; i--) {
+        const r = await at(STOPS[i]);
+        await snap(`${w}_back_ch${i + 1}`);
+        back.push(r.active);
+      }
+      back.push((await at(CH1, { hold: true })).active);
       check(back.join() === '2,1,0', `${tag}: chapters change on scroll up`, back.join());
+      const half = await at(0.15 / 4, { hold: true });
+      await snap(`${w}_back_p15`);
+      check(half.m > 0.4 && half.m < 0.6,
+        `${tag}: back — half folded at pn 0.15`, String(half.m));
+      layoutOk(half, 'back pn 0.15');
+      const home = await at(0);
+      await snap(`${w}_back_p00`);
+      entryOk(home, 'back at the entry');
+      check(JSON.stringify(home.arch) === JSON.stringify(entry.arch) && home.titleOp === entry.titleOp,
+        `${tag}: back at the entry — the same arch as on the way in`, JSON.stringify([entry.arch, home.arch]));
       // a finger drag inside the section moves the chapter (native touch scroll, then the auto-settle)
       await at(0);
       await page.touchscreen.touchStart(w / 2, h - 144);
@@ -377,14 +450,11 @@ try {
     }
     await page.close();
   };
-  await lifeRun(null, 390, 844, 'ru'); // no parameter → layout 1
-  for (const v of [1, 2]) {
-    await lifeRun(v, 390, 844, 'ru', { shots: [0, 1, 2, 3], deep: true });
-    if (!ONLY) {
-      await lifeRun(v, 360, 740, 'ru', { shots: [1] });
-      await lifeRun(v, 414, 896, 'ru');
-      await lifeRun(v, 390, 844, 'he', { shots: [1] });
-    }
+  await lifeRun(390, 844, 'ru', { shots: { entry: '390_p00', ch2: '390_ch2', ch3: '390_ch3', ch4: '390_ch4' }, deep: true });
+  if (!ONLY) {
+    await lifeRun(360, 740, 'ru', { shots: { entry: '360_p00', ch2: '360_ch2' } });
+    await lifeRun(414, 896, 'ru');
+    await lifeRun(390, 844, 'he', { shots: { entry: 'he_p00', ch2: 'he_ch2' } });
   }
 
   // ---- 4b. Dawn rosette, scroll scene, parallax on phones (native scroll, real heights)
