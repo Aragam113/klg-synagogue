@@ -54,6 +54,13 @@ export const COMMUNITY = [
   { id: 'help', href: '/help', photo: 'orphanage2025' },
 ] as const;
 
+/** Phone layout of «Community life» (≤ 767px, touch): 1 — full-screen photo, 2 — big arch. */
+export type LifeVariant = 1 | 2;
+
+/** `?life=1|2` → layout variant; anything else → 1. */
+export const lifeVariant = (raw: string | string[] | undefined): LifeVariant =>
+  (Array.isArray(raw) ? raw[0] : raw) === '2' ? 2 : 1;
+
 /** «For visitors» cards: links into the visit section; texts in `home:visit.<id>`. */
 export const VISIT = [
   { id: 'hours', href: '/visit/hours', photo: 'facade2019b' },
