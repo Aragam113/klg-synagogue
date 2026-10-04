@@ -87,7 +87,7 @@ export const SubmitRow = ({ busy, label }: { busy: boolean; label?: string }) =>
   const { t } = useLang('forms');
   return (
     <div className="fp__submit">
-      <Button type="submit" variant="primary" disabled={busy} arrow>
+      <Button type="submit" variant="primary" busy={busy} arrow>
         {busy ? t('common.sending') : (label ?? t('common.submit'))}
       </Button>
       <span className="fp__req-note">{t('common.required')}</span>

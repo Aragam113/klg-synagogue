@@ -46,7 +46,7 @@ export const DevPayView = ({
                     variant="gold"
                     size="lg"
                     onPress={() => onAction('pay')}
-                    disabled={busy}
+                    busy={busy}
                     className="dev-pay__pay"
                   >
                     {busy ? t('devPay.busy') : t('devPay.pay')}

@@ -56,7 +56,7 @@ export const LoginView = (p: LoginViewProps) => {
           error={fieldError(p.errors.password)}
           required
         />
-        <Button type="submit" disabled={p.busy}>
+        <Button type="submit" busy={p.busy}>
           {p.busy ? t('common.wait') : t('login.submit')}
         </Button>
       </form>
