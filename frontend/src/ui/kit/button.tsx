@@ -11,6 +11,8 @@ export interface ButtonProps {
   onPress?: () => void;
   type?: 'button' | 'submit';
   disabled?: boolean;
+  /** Sending: disabled + aria-busy + a spinner before the label. */
+  busy?: boolean;
   /** Trailing arrow (mirrored in RTL). */
   arrow?: boolean;
   className?: string;
@@ -32,7 +34,7 @@ export const Arrow = () => (
   </svg>
 );
 
-/** Pill button with the reference glint on hover; renders <a> when `href` is set. */
+/** Pill button with the reference glint on hover; press/hold/ripple come from the kit press system; renders <a> when `href` is set. */
 export const Button = ({
   children,
   variant = 'primary',
@@ -40,14 +42,17 @@ export const Button = ({
   href,
   onPress,
   type = 'button',
-  disabled,
+  disabled: disabledProp,
+  busy,
   arrow,
   className = '',
   ariaLabel,
 }: ButtonProps) => {
+  const disabled = disabledProp || busy;
   const cls = `btn btn--${variant} btn--${size} ${className}`;
   const body = (
     <>
+      {busy ? <span className="btn__spin" aria-hidden /> : null}
       <span>{children}</span>
       {arrow ? <Arrow /> : null}
     </>
@@ -65,6 +70,7 @@ export const Button = ({
       className={cls}
       onClick={onPress}
       disabled={disabled}
+      aria-busy={busy || undefined}
       aria-label={ariaLabel}
     >
       {body}

@@ -1,0 +1,198 @@
+/*
+ * Press system looks (one for the whole site and admin). The wiring is src/ui/kit/press.web.ts: it marks the pressed
+ * element with data-pressed="<kind>" (+ data-press-kind, --rx/--ry/--rd ripple origin and diameter), adds data-held
+ * after 350 ms, and on release swaps both for data-released="pressed|held" (+ --rip-s, the ripple scale reached).
+ * Kinds: solid (buttons, chips, pills: scale + darker + ripple), card (tiles: pressed in, gold edge on hold),
+ * plain (links, icons), field (inputs/selects: glow), check (checkbox/radio rows).
+ * Only scale/opacity/filter/box-shadow change — no layout. All of it is CSS animations, so the components' own
+ * transitions and hover rules stay untouched. Reduced motion: no scale, no ripple — colour/glow only.
+ */
+:root {
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --press-in: 90ms;
+  --press-release: 420ms;
+  --ripple-grow: 1200ms;
+  --ripple: color-mix(in srgb, var(--gold) 38%, transparent);
+  --focus-ring: 0 0 0 3px var(--gold-pill), 0 0 0 1px var(--gold);
+}
+
+/* our own feedback replaces the grey/blue tap flash; no 300 ms tap delay */
+html { -webkit-tap-highlight-color: transparent; }
+:where(a[href], button, summary, select, label, input, textarea, [role='button'], [role='tab'], [role='radio'], [data-press]) {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- per-kind values ---------- */
+[data-press-kind] {
+  --press-scale: 0.97;
+  --hold-scale: 0.95;
+  --press-over: 1.015;
+  --press-filter: brightness(0.94);
+  --hold-filter: brightness(0.9);
+  --press-shadow: none;
+  --hold-shadow: none;
+  --press-opacity: 1;
+  --hold-opacity: 1;
+}
+[data-press-kind='solid'] {
+  --press-scale: 0.965;
+  --hold-scale: 0.945;
+  --press-over: 1.02;
+  --press-filter: brightness(0.9);
+  --hold-filter: brightness(0.85);
+  isolation: isolate;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.btn--primary[data-press-kind], .sch-toggle[aria-pressed='true'], .don-chip.is-on, .don-toggle__btn.is-on, .adm-tab[aria-selected='true'] {
+  /* dark fills: "darker" reads as a lift of the ripple instead */
+  --ripple: color-mix(in srgb, var(--gold) 55%, transparent);
+}
+.btn--gold[data-press-kind], .sch-toggle--zmanim[aria-pressed='true'] { --ripple: #ffffff4d; }
+:where(.tone-deep, .tone-deeper, .tone-ink, .ftr, .mnav, .lbx, .cookie) [data-press-kind='solid'] { --ripple: #f5f4ef33; --press-filter: brightness(1.12); --hold-filter: brightness(1.2); }
+[data-press-kind='card'] {
+  --press-scale: 0.985;
+  --hold-scale: 0.97;
+  --press-over: 1.006;
+  --press-filter: brightness(0.97);
+  --hold-filter: brightness(0.95);
+  --press-shadow: 0 1px 2px #0f0f0d24, inset 0 0 0 1px #0f0f0d14;
+  --hold-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 75%, transparent), 0 2px 6px #0f0f0d1f;
+}
+[data-press-kind='plain'] {
+  --press-scale: 0.95;
+  --hold-scale: 0.92;
+  --press-over: 1.03;
+  --press-filter: none;
+  --hold-filter: none;
+  --press-opacity: 0.7;
+  --hold-opacity: 0.55;
+}
+[data-press-kind='field'] {
+  --press-scale: 1;
+  --hold-scale: 1;
+  --press-over: 1;
+  --press-filter: none;
+  --hold-filter: none;
+  --press-shadow: 0 0 0 3px var(--gold-pill);
+  --hold-shadow: 0 0 0 4px var(--gold-soft);
+}
+[data-press-kind='check'] {
+  --press-scale: 0.985;
+  --hold-scale: 0.97;
+  --press-over: 1.01;
+  --press-filter: none;
+  --hold-filter: none;
+  --press-opacity: 0.8;
+  --hold-opacity: 0.7;
+}
+[data-released='held'] { --rel-scale: var(--hold-scale); --rel-filter: var(--hold-filter); --rel-shadow: var(--hold-shadow); --rel-opacity: var(--hold-opacity); }
+[data-released='pressed'] { --rel-scale: var(--press-scale); --rel-filter: var(--press-filter); --rel-shadow: var(--press-shadow); --rel-opacity: var(--press-opacity); }
+
+/* ---------- selected / current: an animated indicator (pop + gold wave), zero specificity so press wins ---------- */
+:where(.lang__btn[aria-pressed='true'], .don-chip.is-on, .don-toggle__btn.is-on, .sch-toggle[aria-pressed='true'],
+  .adm-tab[aria-selected='true'], [role='tab'][aria-selected='true'], .mnav__link[aria-current='page']) {
+  animation: sel-pop 520ms var(--ease) both;
+}
+html[data-anim='on'] :where(.hdr__link[aria-current='page'])::after {
+  transform-origin: var(--sel-origin, left) center;
+  animation: sel-line 600ms var(--ease) both;
+}
+html[dir='rtl'] { --sel-origin: right; }
+
+/* ---------- reduced motion (and the base for everyone): colour/glow only ---------- */
+[data-pressed] { animation: press-in-flat var(--press-in) ease-out forwards; }
+[data-pressed][data-held] { animation: hold-in-flat 300ms ease-out forwards; }
+
+/* ---------- full motion ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  [data-pressed] { animation: press-in var(--press-in) cubic-bezier(0.2, 0, 0, 1) forwards; }
+  [data-pressed][data-held] { animation: hold-in 320ms var(--ease) forwards; }
+  [data-released] { animation: press-release var(--press-release) var(--ease-spring); }
+  /* a chip that got selected by this press springs straight into its selection pop (no double bounce) */
+  [data-released]:is(.lang__btn[aria-pressed='true'], .don-chip.is-on, .don-toggle__btn.is-on, .sch-toggle[aria-pressed='true'],
+    .adm-tab[aria-selected='true'], [role='tab'][aria-selected='true']) { animation: sel-pop 520ms var(--ease) both; }
+
+  /* ripple: one ::before per solid element, centred on the touch point, grows while held, fades on release */
+  [data-press-kind='solid']::before {
+    content: '';
+    position: absolute;
+    left: var(--rx, 50%);
+    top: var(--ry, 50%);
+    width: var(--rd, 0px);
+    height: var(--rd, 0px);
+    margin: calc(var(--rd, 0px) / -2) 0 0 calc(var(--rd, 0px) / -2);
+    border-radius: 50%;
+    background: radial-gradient(closest-side, var(--ripple) 78%, transparent);
+    pointer-events: none;
+    z-index: -1;
+    scale: 0;
+    opacity: 0;
+  }
+  [data-pressed='solid']::before { animation: ripple-grow var(--ripple-grow) cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+  [data-released][data-press-kind='solid']::before { animation: ripple-out 480ms ease-out forwards; }
+}
+
+@keyframes press-in-flat { to { filter: var(--press-filter); box-shadow: var(--press-shadow); opacity: var(--press-opacity); } }
+@keyframes hold-in-flat {
+  from { filter: var(--press-filter); box-shadow: var(--press-shadow); opacity: var(--press-opacity); }
+  to { filter: var(--hold-filter); box-shadow: var(--hold-shadow); opacity: var(--hold-opacity); }
+}
+@keyframes press-in { to { scale: var(--press-scale); filter: var(--press-filter); box-shadow: var(--press-shadow); opacity: var(--press-opacity); } }
+@keyframes hold-in {
+  from { scale: var(--press-scale); filter: var(--press-filter); box-shadow: var(--press-shadow); opacity: var(--press-opacity); }
+  to { scale: var(--hold-scale); filter: var(--hold-filter); box-shadow: var(--hold-shadow); opacity: var(--hold-opacity); }
+}
+/* the "to" frame is the element's own style: it springs back past 1 (--press-over) and settles */
+@keyframes press-release {
+  from { scale: var(--rel-scale); filter: var(--rel-filter); box-shadow: var(--rel-shadow); opacity: var(--rel-opacity); }
+  55% { scale: var(--press-over); }
+}
+@keyframes ripple-grow {
+  from { scale: 0.08; opacity: 0; }
+  15% { opacity: 0.75; }
+  to { scale: 1; opacity: 1; }
+}
+@keyframes ripple-out {
+  from { scale: var(--rip-s, 1); opacity: 1; }
+  to { scale: calc(var(--rip-s, 1) + 0.12); opacity: 0; }
+}
+@keyframes sel-pop {
+  from { scale: 0.92; box-shadow: 0 0 0 0 var(--gold-soft); }
+  45% { scale: 1.04; }
+  to { box-shadow: 0 0 0 0.571rem #8a735200; }
+}
+@keyframes sel-line { from { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) {
+  :where(.lang__btn, .don-chip, .don-toggle__btn, .sch-toggle, .adm-tab, [role='tab'], .mnav__link) { animation: none; }
+  [data-pressed] { animation: press-in-flat 1ms forwards !important; }
+  [data-pressed][data-held] { animation: hold-in-flat 1ms forwards !important; }
+}
+
+/* ---------- focus-visible: a clear gold ring for the keyboard ---------- */
+:where(a[href], button, summary, [role='button'], [role='tab'], [role='radio'], [data-press]):focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+:where(.btn, .don-chip, .don-toggle__btn, .sch-toggle, .lang__btn, .nws-chip, .sx-chip, .adm-btn, .adm-tab, .social, .home-arrow, .lbx__btn, .mnav__close):focus-visible {
+  border-radius: var(--r-pill);
+  box-shadow: 0 0 0 5px var(--gold-pill);
+}
+:where(.card--link, .cnt-photo, .cnt-album, .home-vcard, .sx-card, .nws-nb):focus-visible { outline-offset: 4px; border-radius: var(--r-card); }
+.tone-deep :focus-visible, .tone-deeper :focus-visible, .tone-ink :focus-visible, .ftr :focus-visible, .mnav :focus-visible, .lbx :focus-visible { outline-color: #c9b58f; }
+
+/* ---------- disabled / loading ---------- */
+:where(button, [role='button'], .btn):is(:disabled, [aria-disabled='true']) { cursor: not-allowed; filter: saturate(0.6); }
+.btn[aria-busy='true'] { cursor: progress; opacity: 0.8; }
+.btn__spin {
+  width: 1em;
+  height: 1em;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-inline-end-color: transparent;
+  animation: busy-spin 0.8s linear infinite;
+}
+@keyframes busy-spin { to { rotate: 1turn; } }
