@@ -14,6 +14,7 @@ import {
   Empty,
   ErrorBox,
   Eyebrow,
+  DemoBadge,
   FallbackBadge,
   Link,
   Page,
@@ -58,6 +59,7 @@ export const EventView = ({ event: e, notFound, error, onRetry, onRegister }: Ev
               <Reveal>
                 <Eyebrow>{t('events.eyebrow')}</Eyebrow>
                 <Title as="h1" size="lg" text={e.title} />
+                <DemoBadge slug={e.slug} />
                 <FallbackBadge show={e.fallback} />
                 <dl className="cnt-info cnt-info--row">
                   <div>

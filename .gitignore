@@ -17,3 +17,8 @@ frontend/e2e/shots/
 /.autopilot/
 /CLAUDE.md
 /docs/adr/
+
+# локальный запуск (npm start): встроенный Postgres, логин dev-админа, снимок БД для архива
+/.devdata/
+/DEV-LOGIN.txt
+/dev-data/

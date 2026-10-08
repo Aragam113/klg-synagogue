@@ -1,0 +1,18 @@
+{
+  "name": "klg-synagogue-dev",
+  "private": true,
+  "description": "Сайт синагоги Калининграда — локальный запуск одной командой (встроенный PostgreSQL + API + web)",
+  "engines": {
+    "node": ">=20.19.4"
+  },
+  "scripts": {
+    "start": "node scripts/dev-start.mjs",
+    "reset": "node scripts/dev-start.mjs --reset",
+    "dev:dump": "node scripts/make-dev-dump.mjs",
+    "dev:archive": "node scripts/make-dev-archive.mjs"
+  },
+  "dependencies": {
+    "embedded-postgres": "17.10.0-beta.17",
+    "pg": "8.16.3"
+  }
+}

@@ -17,6 +17,9 @@
 | Unit фронта | `cd frontend && npx jest` |
 | Типы / линт фронта | `cd frontend && npm run type-check && npm run lint` |
 | Сиды контента (миграции + идемпотентные сиды) | `cd backend && npm run seed` |
+| Демо-афиша и демо-сборы (slug `demo-*`, плашка «Пример»; даты от сегодня) | `cd backend && npm run seed:demo` (убрать — `-- --remove`) |
+| Всё одной командой: встроенный Postgres `.devdata/pg` (:54329+) + API (:3000+) + web (:8081+) | `npm start` в корне (`npm run reset` — к дампу `dev-data/db.sql`; `README-DEV.md`) |
+| Снимок dev-БД и dev-архив | `PG_BIN=<путь к bin PostgreSQL> npm run dev:dump`, затем `npm run dev:archive` → `~/Downloads/klg-synagogue-dev.zip` |
 | Импорт новостей из Telegram | `cd backend && npm run import:telegram -- --since 2026-08-01` (`--channel <имя>`, по умолчанию `B_C_Kaliningrad`) |
 | Хеш пароля для `ADMIN_USERS` | `cd backend && npm run admin:hash -- <пароль>` |
 | Миграции вручную | `cd backend && npm run migration:run` (`migration:revert`) |

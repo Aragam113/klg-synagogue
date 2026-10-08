@@ -13,6 +13,15 @@ export {
   type CheckboxProps,
   type FormProps,
 } from './form';
-export { Card, ErrorBox, Empty, Placeholder, FallbackBadge, type CardProps } from './blocks';
+export {
+  Card,
+  ErrorBox,
+  Empty,
+  Placeholder,
+  FallbackBadge,
+  DemoBadge,
+  isDemoSlug,
+  type CardProps,
+} from './blocks';
 export { installPress, usePressFeedback } from './press';
 export { pressKind, pressTarget, type PressKind } from './press-model';

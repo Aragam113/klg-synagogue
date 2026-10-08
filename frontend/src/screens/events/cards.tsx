@@ -1,6 +1,6 @@
 import { useLang } from '@/i18n/use-lang';
 import { type EventItem, type Fundraiser, mediaUrl, type NewsItem } from '@/store/api/content';
-import { Button, Card, FallbackBadge } from '@/ui/kit';
+import { Button, Card, DemoBadge, FallbackBadge } from '@/ui/kit';
 import { dateBadge, formatDay, formatTime } from '@/utils/kld-time';
 
 import { formatRub, fundraiserProgress } from './content-model';
@@ -46,6 +46,7 @@ export const EventCard = ({ event }: { event: EventItem }) => {
         <b>{badge.day}</b>
         <small>{badge.month}</small>
       </span>
+      <DemoBadge slug={event.slug} />
       <FallbackBadge show={event.fallback} />
     </Card>
   );
@@ -120,6 +121,7 @@ export const FundraiserCard = ({ fundraiser: f }: { fundraiser: Fundraiser }) =>
           <dd>{f.supporters}</dd>
         </div>
       </dl>
+      <DemoBadge slug={f.slug} />
       <FallbackBadge show={f.fallback} />
     </Card>
   );
