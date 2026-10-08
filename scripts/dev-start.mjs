@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 /**
- * `npm start` — сайт целиком одной командой: встроенный PostgreSQL (.devdata/pg) + API (NestJS) + web (Expo).
+ * `npm start` — сайт целиком одной командой: встроенный PostgreSQL + API (NestJS) + web (Expo).
+ * Данные PostgreSQL — в .devdata/pg, а если путь проекта не ASCII или в OneDrive — в ASCII-кэше
+ * (%LOCALAPPDATA%\klg-synagogue-dev\<хеш> или ~/.klg-synagogue-dev/<хеш>), см. DEVDATA в dev/lib.mjs.
  * Первый запуск: зависимости, кластер БД, восстановление dev-data/db.sql, backend/.env с dev-админом, картинки.
  * Повторный — без переустановки и восстановления. Ctrl+C гасит всё, включая PostgreSQL.
  * `npm run reset` (= этот файл с --reset) — вернуть данные к дампу.
  */
-import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import {
   BACKEND, DB_NAME, DB_USER, DUMP, DUMP_UPLOADS, FRONTEND, PGDATA, ROOT,
-  backendRequire, c, checkNode, ensureDeps, ensureRootDeps, freePort, initCluster, killTree, openBrowser,
+  backendRequire, c, checkNode, copyTree, ensureDeps, ensureRootDeps, freePort, initCluster, killTree, openBrowser,
   readState, restoreDump, run, startChild, startPg, step, stopPg, waitHttp, writeState,
 } from './dev/lib.mjs';
 
@@ -66,7 +68,8 @@ function writeLogin(password) {
       'Адрес админки печатается при запуске (http://localhost:<порт сайта>/admin).',
       'Сменить пароль: удалите backend/.env и запустите npm start снова — создастся новый.',
       '',
-    ].join('\n')
+    ].join('\n'),
+    { mode: 0o600 }
   );
 }
 
@@ -76,14 +79,15 @@ function copyUploads(force) {
   const dest = path.join(BACKEND, 'uploads');
   mkdirSync(dest, { recursive: true });
   const before = readdirSync(dest).length;
-  cpSync(DUMP_UPLOADS, dest, { recursive: true, force });
+  copyTree(DUMP_UPLOADS, dest, { force });
   const n = readdirSync(dest).length;
   if (force || n !== before) step(`Картинки: ${n} файлов в backend/uploads`);
 }
 
 async function restore(pgPort) {
   if (!existsSync(DUMP)) throw new Error(`Нет дампа ${path.relative(ROOT, DUMP)}`);
-  step(`Создаю кластер PostgreSQL в ${path.relative(ROOT, PGDATA)}…`);
+  const inRoot = !path.relative(ROOT, PGDATA).startsWith('..');
+  step(`Создаю кластер PostgreSQL в ${inRoot ? path.relative(ROOT, PGDATA) : `${PGDATA} (путь проекта не ASCII или в OneDrive)`}…`);
   const password = await initCluster();
   await startPg(pgPort);
   step('Восстанавливаю данные из dev-data/db.sql…');
