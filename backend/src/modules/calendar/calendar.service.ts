@@ -29,6 +29,7 @@ import {
   SYNAGOGUE_LOCATION,
 } from './calendar.config';
 import {
+  HE_NAME_FIXES,
   HOLIDAY_INFO,
   MONTHS_RU,
   PARSHIOT_RU,
@@ -162,13 +163,18 @@ function hebrewDate(hd: HDate, lang: LangCode): string {
 }
 
 function parashaName(ev: ParshaEvent, lang: LangCode): string {
-  if (lang === 'he') return ev.render('he-x-NoNikud').replace(/^פרשת\s+/, '');
+  if (lang === 'he')
+    return (
+      HE_NAME_FIXES[ev.getDesc()] ??
+      ev.render('he-x-NoNikud').replace(/^פרשת\s+/, '')
+    );
   if (lang === 'ru') return ev.parsha.map((p) => PARSHIOT_RU[p] ?? p).join('–');
   return ev.parsha.join('-');
 }
 
 function holidayName(ev: HEvent, lang: LangCode): string {
-  if (lang === 'he') return ev.render('he-x-NoNikud');
+  if (lang === 'he')
+    return HE_NAME_FIXES[ev.getDesc()] ?? ev.render('he-x-NoNikud');
   if (lang === 'ru') return holidayNameRu(ev.getDesc());
   return ev.render('en');
 }
