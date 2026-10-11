@@ -6,6 +6,8 @@
  * `decorative: true` — чисто декоративные надписи (фоновые слова «Созвездия», бегущая строка приветствий,
  * подсказка «Листайте», приветствие-надпись над «Порогом»): экспорт их не пишет без `--with-decor`,
  * но collectRows() возвращает всегда — импорт старого файла с этими ключами продолжает работать.
+ * Так же устроены `dynamic: true` (данные из БД/админки: сиды, демо-моки, строки только в БД; вернуть —
+ * `--with-dynamic`) и `technical: true` (плейсхолдеры, формулы, числа, коды, единицы, бренды; `--with-technical`).
  * Экспорт (`i18n-export.mjs`) пишет строки в xlsx, импорт (`i18n-he-import.mjs`) собирает их заново,
  * находит строку по ключу и применяет правку через `loc` (planEdits → applyEdits).
  */
@@ -144,6 +146,38 @@ export const sectionGroup = (label) => {
 const DECOR_KEYS = new Set(['home:hero.cue', 'home:threshold.eyebrow']);
 const DECOR_SOURCES = new Set(['ghost']);
 export const isDecorative = (r) => DECOR_SOURCES.has(r.source) || DECOR_KEYS.has(r.key);
+
+/**
+ * Динамика: то, что сайт берёт из API/БД и что правят в админке (новости — в т. ч. импорт из Telegram,
+ * афиша, сборы, программы, подразделения, альбомы и подписи фото, примечания расписания, настройки —
+ * реквизиты/оператор). Их исходники в выгрузке — сиды `content.data.ts` (только начальная заливка БД),
+ * демо-моки `demo-mock.data.ts` (записи «Пример») и строки, которые есть только в БД.
+ * Тексты `frontend/src/content`, i18n, site.ts, hebrew-names.ts и hebcal в админке не правятся — статика.
+ */
+const DYNAMIC_SOURCES = new Set(['seed', 'demo', 'db']);
+export const isDynamic = (r) => DYNAMIC_SOURCES.has(r.source);
+
+/**
+ * Техничка — строки без переводимого смысла: одни плейсхолдеры/формулы (`$t(site.name), $t(site.city)`,
+ * `{{seats}} × {{price}} = {{total}}`), числа и даты, URL/e-mail/телефоны, коды и самоназвания языков
+ * (RU, English, עברית), сокращения единиц (м, д, ч, мин, с), названия-бренды, одинаковые на всех
+ * языках (Google Maps, OpenStreetMap, STARS). Строка со словами и плейсхолдером внутри — не техничка.
+ */
+const TECH_KEY_PREFIXES = ['common:lang.short.', 'common:lang.name.'];
+const stripPh = (s) => (s ?? '').replace(/\{\{[^}]+\}\}|\$t\([^)]+\)|\$\{[^}]+\}|\{[\w.]+\}/g, '');
+const UNIT = /^[\d\s.,]*(м|км|см|кг|г|д|ч|мин|с|сек|₽|руб\.?|%)$/u;
+const URLISH = /^(https?:\/\/|mailto:|tel:|www\.)\S+$|^[\w.+-]+@[\w-]+\.[\w.-]+$|^\+?[\d\s()‑–-]{6,}$/u;
+const DATE_FMT = /^[dDmMyYhHs]+([.\/:\s,-]+[dDmMyYhHs]+)+$/;
+export const isTechnical = (r) => {
+  const vals = [r.ru, r.en, r.he].map((v) => (v ?? '').trim());
+  const [ru, en, he] = vals;
+  if (TECH_KEY_PREFIXES.some((p) => r.key.startsWith(p))) return true;
+  if (!vals.some((v) => /\p{L}/u.test(stripPh(v)))) return true; // плейсхолдеры, формулы, числа, даты, символы
+  if (vals.filter(Boolean).every((v) => URLISH.test(v) || DATE_FMT.test(v))) return true;
+  if (UNIT.test(ru) && (!en || UNIT.test(en) || /^[\d\s.,]*[a-z]{1,3}$/.test(en))) return true; // «м», «46 м», «мин»
+  // одинаково на всех трёх языках и без кириллицы — бренд/код, не переводится (кириллица = непереведённая заглушка)
+  return Boolean(ru) && ru === en && en === he && !/\p{Script=Cyrillic}/u.test(ru);
+};
 
 /* ───────────────────────────── JSON с позициями ───────────────────────────── */
 
@@ -744,6 +778,8 @@ export async function collectRows({ db = true, warn = (m) => console.warn(m) } =
     r.stub = /\[ВПИШИ/.test(r.ru) || /\[ВПИШИ/.test(r.he);
     if (r.stub && !r.section.includes('заглушка')) r.section += ' · заглушка [ВПИШИ], факт ещё не вписан';
     r.decorative = isDecorative(r);
+    r.dynamic = isDynamic(r);
+    r.technical = isTechnical(r);
     r.untranslated = !r.noFlag && (!r.he.trim() || r.he.trim() === r.ru.trim());
   }
   const seen = new Set();

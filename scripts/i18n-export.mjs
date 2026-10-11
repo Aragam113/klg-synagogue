@@ -1,8 +1,11 @@
 /**
  * Все тексты сайта (ru / en / he) → xlsx для вычитки иврита носителем.
- *   npm run i18n:export [-- <файл.xlsx>] [--with-decor]   (по умолчанию ~/Downloads/klg-synagogue-texts-he-review.xlsx)
- * Декоративные надписи (фоновые слова «Созвездия», бегущая строка приветствий и т. п.) в файл
- * не попадают; `--with-decor` возвращает их.
+ *   npm run i18n:export [-- <файл.xlsx>] [--with-decor] [--with-dynamic] [--with-technical] [--all]
+ *   (по умолчанию ~/Downloads/klg-synagogue-texts-he-review.xlsx)
+ * По умолчанию в файл не попадают: декоративные надписи (фоновые слова «Созвездия», бегущая строка
+ * приветствий; `--with-decor`), данные из БД/админки — сиды, демо-моки, строки только в БД
+ * (`--with-dynamic`), техничка без переводимого смысла — плейсхолдеры, формулы, коды, единицы, бренды
+ * (`--with-technical`). `--all` возвращает всё.
  * Правки возвращаются в код командой `npm run i18n:he-import -- <файл.xlsx>`.
  */
 import os from 'node:os';
@@ -25,7 +28,10 @@ export const COLS = {
 };
 
 const args = process.argv.slice(2);
-const withDecor = args.includes('--with-decor');
+const all_ = args.includes('--all');
+const withDecor = all_ || args.includes('--with-decor');
+const withDynamic = all_ || args.includes('--with-dynamic');
+const withTechnical = all_ || args.includes('--with-technical');
 const out =
   args.find((a) => !a.startsWith('--')) ?? path.join(os.homedir(), 'Downloads', 'klg-synagogue-texts-he-review.xlsx');
 
@@ -35,9 +41,19 @@ const UNTRANSLATED = FILL('FFFFD7D2');
 const HEAD = FILL('FF1F3A5F');
 
 const all = await collectRows({ warn: (m) => console.warn(`! ${m}`) });
-// декоративные надписи (фоновые слова, бегущая строка и т. п.) — только с --with-decor
-const rows = withDecor ? all : all.filter((r) => !r.decorative);
-const decorSkipped = all.length - rows.length;
+/** Исключаемые категории; строка относится к первой подходящей (для подсчёта). */
+const SKIP = [
+  { flag: 'dynamic', on: withDynamic, opt: '--with-dynamic',
+    why: 'данные из БД и админки — новости (в т. ч. из Telegram), афиша, сборы, программы, подразделения, альбомы и подписи фото, настройки; сиды и демо-записи «Пример». Их переводят в админке при публикации' },
+  { flag: 'technical', on: withTechnical, opt: '--with-technical',
+    why: 'строки без переводимого смысла — одни плейсхолдеры и формулы ({{seats}} × {{price}} = {{total}}), коды и самоназвания языков (RU, English, עברית), сокращения единиц (м, мин, с), названия-бренды, одинаковые на всех языках (Google Maps, STARS)' },
+  { flag: 'decorative', on: withDecor, opt: '--with-decor',
+    why: 'декоративные надписи — фоновые ивритские слова, бегущая строка приветствий «Шалом · Shalom · שלום…», подсказка «Листайте»' },
+];
+const skipOf = (r) => SKIP.find((c) => !c.on && r[c.flag]);
+const rows = all.filter((r) => !skipOf(r));
+for (const c of SKIP) c.n = all.filter((r) => skipOf(r) === c).length;
+const skipped = SKIP.filter((c) => c.n);
 
 const wb = new ExcelJS.Workbook();
 wb.creator = 'klg-synagogue i18n:export';
@@ -90,12 +106,13 @@ const lines = [
   ['3', 'Плейсхолдеры в фигурных скобках — {{n}}, {{count}}, {count}, $t(site.name) — не переводите и не удаляйте: вместо них сайт подставит число, дату или имя. В исправлении они должны остаться в том же виде (порядок внутри фразы можно менять). Строку, где плейсхолдер потерян, импорт пропустит.'],
   ['4', 'Имя Бога полностью не пишем: только ה׳, השם, ד׳ или אלוקים (через ק).'],
   ['5', 'Термины (Шаббат, Кадиш, йорцайт, миква, кашрут, Тора, Ми шеберах и т. п.) пишите так, как принято в общине: שבת, קדיש, יארצייט, מקווה, כשרות, תורה, מי שברך. Если в разных строках один термин написан по-разному — исправьте на единый вариант во всех строках.'],
-  ['6', 'Строки, подсвеченные розовым, — без перевода: иврит пуст или совпадает с русским (например, заглушки «где парковаться»). Их нужно перевести. Розовые строки с названиями (STARS, Google Maps, RU/EN) можно оставить как есть.'],
+  ['6', `Строки, подсвеченные розовым, — без перевода: иврит пуст или совпадает с русским (например, заглушки «где парковаться»). Их нужно перевести. ${withTechnical ? 'Розовые строки с названиями (STARS, Google Maps, RU/EN) можно оставить как есть.' : 'Строка со словами и плейсхолдером (например, «{{n}} мин чтения») переводится целиком.'}`],
   ['7', 'Строки с пометкой «заглушка [ВПИШИ]» — места, где факт ещё не известен (реквизиты, часы и т. п.). Переведите только пояснение в скобках, сама пометка [ВПИШИ: …] остаётся.'],
   ['8', `Строки «…italic» — слово, которое на сайте выделяется курсивом; оно должно в точности совпадать со словом из заголовка в соседней строке «…title».${withDecor ? ' Строки «Созвездие»: в RU/EN — смысл слова, в иврите — само слово, оно висит фоном за разделом.' : ''}`],
   ['', ''],
-  ['', 'Новости из Telegram-канала общины публикуются только на русском — в таблицу они не включены.'],
-  ...(withDecor ? [] : [['', `Декоративные надписи (фоновые ивритские слова, бегущая строка приветствий «Шалом · Shalom · שלום…», подсказка «Листайте») в таблицу не включены — ${decorSkipped} строк.`]]),
+  ['', 'Не включено в таблицу:'],
+  ...skipped.map((c) => ['•', `${c.why} — ${c.n} строк.`]),
+  ['', 'Новости из Telegram-канала общины публикуются только на русском.'],
   ['', `Всего строк: ${rows.length}, без перевода на иврит: ${untranslated}. Файл собран ${new Date().toLocaleDateString('ru-RU')} командой npm run i18n:export.`],
 ];
 for (const l of lines) {
@@ -122,8 +139,10 @@ for (const r of rows) {
 }
 for (const [k, [n, u]] of bySource) src.addRow([k, n, u]);
 src.addRow(['Итого', rows.length, untranslated]).font = { bold: true };
-if (decorSkipped) src.addRow([`Не включено: декоративные надписи (вернуть: --with-decor)`, decorSkipped, '']);
+for (const c of skipped) src.addRow([`Не включено: ${c.why} (вернуть: ${c.opt})`, c.n, '']);
+src.getColumn(1).alignment = { wrapText: true, vertical: 'top' };
+src.getColumn(1).width = 90;
 
 await wb.xlsx.writeFile(out);
-console.log(`${out}: ${rows.length} строк, без перевода ${untranslated}${decorSkipped ? `, декоративных не включено ${decorSkipped}` : ''}`);
+console.log(`${out}: ${rows.length} строк, без перевода ${untranslated}${skipped.map((c) => `, ${c.flag} не включено ${c.n}`).join('')}`);
 for (const [k, [n, u]] of bySource) console.log(`  ${k}: ${n} (без перевода ${u})`);
