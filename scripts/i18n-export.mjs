@@ -1,6 +1,8 @@
 /**
  * Все тексты сайта (ru / en / he) → xlsx для вычитки иврита носителем.
- *   npm run i18n:export [-- <файл.xlsx>]   (по умолчанию ~/Downloads/klg-synagogue-texts-he-review.xlsx)
+ *   npm run i18n:export [-- <файл.xlsx>] [--with-decor]   (по умолчанию ~/Downloads/klg-synagogue-texts-he-review.xlsx)
+ * Декоративные надписи (фоновые слова «Созвездия», бегущая строка приветствий и т. п.) в файл
+ * не попадают; `--with-decor` возвращает их.
  * Правки возвращаются в код командой `npm run i18n:he-import -- <файл.xlsx>`.
  */
 import os from 'node:os';
@@ -22,15 +24,20 @@ export const COLS = {
   comment: 'Комментарий',
 };
 
+const args = process.argv.slice(2);
+const withDecor = args.includes('--with-decor');
 const out =
-  process.argv[2] ?? path.join(os.homedir(), 'Downloads', 'klg-synagogue-texts-he-review.xlsx');
+  args.find((a) => !a.startsWith('--')) ?? path.join(os.homedir(), 'Downloads', 'klg-synagogue-texts-he-review.xlsx');
 
 const FILL = (argb) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
 const YELLOW = FILL('FFFFF9C4');
 const UNTRANSLATED = FILL('FFFFD7D2');
 const HEAD = FILL('FF1F3A5F');
 
-const rows = await collectRows({ warn: (m) => console.warn(`! ${m}`) });
+const all = await collectRows({ warn: (m) => console.warn(`! ${m}`) });
+// декоративные надписи (фоновые слова, бегущая строка и т. п.) — только с --with-decor
+const rows = withDecor ? all : all.filter((r) => !r.decorative);
+const decorSkipped = all.length - rows.length;
 
 const wb = new ExcelJS.Workbook();
 wb.creator = 'klg-synagogue i18n:export';
@@ -85,9 +92,10 @@ const lines = [
   ['5', 'Термины (Шаббат, Кадиш, йорцайт, миква, кашрут, Тора, Ми шеберах и т. п.) пишите так, как принято в общине: שבת, קדיש, יארצייט, מקווה, כשרות, תורה, מי שברך. Если в разных строках один термин написан по-разному — исправьте на единый вариант во всех строках.'],
   ['6', 'Строки, подсвеченные розовым, — без перевода: иврит пуст или совпадает с русским (например, заглушки «где парковаться»). Их нужно перевести. Розовые строки с названиями (STARS, Google Maps, RU/EN) можно оставить как есть.'],
   ['7', 'Строки с пометкой «заглушка [ВПИШИ]» — места, где факт ещё не известен (реквизиты, часы и т. п.). Переведите только пояснение в скобках, сама пометка [ВПИШИ: …] остаётся.'],
-  ['8', 'Строки «…italic» — слово, которое на сайте выделяется курсивом; оно должно в точности совпадать со словом из заголовка в соседней строке «…title». Строки «Созвездие»: в RU/EN — смысл слова, в иврите — само слово, оно висит фоном за разделом.'],
+  ['8', `Строки «…italic» — слово, которое на сайте выделяется курсивом; оно должно в точности совпадать со словом из заголовка в соседней строке «…title».${withDecor ? ' Строки «Созвездие»: в RU/EN — смысл слова, в иврите — само слово, оно висит фоном за разделом.' : ''}`],
   ['', ''],
   ['', 'Новости из Telegram-канала общины публикуются только на русском — в таблицу они не включены.'],
+  ...(withDecor ? [] : [['', `Декоративные надписи (фоновые ивритские слова, бегущая строка приветствий «Шалом · Shalom · שלום…», подсказка «Листайте») в таблицу не включены — ${decorSkipped} строк.`]]),
   ['', `Всего строк: ${rows.length}, без перевода на иврит: ${untranslated}. Файл собран ${new Date().toLocaleDateString('ru-RU')} командой npm run i18n:export.`],
 ];
 for (const l of lines) {
@@ -114,7 +122,8 @@ for (const r of rows) {
 }
 for (const [k, [n, u]] of bySource) src.addRow([k, n, u]);
 src.addRow(['Итого', rows.length, untranslated]).font = { bold: true };
+if (decorSkipped) src.addRow([`Не включено: декоративные надписи (вернуть: --with-decor)`, decorSkipped, '']);
 
 await wb.xlsx.writeFile(out);
-console.log(`${out}: ${rows.length} строк, без перевода ${untranslated}`);
+console.log(`${out}: ${rows.length} строк, без перевода ${untranslated}${decorSkipped ? `, декоративных не включено ${decorSkipped}` : ''}`);
 for (const [k, [n, u]] of bySource) console.log(`  ${k}: ${n} (без перевода ${u})`);

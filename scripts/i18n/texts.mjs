@@ -3,6 +3,9 @@
  *
  * collectRows() → строки { key, section, ru, en, he, loc, flags }: `key` — стабильный идентификатор,
  * `loc` — где лежит ивритский текст (json-неймспейс, литерал в .ts, правки hebcal, строка БД).
+ * `decorative: true` — чисто декоративные надписи (фоновые слова «Созвездия», бегущая строка приветствий,
+ * подсказка «Листайте», приветствие-надпись над «Порогом»): экспорт их не пишет без `--with-decor`,
+ * но collectRows() возвращает всегда — импорт старого файла с этими ключами продолжает работать.
  * Экспорт (`i18n-export.mjs`) пишет строки в xlsx, импорт (`i18n-he-import.mjs`) собирает их заново,
  * находит строку по ключу и применяет правку через `loc` (planEdits → applyEdits).
  */
@@ -133,6 +136,14 @@ export const sectionGroup = (label) => {
   const i = ORDER.findIndex((w) => label.startsWith(w));
   return i < 0 ? ORDER.length : i;
 };
+
+/**
+ * Декоративные ключи вне источника «ghost» (тот декоративен целиком): надписи, которые не несут
+ * смысла страницы — подсказка прокрутки (aria-hidden) и приветствие «Шалом · ברוכים הבאים» над «Порогом».
+ */
+const DECOR_KEYS = new Set(['home:hero.cue', 'home:threshold.eyebrow']);
+const DECOR_SOURCES = new Set(['ghost']);
+export const isDecorative = (r) => DECOR_SOURCES.has(r.source) || DECOR_KEYS.has(r.key);
 
 /* ───────────────────────────── JSON с позициями ───────────────────────────── */
 
@@ -732,6 +743,7 @@ export async function collectRows({ db = true, warn = (m) => console.warn(m) } =
   for (const r of rows) {
     r.stub = /\[ВПИШИ/.test(r.ru) || /\[ВПИШИ/.test(r.he);
     if (r.stub && !r.section.includes('заглушка')) r.section += ' · заглушка [ВПИШИ], факт ещё не вписан';
+    r.decorative = isDecorative(r);
     r.untranslated = !r.noFlag && (!r.he.trim() || r.he.trim() === r.ru.trim());
   }
   const seen = new Set();
