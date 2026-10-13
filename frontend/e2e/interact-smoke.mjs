@@ -7,6 +7,7 @@
  * pointerdown → data-pressed + a scale; held > 400 ms → data-held (+ ripple grows on solid kinds);
  * release → everything cleared after the spring; a 12px slide drops the press; the click still lands
  * (preset gets aria-checked, the card navigates); fields glow instead of scaling; reduced motion → pressed state without any scale.
+ * Touch: a horizontal swipe that starts on a news card scrolls the phone news rail, drops the press and does not navigate.
  * Shots: e2e/shots/interact_<element>_<press|hold>_<desk|touch>.png (cropped around the element).
  */
 import { spawn } from 'node:child_process';
@@ -201,7 +202,30 @@ try {
     let page = await open('/', { touch });
     await cycle(page, '#hero .btn, .home-hero .btn', 'button', touch, { solid: true });
     await cycle(page, '#news .card--link, .cnt-news', 'card', touch);
-    if (touch) await cycle(page, '.hdr__burger', 'burger', touch);
+    if (touch) {
+      // phone news rail: a horizontal swipe that starts on a card scrolls the rail — no press left, no navigation
+      const c = await locate(page, '#news .card--link');
+      const path0 = await page.evaluate(() => location.pathname);
+      await page.touchscreen.touchStart(c.x + c.w / 2 - 20, c.y);
+      for (let i = 1; i <= 20; i++) {
+        await page.touchscreen.touchMove(c.x + c.w / 2 - 20 - i * 13, c.y + (i % 3));
+        await sleep(25);
+      }
+      const mid = await state(page);
+      await sleep(250);
+      await page.touchscreen.touchEnd();
+      await sleep(1000);
+      const swiped = await page.evaluate(() => ({
+        sl: Math.round(document.querySelector('#news .news-rail__track').scrollLeft),
+        path: location.pathname,
+        pressed: document.querySelectorAll('[data-pressed]').length,
+      }));
+      check(mid?.pressed === null && swiped.pressed === 0, `card swipe drops the press [${mode}]`, JSON.stringify(mid?.pressed));
+      check(swiped.sl > 0 && swiped.path === path0, `card swipe scrolls the news rail, no navigation [${mode}]`, JSON.stringify(swiped));
+      await page.evaluate(() => document.querySelector('#news .news-rail__track').scrollTo({ left: 0, behavior: 'instant' }));
+      await sleep(300);
+      await cycle(page, '.hdr__burger', 'burger', touch);
+    }
     else await cycle(page, '.hdr .lang__btn[aria-pressed="false"]', 'lang', touch, { solid: true });
     // the click still lands: a card tap navigates
     const href = await page.evaluate(() => document.querySelector('#news .card--link, .cnt-news')?.getAttribute('href'));

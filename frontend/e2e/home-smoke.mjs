@@ -217,6 +217,14 @@ try {
     check(await page.evaluate(() => !!document.querySelector('#today [data-home="clock"], #today .home-note')), '1440: today block rendered (live or explained)');
     const sup = await page.$eval('[data-home="supporters"]', (e) => e.textContent.trim()).catch(() => null);
     check(sup === null || /\d+ раза?$/.test(sup), '1440: supporters counter with a plural form', sup ?? 'no counter');
+    const grid = await page.evaluate(() => {
+      const t = document.querySelector('#news .news-rail__track');
+      if (!t) return null;
+      const tops = [...t.children].map((c) => Math.round(c.getBoundingClientRect().top));
+      const dots = t.parentElement.querySelector('.news-rail__dots');
+      return { display: getComputedStyle(t).display, row: tops.length === 3 && new Set(tops).size === 1, dots: dots ? getComputedStyle(dots).display : 'none' };
+    });
+    check(!!grid && grid.display === 'grid' && grid.row && grid.dots === 'none', '1440: news stay a 3-column grid (rail is phone-only)', JSON.stringify(grid));
     check(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), '1440: no horizontal scroll');
     check(errors.length === 0, '1440: no console errors', errors.slice(0, 3).join(' | '));
     await page.close();
@@ -228,6 +236,11 @@ try {
     await sleep(1500);
     await checkEyebrow(page, '390 ru');
     await walk(page, 'home_390');
+    const rail = await page.evaluate(() => {
+      const t = document.querySelector('#news .news-rail__track');
+      return t ? { display: getComputedStyle(t).display, ox: getComputedStyle(t).overflowX, wide: t.scrollWidth > t.clientWidth } : null;
+    });
+    check(!!rail && rail.display === 'flex' && rail.ox === 'auto' && rail.wide, '390: news are a horizontal rail', JSON.stringify(rail));
     check(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), '390: no horizontal scroll');
     check(errors.length === 0, '390: no console errors', errors.slice(0, 3).join(' | '));
     await page.close();

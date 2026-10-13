@@ -17,6 +17,8 @@
  * Touch path (390×844): no Lenis, sticky in fixed px (the address bar does not move it), the sharp light set,
  * crossfaded frames; auto-settle — a drag stopped mid-chapter glides to the chapter stop (m2_snap_before/after),
  * a touch cancels the glide, nothing is pulled outside the scene. Desktop keeps the full set.
+ * News previews (home, «more news»): a horizontal snap rail at 390 — ~82% cards, 16px fields, next card peeks,
+ * RTL in he, a swipe snaps to card 2 and moves the dot without a page jump (news_rail_*); /news stays a vertical feed.
  */
 import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
@@ -827,6 +829,92 @@ try {
     check(bad.length === 0, '768 he: side margins ≥ 16px', bad.slice(0, 4).join(' | '));
     await shot(page, 'home_768_he_full', true);
     await page.close();
+  }
+
+  // ---- 7. news previews on a phone: a horizontal snap rail (home + «more news»), /news stays a vertical feed
+  if (!ONLY) {
+    const railGeo = (page, sel) =>
+      page.evaluate((s) => {
+        const t = document.querySelector(s);
+        if (!t) return null;
+        const cs = getComputedStyle(t);
+        const vw = document.documentElement.clientWidth;
+        const cards = [...t.children].map((c) => {
+          const r = c.getBoundingClientRect();
+          return { l: Math.round(r.left), r: Math.round(r.right), h: Math.round(r.height), op: getComputedStyle(c).opacity };
+        });
+        const dots = t.parentElement.querySelector('.news-rail__dots');
+        return {
+          vw, display: cs.display, ox: cs.overflowX, snap: cs.scrollSnapType, sl: Math.round(t.scrollLeft), cards,
+          dot: dots?.dataset.active ?? null, dots: dots ? dots.children.length : 0,
+          y: Math.round(scrollY), noHScroll: document.documentElement.scrollWidth <= innerWidth,
+        };
+      }, sel);
+    for (const lang of ['ru', 'he']) {
+      const page = await open(`/?lang=${lang}`, 390, { height: 844 });
+      const tag = `390 ${lang} news rail`;
+      const sel = '#news .news-rail__track';
+      await page.waitForSelector(sel, { timeout: 30000 });
+      await page.$eval(sel, (e) => e.scrollIntoView({ block: 'center' }));
+      await sleep(1500);
+      const g = await railGeo(page, sel);
+      const rtl = lang === 'he';
+      const [c0, c1] = g.cards;
+      check(g.display === 'flex' && g.ox === 'auto' && g.snap.startsWith('x') && g.cards.length >= 2, `${tag}: horizontal snap rail`, `${g.display} ${g.ox} ${g.snap} n=${g.cards.length}`);
+      check((c0.r - c0.l) / g.vw >= 0.78 && (c0.r - c0.l) / g.vw <= 0.86, `${tag}: card ≈ 80–85% of the screen`, String(c0.r - c0.l));
+      check(rtl ? c0.r === g.vw - 16 : c0.l === 16, `${tag}: first card at the 16px side field (${rtl ? 'right' : 'left'})`, `${c0.l}..${c0.r}`);
+      check(rtl ? c1.r > 16 && c1.r < c0.l : c1.l < g.vw - 16 && c1.l > c0.r, `${tag}: the next card peeks from the ${rtl ? 'left' : 'right'}`, `${c1.l}..${c1.r}`);
+      check(g.cards.every((c) => c.h === c0.h && c.op === '1'), `${tag}: cards of one height, all revealed`, g.cards.map((c) => `${c.h}/${c.op}`).join(' '));
+      check(g.dots === g.cards.length && g.dot === '0', `${tag}: position dots, first active`, `${g.dots} ${g.dot}`);
+      check(g.noHScroll, `${tag}: the page itself has no horizontal scroll`);
+      // a finger swipe across one card: the rail moves, snaps to card 2, the page stays put
+      const box = await (await page.$(sel)).boundingBox();
+      const yy = Math.round(box.y + box.height / 2);
+      const x0 = rtl ? 50 : g.vw - 50;
+      await page.touchscreen.touchStart(x0, yy);
+      for (let i = 1; i <= 20; i++) {
+        await page.touchscreen.touchMove(x0 + (rtl ? 1 : -1) * i * 13, yy + (i % 3));
+        await sleep(25);
+      }
+      await sleep(250);
+      await page.touchscreen.touchEnd();
+      await sleep(1200);
+      const s = await railGeo(page, sel);
+      const c = s.cards[1];
+      check(rtl ? s.sl < 0 : s.sl > 0, `${tag}: a horizontal swipe scrolls the rail ${rtl ? 'right to left' : 'left to right'}`, String(s.sl));
+      check(rtl ? c.r === g.vw - 16 : c.l === 16, `${tag}: snapped — card 2 at the side field`, `${c.l}..${c.r}`);
+      check(s.dot === '1', `${tag}: dot follows the swipe`, s.dot);
+      check(s.y === g.y, `${tag}: no vertical jump of the page on a swipe`, `${g.y} → ${s.y}`);
+      await page.$eval(sel, (e) => e.scrollIntoView({ block: 'center' }));
+      await sleep(300);
+      await shot(page, `news_rail_${lang}`);
+      await page.close();
+    }
+    // «more news» on a story: the same rail; the full /news feed stays vertical
+    const slug = await fetch(`${process.env.API_URL ?? 'http://localhost:3000/api/v1'}/news?limit=1`)
+      .then((r) => r.json())
+      .then((j) => j.data.items[0]?.slug ?? null)
+      .catch(() => null);
+    check(!!slug, '390 story: a published story for the «more news» check');
+    if (slug) {
+      const page = await open(`/news/${slug}?lang=ru`, 390, { height: 844 });
+      const sel = '[data-testid="news-more"] .news-rail__track';
+      const ok = await page.waitForSelector(sel, { timeout: 30000 }).catch(() => null);
+      const g = ok ? await railGeo(page, sel) : null;
+      check(!!g && g.display === 'flex' && g.ox === 'auto' && g.cards[0].l === 16 && g.noHScroll, '390 story: «more news» is a horizontal rail', JSON.stringify(g?.cards?.[0] ?? null));
+      await page.close();
+    }
+    {
+      const page = await open('/news?lang=ru', 390, { height: 844 });
+      await page.waitForSelector('[data-testid="news-list"] .cnt-news', { timeout: 30000 }).catch(() => undefined);
+      const feed = await page.evaluate(() => {
+        const l = document.querySelector('[data-testid="news-list"]');
+        const r = [...l.querySelectorAll('.cnt-news')].slice(0, 2).map((c) => c.getBoundingClientRect());
+        return { display: getComputedStyle(l).display, stacked: r.length === 2 && r[1].top >= r[0].bottom, noHScroll: document.documentElement.scrollWidth <= innerWidth };
+      });
+      check(feed.display === 'grid' && feed.stacked && feed.noHScroll, '390 /news: the full feed stays vertical', JSON.stringify(feed));
+      await page.close();
+    }
   }
 } catch (e) {
   check(false, `smoke crashed: ${e?.message ?? e}`);

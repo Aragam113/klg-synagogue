@@ -1,0 +1,50 @@
+/* News previews: desktop — the track's own grid classes; phone (≤ 767px) — a horizontal snap rail. Logical props only (RTL). */
+.news-rail__dots { display: none; }
+
+@media (max-width: 767px) {
+  .news-rail .news-rail__track,
+  .nws-more .news-rail .news-rail__track {
+    display: flex;
+    gap: 0.857rem;
+    /* bleed to the screen edges, keep 16px side fields inside the scroller */
+    margin-inline: calc(-1 * var(--gutter));
+    padding-inline: 16px;
+    scroll-padding-inline: 16px;
+    /* room for the press glow / ripple: the scroller clips both axes */
+    padding-block: 0.571rem;
+    margin-block: -0.571rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .news-rail__track::-webkit-scrollbar { display: none; }
+  .news-rail .news-rail__item {
+    flex: 0 0 min(82vw, 26rem);
+    min-width: 0;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+  .news-rail__item > .card { height: 100%; }
+  .news-rail .cnt-lead { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  /* off-screen cards are not in the IO viewport: once the first card reveals, the rest follow (no pop-in on swipe) */
+  html[data-anim='on'] .news-rail__track:has(> .reveal[data-revealed='true']) > .reveal { opacity: 1; transform: none; filter: none; }
+
+  .news-rail__dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.429rem;
+    margin-block-start: 1.143rem;
+  }
+  .news-rail__dot {
+    width: 0.429rem;
+    height: 0.429rem;
+    border-radius: var(--r-pill);
+    background: currentColor;
+    opacity: 0.22;
+    transition: width 0.3s var(--ease), opacity 0.3s var(--ease), background-color 0.3s var(--ease);
+  }
+  .news-rail__dot[data-on='true'] { width: 1.286rem; opacity: 1; background: var(--gold); }
+}
