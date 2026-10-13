@@ -1,10 +1,12 @@
 /**
  * Phone scroll bench for the touch path of the motion engine (html[data-touch]).
  *
- *   npm run bench:mobile [-- <tag>] [--fast]   (WEB_URL=http://localhost:8150 by default; tag names the run, default m3)
+ *   npm run bench:mobile [-- <tag>] [--fast] [--net 4g|3g]   (WEB_URL=http://localhost:8150 by default; tag names
+ *   the run, default m3; WEB_PATH=/klg-synagogue/ for the demo build served by serve:demo)
  *
- * Emulates a phone: 390×844, isMobile + hasTouch; by default a slow one — CPU throttling ×4 and «Fast 3G» for the
- * first load; `--fast` — a fast phone (no CPU throttling, unthrottled network). Scrolls the synagogue scene with
+ * Emulates a phone: 390×844, isMobile + hasTouch; by default a slow one — CPU throttling ×4 and a throttled «4G»
+ * (Lighthouse slow 4G: 1.6 Mbit/s, 150 ms RTT; `--net 3g` — DevTools «Fast 3G») for the first load, cache off;
+ * `--fast` — a fast phone (no CPU throttling, unthrottled network). BENCH_DUMP=<file> saves the raw per-rAF rows of the flings. Scrolls the synagogue scene with
  * touch flings (CDP touch events, Chrome adds inertia) and slow drags, sampling every rAF: scrollY, finger, the
  * scene's `--p`, the shown frame, its blend pair/alpha and repaint count. Prints one JSON line, saves
  * e2e/shots/mscroll_<tag>_*.png.
@@ -32,9 +34,13 @@
  *   uniform   a slow even drag (~200 px/s, finger down the whole time, after the media is in):
  *             picHz   picture changes per second on screen (data-frame from requestVideoFrameCallback / canvas)
  *             maxSrc  largest jump between two pictures shown one after another, in frames of the SOURCE film
- *                     (25 fps: a 10 fps scene video jumps ≥ 2.5 source frames at every step)
+ *                     (650 frames at 25 fps; a canvas crossfade counts by its shown position data-pos)
  *             p95Src  95th percentile of that jump
  *             lagMs   mean / max ms from the scroll position asking for a frame until that frame is on screen
+ *             long33 / long50   % of rAF intervals longer than 33 / 50 ms (dropped frames, visible hitches)
+ *             freezes picture unchanged > 100 ms while the finger moved the page and another frame was wanted
+ *             offP    |shown − wanted by the scene's --p| in source frames, mean / p95 (the media keeping up)
+ *             offY    |shown − wanted by the raw scroll| in source frames, mean / p95 (incl. the touch lerp)
  */
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -47,14 +53,17 @@ const CHROME = process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Applic
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SHOTS = process.env.SMOKE_SHOTS ?? join(ROOT, 'e2e', 'shots');
 const ARGS = process.argv.slice(2);
-/** Frame rate of the source film the scene video is cut from (kldsynagogue film 2017). */
-const SRC_FPS = 25;
+/** Frames of the source film segment the scene is cut from (kldsynagogue film 2017, 92–118 s at 25 fps). */
+const SRC_FRAMES = 650;
 const FAST = ARGS.includes('--fast');
-const TAG = ARGS.find((a) => !a.startsWith('--')) ?? 'm3';
+const NET = ARGS.includes('--net') ? ARGS[ARGS.indexOf('--net') + 1] : '4g';
+const TAG = ARGS.find((a, i) => !a.startsWith('--') && ARGS[i - 1] !== '--net') ?? 'm3';
+const PATH = process.env.WEB_PATH ?? '/';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 mkdirSync(SHOTS, { recursive: true });
 
 const FAST_3G = { offline: false, latency: 562.5, downloadThroughput: (1.6 * 1024 * 1024) / 8 * 0.9, uploadThroughput: (750 * 1024) / 8 * 0.9 };
+const SLOW_4G = { offline: false, latency: 150, downloadThroughput: (1.6 * 1024 * 1024) / 8, uploadThroughput: (750 * 1024) / 8 };
 const OPEN = { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 };
 
 const browser = await puppeteer.launch({
@@ -72,8 +81,8 @@ const sampler = () => {
       const sc = document.querySelector('.scrub');
       const c = document.querySelector('.scrub [data-frames]');
       const d = c?.dataset ?? {};
-      // [t, y, p, frame, vh, alpha, draws, pair, frames, finger]
-      s.rows.push([t, scrollY, sc ? sc.style.getPropertyValue('--p') : '', d.frame ?? '', innerHeight, +(d.blend ?? 0), +(d.draws ?? 0), d.pair ?? '', +(d.frames ?? 0), s.finger]);
+      // [t, y, p, frame, vh, alpha, draws, pair, frames, finger, pos]
+      s.rows.push([t, scrollY, sc ? sc.style.getPropertyValue('--p') : '', d.frame ?? '', innerHeight, +(d.blend ?? 0), +(d.draws ?? 0), d.pair ?? '', +(d.frames ?? 0), s.finger, d.pos ?? d.frame ?? '']);
     }
     requestAnimationFrame(loop);
   };
@@ -171,36 +180,67 @@ const summarize = (rows) => {
   };
 };
 
-/** Slow even drag: per-rAF picture changes, the jump between shown pictures, the catch-up lag. */
-const uniformStats = (rows, scene, vh, fps) => {
+/** Slow even drag: per-rAF picture changes, the jump between shown pictures, the catch-up lag, hitches, the offset. */
+const pct = (xs, q) => (xs.length ? +[...xs].sort((x, y) => x - y)[Math.min(xs.length - 1, Math.floor(xs.length * q))].toFixed(1) : null);
+const mean = (xs) => (xs.length ? +(xs.reduce((x, y) => x + y, 0) / xs.length).toFixed(1) : null);
+const uniformStats = (rows, scene, vh) => {
   const span = scene.h - vh;
   const frames = rows[0]?.[8] ?? 0;
   const live = rows.filter((r) => r[9]);
   if (live.length < 10 || !frames) return null;
+  // source frames per frame of the shown set (video: 1; canvas sets: 650 / (N − 1))
+  const k = (SRC_FRAMES - 1) / (frames - 1);
+  const pos = (r) => +r[10];
   const rawWant = (r) => Math.round(Math.min(1, Math.max(0, (r[1] - scene.top) / span)) * (frames - 1));
-  let changes = 0, maxStep = 0;
+  let changes = 0, maxStep = 0, freezes = 0, changedAt = live[0][0], counted = false;
   const steps = [];
   const askedAt = new Map();
   const lags = [];
+  const offP = [];
+  const offY = [];
+  const gaps = [];
   for (let i = 1; i < live.length; i++) {
+    gaps.push(live[i][0] - live[i - 1][0]);
     const w = rawWant(live[i]);
-    for (let k = rawWant(live[i - 1]) + 1; k <= w; k++) if (!askedAt.has(k)) askedAt.set(k, live[i][0]);
-    const a = +live[i - 1][3];
-    const b = +live[i][3];
-    if (live[i - 1][3] === '' || live[i][3] === '' || a === b) continue;
+    for (let j = rawWant(live[i - 1]) + 1; j <= w; j++) if (!askedAt.has(j)) askedAt.set(j, live[i][0]);
+    if (live[i][10] !== '') {
+      const wantP = Math.min(1, Math.max(0, +live[i][2] || 0)) * (frames - 1);
+      const wantY = Math.min(1, Math.max(0, (live[i][1] - scene.top) / span)) * (frames - 1);
+      offP.push(Math.abs(pos(live[i]) - wantP) * k);
+      offY.push(Math.abs(pos(live[i]) - wantY) * k);
+    }
+    const a = pos(live[i - 1]);
+    const b = pos(live[i]);
+    if (live[i - 1][10] === '' || live[i][10] === '') continue;
+    if (a === b) {
+      // frozen: the page moved, the picture did not for > 100 ms while another one was wanted
+      const moving = live[i][1] !== live[i - 1][1];
+      const wantP = Math.min(1, Math.max(0, +live[i][2] || 0)) * (frames - 1);
+      if (moving && live[i][0] - changedAt > 100 && Math.abs(wantP - b) * k > 1.5 && !counted) {
+        freezes++;
+        counted = true;
+      }
+      continue;
+    }
+    changedAt = live[i][0];
+    counted = false;
     changes++;
-    const step = Math.abs(b - a) * (SRC_FPS / fps);
+    const step = Math.abs(b - a) * k;
     steps.push(step);
     maxStep = Math.max(maxStep, step);
-    for (let k = a + 1; k <= b; k++) if (askedAt.has(k)) lags.push(live[i][0] - askedAt.get(k));
+    for (let j = Math.ceil(Math.min(a, b)) + 1; j <= Math.floor(Math.max(a, b)); j++) if (askedAt.has(j)) lags.push(live[i][0] - askedAt.get(j));
   }
-  steps.sort((x, y) => x - y);
   const secs = (live.at(-1)[0] - live[0][0]) / 1000;
   return {
     picHz: +(changes / Math.max(0.01, secs)).toFixed(1),
     maxSrc: +maxStep.toFixed(1),
-    p95Src: steps.length ? +steps[Math.floor(steps.length * 0.95)].toFixed(1) : null,
-    lagMs: lags.length ? [Math.round(lags.reduce((x, y) => x + y, 0) / lags.length), Math.round(Math.max(...lags))] : null,
+    p95Src: pct(steps, 0.95),
+    lagMs: lags.length ? [Math.round(mean(lags)), Math.round(Math.max(...lags))] : null,
+    long33: +((100 * gaps.filter((g) => g > 33.4).length) / Math.max(1, gaps.length)).toFixed(1),
+    long50: +((100 * gaps.filter((g) => g > 50).length) / Math.max(1, gaps.length)).toFixed(1),
+    freezes,
+    offP: [mean(offP), pct(offP, 0.95)],
+    offY: [mean(offY), pct(offY, 0.95)],
   };
 };
 
@@ -259,10 +299,10 @@ const run = async () => {
   await page.evaluateOnNewDocument(sampler);
   await cdp.send('Network.enable');
   await cdp.send('Network.setCacheDisabled', { cacheDisabled: true });
-  await cdp.send('Network.emulateNetworkConditions', FAST ? OPEN : FAST_3G);
+  await cdp.send('Network.emulateNetworkConditions', FAST ? OPEN : NET === '3g' ? FAST_3G : SLOW_4G);
   if (!FAST) await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
   const t0 = Date.now();
-  await page.goto(`${WEB}/?lang=ru`, { waitUntil: 'domcontentloaded', timeout: 180000 });
+  await page.goto(`${WEB}${PATH}?lang=ru`, { waitUntil: 'domcontentloaded', timeout: 180000 });
   await page.waitForSelector('.scrub', { timeout: 180000 });
   const engine = await page.evaluate(() => document.documentElement.dataset.touch ?? 'native');
   const sceneTop = await page.evaluate(() => {
@@ -278,7 +318,7 @@ const run = async () => {
   for (let i = 0; i < 360; i++) {
     const st = await page.evaluate(() => {
       const sc = document.querySelector('.scrub');
-      return { done: sc?.dataset.loaded === 'all' || sc?.dataset.loaded === 'enough', first: !!sc?.dataset.pass || sc?.dataset.loaded === 'all' };
+      return { done: sc?.dataset.loaded === 'all' || sc?.dataset.loaded === 'enough', first: !!sc?.dataset.pass || sc?.dataset.loaded === 'all', cache: sc?.dataset.cache ?? null };
     });
     if (st.first && firstS === null) {
       firstS = +((Date.now() - loadStart) / 1000).toFixed(1);
@@ -288,7 +328,10 @@ const run = async () => {
           for (const step of [26, 30, -24, 34]) await fling(cdp, step, 900);
         });
         const s = summarize(rows);
-        early = { stalls: s.stalls, stallMs: s.stallMs, farBlend: s.farBlend, frameHz: s.frameHz };
+        await page.evaluate((sc) => window.scrollTo(0, sc.top + (sc.h - innerHeight) * 0.2), sceneTop);
+        await sleep(600);
+        const erows = await record(page, () => evenDrag(cdp, 640, 3200));
+        early = { stalls: s.stalls, stallMs: s.stallMs, farBlend: s.farBlend, frameHz: s.frameHz, cache: st.cache, uniform: uniformStats(erows, sceneTop, 844) };
         await page.evaluate((y) => window.scrollTo(0, y), sceneTop.top);
       }
     }
@@ -311,23 +354,15 @@ const run = async () => {
     await drag(cdp, -chapter * 0.5);
   });
   const stats = summarize(rows);
+  if (process.env.BENCH_DUMP) (await import("node:fs")).writeFileSync(process.env.BENCH_DUMP, JSON.stringify(rows));
   // slow even scroll through the middle of the scene (~200 px/s), finger down the whole time
-  const fps = await page.evaluate(async () => {
-    const v = document.querySelector('.scrub video');
-    if (!v) return null;
-    const m = await fetch(v.currentSrc.replace(/v\/scene\.mp4.*$/,'manifest.json')).then((r) => r.json()).catch(() => null);
-    return m?.video?.fps ?? null;
+  await page.evaluate((sc) => window.scrollTo(0, sc.top + (sc.h - innerHeight) * 0.3), sceneTop);
+  await sleep(1600);
+  const urows = await record(page, async () => {
+    await evenDrag(cdp, 640, 3200);
+    await evenDrag(cdp, 640, 3200);
   });
-  let uniform = null;
-  if (fps) {
-    await page.evaluate((s) => window.scrollTo(0, s.top + (s.h - innerHeight) * 0.3), sceneTop);
-    await sleep(1600);
-    const urows = await record(page, async () => {
-      await evenDrag(cdp, 640, 3200);
-      await evenDrag(cdp, 640, 3200);
-    });
-    uniform = uniformStats(urows, sceneTop, 844, fps);
-  }
+  const uniform = uniformStats(urows, sceneTop, 844);
   await page.screenshot({ path: join(SHOTS, `mscroll_${TAG}${FAST ? '_fast' : ''}_scene.png`) });
   // address bar: viewport height +56px at a fixed scrollY (mid-scene)
   let barJump = null;
@@ -340,7 +375,8 @@ const run = async () => {
     const p2 = await page.evaluate(() => +document.querySelector('.scrub').style.getPropertyValue('--p'));
     barJump = +Math.abs(p2 - p1).toFixed(4);
   }
-  console.log(JSON.stringify({ run: TAG, phone: FAST ? 'fast' : 'slow', engine, media, firstS, loadS, ...stats, early, uniform, barJump, totalS: +((Date.now() - t0) / 1000).toFixed(0) }));
+  const set = await page.evaluate(() => { const d = document.querySelector('.scrub')?.dataset ?? {}; return { set: d.set ?? null, cache: d.cache ?? null, stride: d.stride ?? null, mb: d.mb ?? null }; });
+  console.log(JSON.stringify({ run: TAG, phone: FAST ? 'fast' : 'slow', net: FAST ? 'open' : NET, engine, media, ...set, firstS, loadS, ...stats, early, uniform, barJump, totalS: +((Date.now() - t0) / 1000).toFixed(0) }));
   await page.close();
 };
 

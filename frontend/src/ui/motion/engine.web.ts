@@ -2,25 +2,19 @@ import Lenis from 'lenis';
 
 import type { MotionEl, ProgressMode, RegisterOptions } from './engine';
 import { progressOf } from './progress';
-import {
-  approach,
-  easeKit,
-  sceneSnapPoints,
-  snapDuration,
-  snapTarget,
-  TOUCH_LERP,
-} from './touch-scroll';
+import { approach, easeGlide, snapDuration, snapProgress, TOUCH_LERP } from './touch-scroll';
 
 /**
  * Web scroll engine. ONE rAF writes `--p` (0..1, toFixed(4), change threshold 4e-4, touch 2e-4) into registered elements;
  * every frame reads all rects first and writes after (no read/write interleaving → no forced layouts).
  * Fine pointer: Lenis (lerp .1) driven by a continuous rAF loop — the desktop path.
  * Touch (`html[data-touch]`): native scroll, scrollY polled every rAF (no reliance on throttled scroll events),
- * `--p` eases to it (TOUCH_LERP). Elements registered with `snap` (a pinned scene) pull the page to a chapter
- * stop once the finger is up and the page has stood still SNAP_IDLE ms — once per rest, along the last movement
- * (≥ 30% of a chapter on, else back, never more than 0.3 screen against it), not at the entry/exit of the scene:
- * an animated scroll with the kit easing, 300..700 ms; any touch, wheel, key or foreign scroll cancels it at once;
- * an address-bar resize does not (touch-scroll.ts).
+ * `--p` eases to it (TOUCH_LERP). Elements registered with `snap` (a pinned scene) glide the page once the finger is
+ * up and the page has stood still SNAP_IDLE ms — once per rest, and only when it rests BETWEEN two chapters (both
+ * texts half-faded): along the last movement into the next chapter, or back into the previous one when moving up;
+ * never against the movement, at most half a chapter; a readable chapter, the entry and the exit are left alone
+ * (snapProgress). An animated scroll with a soft start and landing (easeGlide), 350..800 ms; any touch, wheel, key
+ * or foreign scroll cancels it at once; an address-bar resize does not (touch-scroll.ts).
  * On touch the viewport height is fixed in px at start (`--vh-fix` on <html>, used by the sticky runways and by
  * the progress maths) and re-read only when the width changes (orientation) — not when the address bar moves.
  * IntersectionObserver switches far-away elements off and sets one-shot `data-revealed`.
@@ -106,11 +100,14 @@ const set = (e: Entry, p: number) => {
   }
 };
 
+/** Within half a pixel-step of an end it is the end (a fractional section top must not leave --p at 1e-4). */
+const toEnds = (p: number) => (p < 2e-4 ? 0 : p > 1 - 2e-4 ? 1 : p);
+
 const writeAll = (dt: number) => {
   const vh = touch ? vhFix : window.innerHeight;
   const todo: [Entry, number][] = [];
   entries.forEach((e) => {
-    if (e.active) todo.push([e, progressOf(e.el.getBoundingClientRect(), vh, e.mode)]);
+    if (e.active) todo.push([e, toEnds(progressOf(e.el.getBoundingClientRect(), vh, e.mode))]);
   });
   for (const [e, p] of todo) {
     if (!touch) set(e, p);
@@ -129,7 +126,8 @@ const cancelGlide = () => {
 
 /**
  * Touch: polls scrollY, runs the glide, starts one — once per rest — when the page has stood still SNAP_IDLE ms with
- * the finger up inside a snapping scene. The glide follows the direction of the last movement (snapTarget).
+ * the finger up between two chapters of a snapping scene. The glide follows the direction of the last movement
+ * (snapProgress).
  */
 const touchStep = (t: number) => {
   const y = window.scrollY;
@@ -143,7 +141,7 @@ const touchStep = (t: number) => {
       tp.settled = true;
     } else {
       const k = Math.min(1, (t - glide.start) / glide.dur);
-      const next = Math.round(glide.from + (glide.to - glide.from) * easeKit(k));
+      const next = Math.round(glide.from + (glide.to - glide.from) * easeGlide(k));
       if (next !== glide.set) scrollToY(next);
       glide.set = next;
       tp.y = next;
@@ -172,8 +170,13 @@ const touchStep = (t: number) => {
   for (const e of entries.values()) {
     if (!e.snap || !e.active) continue;
     const r = e.el.getBoundingClientRect();
-    const to = snapTarget(y, sceneSnapPoints(r.top + y, r.height, vhFix, e.snap), tp.dir, vhFix);
-    if (to === null) continue;
+    const top = r.top + y;
+    const runway = r.height - vhFix;
+    if (runway <= 0) continue;
+    const goal = snapProgress((y - top) / runway, e.snap, tp.dir);
+    if (goal === null) continue;
+    const to = Math.round(top + goal * runway);
+    if (Math.abs(to - y) <= 2) continue;
     glide = { from: y, to, start: t, dur: snapDuration(to - y, vhFix), set: y };
     return;
   }

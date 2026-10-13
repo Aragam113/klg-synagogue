@@ -4,7 +4,9 @@
  *   npm run smoke:home            (WEB_URL=http://localhost:8121 by default; starts Expo there if it is down)
  *
  * Needs the backend on :3000 for live data (the page must survive without it too).
- * Checks: preloader leaves; the scene frame follows the scroll (p≈0.1 ≠ p≈0.9 and back again); all 12 sections;
+ * Checks: preloader — the star is drawn no faster than MIN_DRAW_MS, the line waits for the scene's frame cache when
+ * it can make it (frames slowed down), lets the site in without it when it cannot (frames far too slow; the cache goes
+ * on in the background), shown again on reload; the scene frame follows the scroll (p≈0.1 ≠ p≈0.9 and back again); all 12 sections;
  * scroll to the bottom without console errors; 390px (touch: live scene) without horizontal scroll; reduced motion → static scene;
  * ?lang=he → dir=rtl and the scene still renders. Screenshots 1440/390 → e2e/shots/ (SMOKE_SHOTS overrides).
  */
@@ -79,7 +81,7 @@ const open = async (path, width, { reduced = false } = {}) => {
   if (reduced) await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   await page.goto(`${WEB}${path}`, { waitUntil: 'networkidle2', timeout: 90000 });
   await page.waitForSelector('[data-home="root"]', { timeout: 60000 });
-  await page.waitForFunction(() => !document.querySelector('[data-preloader]'), { timeout: 8000 });
+  await page.waitForFunction(() => !document.querySelector('[data-preloader]'), { timeout: 15000 });
   return { page, errors };
 };
 
@@ -149,13 +151,14 @@ try {
     await page.goto(`${WEB}/?lang=ru`, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await page.waitForSelector('[data-preloader] path', { timeout: 60000 });
     const t0 = Date.now();
-    // Pen timing: quick leads, slow star (~0.4–2.6 s of the 3 s stroke at 1440×900).
-    for (const [name, at] of [['start', 250], ['middle', 900], ['star', 1500], ['star_late', 2200], ['exit', 2850]]) {
+    // Pen timing: quick leads, slow star; at full speed (fast local load) the stroke takes MIN_DRAW_MS = 1.8 s.
+    for (const [name, at] of [['start', 200], ['middle', 600], ['star', 1000], ['star_late', 1400], ['exit', 1750]]) {
       await sleep(Math.max(0, at - (Date.now() - t0)));
       await page.screenshot({ path: join(SHOTS, `home_loader_${name}.png`) });
     }
-    await page.waitForFunction(() => !document.querySelector('[data-preloader]'), { timeout: 6000 });
-    check(Date.now() - t0 < 4400, 'preloader: gone within ~3.2 s + .6 s leave', `${Date.now() - t0} ms`);
+    await page.waitForFunction(() => !document.querySelector('[data-preloader]'), { timeout: 12000 });
+    const own = await page.evaluate(() => +document.documentElement.dataset.preloadMs);
+    check(own >= 1800 && own < 7000 + 1800, 'preloader: the star forms at full speed at least, leaves by the ceiling', `${own} ms`);
     check(await page.evaluate(() => document.documentElement.dataset.appReady === 'true'), 'preloader: html[data-app-ready]');
     // The preloader shows on every load — a reload in the same tab (same session) shows it again.
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
@@ -178,13 +181,37 @@ try {
     await page.evaluateOnNewDocument(() => localStorage.setItem('synagogue.cookieConsent', '1'));
     await page.goto(`${WEB}/?lang=ru`, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await page.waitForSelector('[data-preloader] path', { timeout: 60000 });
-    const t0 = Date.now();
     check(await page.evaluate(() => matchMedia('(pointer: coarse)').matches), '390 touch: coarse pointer emulated');
-    await sleep(1500);
+    await sleep(1000);
     await page.screenshot({ path: join(SHOTS, 'home_loader_390_star.png') });
-    await page.waitForFunction(() => !document.querySelector('[data-preloader]'), { timeout: 6000 });
-    check(Date.now() - t0 < 4400, '390 touch: preloader shown and gone', `${Date.now() - t0} ms`);
-    check(await page.evaluate(() => document.documentElement.dataset.appReady === 'true'), '390 touch: html[data-app-ready]');
+    await page.waitForFunction(() => !document.querySelector('[data-preloader]'), { timeout: 12000 });
+    const d = await page.evaluate(() => ({ ...document.documentElement.dataset }));
+    check(d.appReady === 'true' && d.preloadScene === '1', '390 touch: the preloader leaves with the scene cache in', JSON.stringify(d));
+    await page.close();
+  }
+  // 390 touch, the scene frames slowed down: the line waits while the cache can make it before the ceiling, and lets
+  // the site in without a cache that cannot (it goes on loading in the background).
+  for (const [delay, wait] of [
+    [80, true],
+    [1500, false],
+  ]) {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+    await page.evaluateOnNewDocument(() => localStorage.setItem('synagogue.cookieConsent', '1'));
+    await page.setRequestInterception(true);
+    page.on('request', (r) => {
+      if (/\/media\/scrub\/t\/frame-\d+\.webp/.test(r.url())) setTimeout(() => r.continue().catch(() => undefined), delay);
+      else r.continue().catch(() => undefined);
+    });
+    await page.goto(`${WEB}/?lang=ru`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+    await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true', { timeout: 20000 }).catch(() => undefined);
+    const d = await page.evaluate(() => ({ ms: +document.documentElement.dataset.preloadMs, scene: document.documentElement.dataset.preloadScene, cache: document.querySelector('.scrub')?.dataset.cache }));
+    if (wait) check(d.scene === '1' && d.ms > 2000 && d.ms < 7000 + 1800, `390 frames +${delay} ms each: the line waits for the scene cache`, JSON.stringify(d));
+    else {
+      await sleep(3000);
+      const later = await page.evaluate(() => document.querySelector('.scrub')?.dataset.cache);
+      check(+d.scene < 1 && d.ms < 7000 + 1800 && parseInt(later) > parseInt(d.cache), `390 frames +${delay} ms each: the site goes on, the cache keeps loading`, `${JSON.stringify(d)} → ${later}`);
+    }
     await page.close();
   }
   // 1440, ru: scene follows the scroll, all sections, no errors to the bottom.
@@ -232,7 +259,7 @@ try {
   // 390 touch: the scene scrubs by native scroll too, no horizontal scroll.
   {
     const { page, errors } = await open('/?lang=ru', 390);
-    check(!!(await page.$('.scrub--live canvas[data-frames], .scrub--live video[data-frames]')), '390: live scene on touch (video or frames)');
+    check(!!(await page.$('.scrub--live canvas[data-frames]')), '390: live scene on touch (decoded frames on a canvas)');
     await sleep(1500);
     await checkEyebrow(page, '390 ru');
     await walk(page, 'home_390');

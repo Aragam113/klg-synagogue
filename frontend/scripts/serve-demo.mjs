@@ -2,7 +2,8 @@
 /**
  * Serves `dist/` like GitHub Pages does: under the base path, unknown paths → 404 + 404.html (SPA fallback);
  * outside the base path — a bare 404 (like github.io itself), so links that lose the base path show up.
- * Byte ranges (206) as on Pages: the scene's scrub video seeks by range requests.
+ * Byte ranges (206) and caching as on Pages (`cache-control: max-age=600` + `last-modified`): a reload within 10 min
+ * takes the files from the browser cache — the warm-cache case of the preloader.
  * `node scripts/serve-demo.mjs [port=8231] [base=/klg-synagogue]` (DEMO_DIST=<dir> instead of dist/)
  */
 import { createReadStream } from 'node:fs';
@@ -31,7 +32,7 @@ const TYPES = {
   '.woff2': 'font/woff2',
 };
 
-const send = (res, file, status = 200, req = null, size = 0) => {
+const send = (res, file, status = 200, req = null, size = 0, mtime = null) => {
   const type = TYPES[path.extname(file)] ?? 'application/octet-stream';
   const m = status === 200 && size ? /^bytes=(\d*)-(\d*)$/.exec(req?.headers.range ?? '') : null;
   if (m && (m[1] || m[2])) {
@@ -44,7 +45,8 @@ const send = (res, file, status = 200, req = null, size = 0) => {
     res.writeHead(206, { 'content-type': type, 'accept-ranges': 'bytes', 'content-length': end - start + 1, 'content-range': `bytes ${start}-${end}/${size}` });
     return createReadStream(file, { start, end }).pipe(res);
   }
-  res.writeHead(status, { 'content-type': type, ...(size ? { 'accept-ranges': 'bytes', 'content-length': size } : {}) });
+  const cache = status === 200 && mtime ? { 'cache-control': 'max-age=600', 'last-modified': mtime.toUTCString() } : {};
+  res.writeHead(status, { 'content-type': type, ...cache, ...(size ? { 'accept-ranges': 'bytes', 'content-length': size } : {}) });
   createReadStream(file).pipe(res);
 };
 
@@ -59,7 +61,7 @@ createServer(async (req, res) => {
   const file = path.join(dist, path.normalize(rel).replace(/^([/\\])+/, ''));
   if (!file.startsWith(dist)) return send(res, path.join(dist, '404.html'), 404);
   const s = await stat(file).catch(() => null);
-  if (s?.isFile()) return send(res, file, 200, req, s.size);
+  if (s?.isFile()) return send(res, file, 200, req, s.size, s.mtime);
   if (s?.isDirectory()) {
     const index = path.join(file, 'index.html');
     if (await stat(index).catch(() => null)) return send(res, index);

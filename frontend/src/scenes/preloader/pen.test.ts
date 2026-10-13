@@ -1,4 +1,12 @@
-import { DRAW_MS, penKeyframes } from './pen';
+import {
+  CEIL_MS,
+  MIN_DRAW_MS,
+  penAllowance,
+  penKeyframes,
+  penProfile,
+  penStep,
+  type PenState,
+} from './pen';
 
 /** Pen timing: fast along the straight leads, ≈2–2.5× slower while the star is drawn, smooth in between. */
 describe('penKeyframes', () => {
@@ -46,9 +54,70 @@ describe('penKeyframes', () => {
       expect(r).toBeLessThan(1.25);
     }
   });
+});
 
-  it('the whole stroke takes no longer than ~3.2 s', () => {
-    expect(DRAW_MS).toBeLessThanOrEqual(3200);
-    expect(DRAW_MS).toBeGreaterThanOrEqual(2400);
+/** The pen follows the real loading: free along the lead-in, the star as the content arrives, out once it is in. */
+describe('penAllowance — how far the pen may draw for the loading so far', () => {
+  const prof = penProfile(390, 844);
+  it('nothing loaded yet: the lead-in up to the star is free', () => {
+    expect(penAllowance(0, 0, prof)).toBeCloseTo(prof.starFrom, 5);
+  });
+  it('half loaded: inside the star, past its start, short of its end', () => {
+    const s = penAllowance(0.5, 0, prof);
+    expect(s).toBeGreaterThan(prof.starFrom + 0.2 * (prof.starTo - prof.starFrom));
+    expect(s).toBeLessThan(prof.starTo);
+  });
+  it('everything loaded: the whole line', () => {
+    expect(penAllowance(1, 300, prof)).toBe(1);
+  });
+  it('a stalled load still creeps on (the line never looks frozen) but stays inside the star', () => {
+    const a = penAllowance(0, 1000, prof);
+    const b = penAllowance(0, 5000, prof);
+    expect(b).toBeGreaterThan(a);
+    expect(b).toBeLessThan(prof.starTo);
+  });
+  it('past the ceiling the site goes on whatever is still loading', () => {
+    expect(CEIL_MS).toBeGreaterThanOrEqual(5000);
+    expect(CEIL_MS).toBeLessThanOrEqual(10000);
+    expect(penAllowance(0.1, CEIL_MS, prof)).toBe(1);
+  });
+});
+
+describe('penStep — the pen moves at most at full speed, eases into the allowance, never jumps', () => {
+  const prof = penProfile(390, 844);
+  const run = (allow: (t: number) => number, ms: number, dt = 1000 / 60) => {
+    let st: PenState = { tau: 0, v: 0 };
+    const arcs: number[] = [];
+    for (let t = 0; t < ms; t += dt) {
+      st = penStep(st, dt, allow(t), prof);
+      arcs.push(prof.arcAt(st.tau));
+    }
+    return { st, arcs };
+  };
+  it('fast connection (all in at once): the whole star forms in about MIN_DRAW_MS — not faster', () => {
+    expect(MIN_DRAW_MS).toBeGreaterThanOrEqual(1500);
+    expect(MIN_DRAW_MS).toBeLessThanOrEqual(2200);
+    const { arcs } = run(() => 1, 4000);
+    const doneAt = arcs.findIndex((s) => s >= 0.999) * (1000 / 60);
+    expect(doneAt).toBeGreaterThanOrEqual(MIN_DRAW_MS - 50);
+    expect(doneAt).toBeLessThanOrEqual(MIN_DRAW_MS + 250);
+  });
+  it('never draws past the allowance and never goes back', () => {
+    const { arcs } = run((t) => (t < 1500 ? 0.4 : 0.3), 3000);
+    arcs.forEach((s, i) => {
+      expect(s).toBeLessThanOrEqual(0.4 + 1e-9);
+      if (i) expect(s).toBeGreaterThanOrEqual(arcs[i - 1]);
+    });
+  });
+  it('held back, then everything arrives: speed picks up smoothly (no jerk)', () => {
+    const { arcs } = run((t) => (t < 2000 ? 0.35 : 1), 5000);
+    const full = 1 / (MIN_DRAW_MS / (1000 / 60));
+    for (let i = 2; i < arcs.length; i++) {
+      const v0 = arcs[i - 1] - arcs[i - 2];
+      const v1 = arcs[i] - arcs[i - 1];
+      // per-frame change of the arc speed: a fraction of the full speed, never a jump
+      expect(Math.abs(v1 - v0)).toBeLessThan(0.35 * full * 2.5);
+    }
+    expect(arcs[arcs.length - 1]).toBe(1);
   });
 });
