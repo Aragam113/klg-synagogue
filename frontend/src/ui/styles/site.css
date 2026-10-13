@@ -374,6 +374,15 @@ textarea.field__input { min-height: 8rem; resize: vertical; line-height: 1.5; }
   border-radius: var(--r-pill);
   padding: 0.214rem 0.714rem;
 }
+.badge--demo {
+  color: var(--fg-mute);
+  background: transparent;
+  outline: 1px dashed currentColor;
+  outline-offset: -1px;
+  opacity: 0.85;
+}
+.tone-deep .badge--demo, .tone-deeper .badge--demo, .tone-ink .badge--demo { color: #f7dc8a; }
+.badge--demo { align-self: flex-start; width: fit-content; }
 
 /* ---------- judaica ---------- */
 .magen { display: inline-block; vertical-align: middle; flex-shrink: 0; }

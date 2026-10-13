@@ -49,27 +49,11 @@ export interface ScrubManifest {
   credits: string;
   /** Frame shown statically (reduced motion) and while the phone set loads. */
   poster: number;
-  /** Absolute URL of the light (1024px) manifest for phones, if build:scrub made one. */
+  /** Absolute URL of the light (1024px, 16:9) manifest: touch devices held in landscape. */
   light?: string;
-  /** All-intra scrub video for phones (build:scrub --video): the main path on touch, the frames are the fallback. */
-  video?: ScrubVideo;
+  /** Absolute URL of the portrait phone set (406×720, build:scrub --touch): touch devices held in portrait. */
+  touch?: string;
 }
-
-export interface ScrubVideo {
-  /** Absolute URL of the mp4 (H.264, every frame a keyframe). */
-  src: string;
-  frames: number;
-  fps: number;
-}
-
-const parseVideo = (v: unknown, abs: (f: string) => string): ScrubVideo | undefined => {
-  if (!v || typeof v !== 'object') return undefined;
-  const r = v as Record<string, unknown>;
-  const frames = Number(r.frames);
-  const fps = Number(r.fps);
-  if (typeof r.src !== 'string' || !r.src || !(frames >= 2) || !(fps > 0)) return undefined;
-  return { src: abs(r.src), frames: Math.round(frames), fps };
-};
 
 /** manifest.json → absolute frame URLs (relative names resolve against base); null if unusable. */
 export const parseManifest = (raw: unknown, base: string): ScrubManifest | null => {
@@ -84,7 +68,7 @@ export const parseManifest = (raw: unknown, base: string): ScrubManifest | null 
   const abs = (f: string) => (f.startsWith('/') || /^https?:/.test(f) ? f : dir + f);
   const frames = names.map(abs);
   const light = typeof r.light === 'string' && r.light ? abs(r.light) : undefined;
-  const video = parseVideo(r.video, abs);
+  const touch = typeof r.touch === 'string' && r.touch ? abs(r.touch) : undefined;
   const poster =
     typeof r.poster === 'number' && r.poster >= 0 && r.poster < frames.length
       ? Math.round(r.poster)
@@ -96,12 +80,12 @@ export const parseManifest = (raw: unknown, base: string): ScrubManifest | null 
     credits: typeof r.credits === 'string' ? r.credits : '',
     poster,
     ...(light ? { light } : {}),
-    ...(video ? { video } : {}),
+    ...(touch ? { touch } : {}),
   };
 };
 
 export interface Blend {
-  /** Frame drawn first (fully opaque). */
+  /** Frame drawn first (fully opaque), a frame number of the set. */
   a: number;
   /** Frame drawn on top with `alpha` (= a when there is nothing to blend). */
   b: number;
@@ -109,56 +93,97 @@ export interface Blend {
 }
 
 /**
- * Inter-frame blending for a fractional frame position `x` (p·(N−1)): only REAL neighbours i = floor(x) and i+1,
- * both loaded, are crossfaded (alpha = the fraction). Otherwise the loaded frame nearest to round(x) is drawn alone —
- * never a crossfade of far frames (the coarse pass), which reads as a frozen double image. Nothing loaded → null.
+ * Decoded-frame memory (MB) a phone may spend on the scene, by `navigator.deviceMemory` (GB): ≥ 4 → 200, 2–3 → 100,
+ * less → 50. Unknown (Safari, Firefox) → 200: a decode that fails for lack of memory stops the cache at run time.
  */
-export const blendFrames = (x: number, loaded: readonly boolean[]): Blend | null => {
-  const n = loaded.length;
-  if (!n) return null;
-  const c = Math.min(n - 1, Math.max(0, Number.isFinite(x) ? x : 0));
-  const i = Math.floor(c);
-  const f = c - i;
-  if (f === 0 && loaded[i]) return { a: i, b: i, alpha: 0 };
-  if (loaded[i] && loaded[i + 1]) return { a: i, b: i + 1, alpha: f };
-  const k = nearestLoaded(Math.round(c), loaded);
-  return k < 0 ? null : { a: k, b: k, alpha: 0 };
+export const cacheBudgetMB = (deviceMemory: number | undefined): number => {
+  if (deviceMemory === undefined || !Number.isFinite(deviceMemory)) return 200;
+  if (deviceMemory >= 4) return 200;
+  if (deviceMemory >= 2) return 100;
+  return 50;
 };
 
-/** Video seek time for scroll progress p: the middle of frame round(p·(N−1)) — exact frame, no boundary rounding. */
-export const videoTime = (p: number, frames: number, fps: number): number =>
-  (frameIndex(p, frames) + 0.5) / fps;
+export interface CachePlan {
+  /** Every `stride`-th frame of the set is decoded (plus the last one). */
+  stride: number;
+  /** Frame numbers to decode, ascending. */
+  frames: number[];
+  /** Decoded size of the plan, MB. */
+  mb: number;
+}
 
-/**
- * Seek target while the video is still downloading: `t` itself inside a downloaded range, otherwise the nearest
- * downloaded frame (half a frame `half` inside a range end). A seek into the void would stall the picture on a range
- * request and break the linear download; the nearest downloaded frame keeps it moving. No ranges → `t`.
- */
-export const bufferedTime = (
-  t: number,
-  ranges: readonly (readonly [number, number])[],
-  half: number
-): number => {
-  if (!ranges.length) return t;
-  let best = t;
-  let gap = Infinity;
-  for (const [s, e] of ranges) {
-    if (t >= s && t <= e) return t;
-    const near = t < s ? s : Math.max(s, e - half);
-    const d = Math.abs(near - t);
-    if (d < gap) {
-      gap = d;
-      best = near;
-    }
-  }
-  return best;
-};
-
-/** First pass of the phone set: every `step`-th frame plus the last — the scene scrubs once these are in. */
-export const coarsePass = (n: number, step: number): number[] => {
-  const k = Math.max(1, Math.round(step));
+/** Frames 0, k, 2k… plus the last one. */
+const every = (n: number, k: number): number[] => {
   const out: number[] = [];
   for (let i = 0; i < n; i += k) out.push(i);
   if (n > 0 && out[out.length - 1] !== n - 1) out.push(n - 1);
   return out;
+};
+
+/** The smallest stride whose frames (`frameBytes` each, decoded RGBA) fit `budgetMB`. */
+export const cachePlan = (n: number, frameBytes: number, budgetMB: number): CachePlan => {
+  let stride = 1;
+  let frames = every(n, 1);
+  while (frames.length > 2 && (frames.length * frameBytes) / 1048576 > budgetMB) {
+    stride++;
+    frames = every(n, stride);
+  }
+  return { stride, frames, mb: (frames.length * frameBytes) / 1048576 };
+};
+
+/**
+ * Download/decode order of a plan: the poster first, then ever finer even passes over the plan (every 8th slot,
+ * every 4th, 2nd, the rest) — whenever the loading stops, what is in is spread evenly over the whole scene.
+ */
+export const loadOrder = (plan: readonly number[], poster: number): number[] => {
+  const out: number[] = [];
+  const seen = new Set<number>();
+  const add = (f: number) => {
+    if (seen.has(f)) return;
+    seen.add(f);
+    out.push(f);
+  };
+  if (plan.includes(poster)) add(poster);
+  for (const step of [8, 4, 2, 1]) {
+    for (let i = 0; i < plan.length; i += step) add(plan[i]);
+    add(plan[plan.length - 1]);
+  }
+  return out.filter((f) => f !== undefined);
+};
+
+/**
+ * What to draw for a fractional position `x` (0..N−1 over the set) given the decoded `plan` frames (`loaded` by
+ * slot of the plan): the two decoded frames around x crossfaded (alpha = the fraction between them) when they are
+ * at most `maxGap` frames apart (default: the plan's own neighbours only); otherwise the decoded frame nearest to x
+ * alone — never a crossfade of far frames, which reads as a frozen double image. Nothing decoded → null.
+ */
+export const blendCached = (
+  x: number,
+  plan: readonly number[],
+  loaded: readonly boolean[],
+  maxGap?: number
+): Blend | null => {
+  if (!plan.length) return null;
+  const last = plan[plan.length - 1];
+  const c = Math.min(last, Math.max(plan[0], Number.isFinite(x) ? x : 0));
+  // decoded slot at or before c and at or after c
+  let lo = -1;
+  let hi = -1;
+  for (let j = 0; j < plan.length; j++) {
+    if (!loaded[j]) continue;
+    if (plan[j] <= c) lo = j;
+    if (plan[j] >= c && hi < 0) hi = j;
+  }
+  if (lo < 0 && hi < 0) return null;
+  if (lo >= 0 && plan[lo] === c) return { a: c, b: c, alpha: 0 };
+  if (lo >= 0 && hi >= 0) {
+    const a = plan[lo];
+    const b = plan[hi];
+    const gap = b - a;
+    const allowed = maxGap ?? (hi === lo + 1 ? gap : -1);
+    if (gap <= allowed) return { a, b, alpha: (c - a) / gap };
+  }
+  const near =
+    lo < 0 ? plan[hi] : hi < 0 ? plan[lo] : c - plan[lo] <= plan[hi] - c ? plan[lo] : plan[hi];
+  return { a: near, b: near, alpha: 0 };
 };

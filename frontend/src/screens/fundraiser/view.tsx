@@ -13,6 +13,7 @@ import {
   Empty,
   ErrorBox,
   Eyebrow,
+  DemoBadge,
   FallbackBadge,
   Link,
   Page,
@@ -56,6 +57,7 @@ export const FundraiserView = ({
               <Reveal>
                 <Eyebrow>{t('fundraiser.eyebrow')}</Eyebrow>
                 <Title as="h1" size="lg" stroke="reveal" text={f.title} />
+                <DemoBadge slug={f.slug} />
                 <FallbackBadge show={f.fallback} />
                 <div
                   className="cnt-progress"

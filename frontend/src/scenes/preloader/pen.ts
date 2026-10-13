@@ -3,8 +3,18 @@
  * and the timing of the stroke (quick along the straight leads, slow while the star forms).
  */
 
-/** Whole stroke, ms (≤ ~3.2 s); then a short hold and the layer leaves in .6 s. */
-export const DRAW_MS = 3000;
+/**
+ * The whole stroke at full speed, ms: the shortest the preloader can be (fast connection, warm cache) — long enough
+ * for the star to form; then a short hold and the layer leaves in .6 s. Slower loading holds the pen back (penStep).
+ */
+export const MIN_DRAW_MS = 1800;
+/** From the preloader's start: past this the site shows whatever is still loading (it goes on in the background). */
+export const CEIL_MS = 7000;
+/** A stalled load still moves the pen: share of the star creeping in over time (time constant CREEP_MS). */
+const CREEP = 0.55;
+const CREEP_MS = 4000;
+/** The pen eases into its allowance over ~this many ms (and picks up speed again as smoothly). */
+const EASE_MS = 140;
 /** How much slower the pen moves around the star than along the straight leads. */
 export const STAR_SLOWDOWN = 2.25;
 
@@ -111,4 +121,79 @@ export const penKeyframes = (
     out.push({ offset: k === samples ? 1 : t[i] / T, dash: k === samples ? 0 : 1 - i / fine });
   }
   return out;
+};
+
+export interface PenProfile {
+  /** Arc share (0..1) where the star starts / ends (the straight leads are outside). */
+  starFrom: number;
+  starTo: number;
+  /** Arc share drawn at pen time tau (0..1 of the full-speed stroke). */
+  arcAt: (tau: number) => number;
+  /** Pen time at which arc share s is reached. */
+  tauAt: (s: number) => number;
+}
+
+/** The full-speed stroke of penKeyframes as two lookups: pen time ↔ drawn arc share. */
+export const penProfile = (w: number, h: number): PenProfile => {
+  const kf = penKeyframes(w, h);
+  const ts = kf.map((f) => f.offset);
+  const ss = kf.map((f) => 1 - f.dash);
+  const lerp = (xs: number[], ys: number[], x: number) => {
+    if (x <= xs[0]) return ys[0];
+    if (x >= xs[xs.length - 1]) return ys[ys.length - 1];
+    let i = 1;
+    while (xs[i] < x) i++;
+    const k = xs[i] === xs[i - 1] ? 0 : (x - xs[i - 1]) / (xs[i] - xs[i - 1]);
+    return ys[i - 1] + (ys[i] - ys[i - 1]) * k;
+  };
+  const pts = starLinePoints(w, h);
+  const seg = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]));
+  const total = seg.reduce((a, b) => a + b, 0);
+  return {
+    starFrom: seg[0] / total,
+    starTo: 1 - seg[seg.length - 1] / total,
+    arcAt: (tau) => lerp(ts, ss, tau),
+    tauAt: (s) => lerp(ss, ts, s),
+  };
+};
+
+/**
+ * How far (arc share) the pen may draw: the lead-in is free; the star is drawn as the loading `load` (0..1) goes —
+ * or as a slow creep over `elapsedMs` when the loading stalls, so the line never looks frozen — but never finished
+ * before everything is in; once it is (or past CEIL_MS) the whole line, out to the right edge.
+ */
+export const penAllowance = (load: number, elapsedMs: number, prof: PenProfile): number => {
+  if (load >= 1 || elapsedMs >= CEIL_MS) return 1;
+  const creep = CREEP * (1 - Math.exp(-Math.max(0, elapsedMs) / CREEP_MS));
+  const k = Math.min(0.96, Math.max(0, load, creep));
+  return prof.starFrom + (prof.starTo - prof.starFrom) * k;
+};
+
+export interface PenState {
+  /** Pen time along the full-speed stroke, 0..1. */
+  tau: number;
+  /** Its speed, per ms. */
+  v: number;
+}
+
+/**
+ * One frame of the pen: towards the allowance `allowed` (arc share) at most at full speed (the whole stroke in
+ * MIN_DRAW_MS, slow around the star as penKeyframes), slowing down smoothly as it comes close and picking up
+ * speed smoothly when the allowance moves on; never past the allowance, never back.
+ */
+export const penStep = (
+  st: PenState,
+  dtMs: number,
+  allowed: number,
+  prof: PenProfile
+): PenState => {
+  const dt = Math.max(0, Math.min(100, dtMs));
+  const lim = Math.max(st.tau, prof.tauAt(Math.min(1, allowed)));
+  const full = 1 / MIN_DRAW_MS;
+  // the speed that would stop the pen right at the limit, eased (time constant EASE_MS)
+  const want = Math.min(full, (lim - st.tau) / EASE_MS);
+  const v = st.v + (want - st.v) * (1 - Math.exp(-dt / (EASE_MS / 2)));
+  const tau = Math.min(lim, st.tau + Math.max(0, v) * dt);
+  // the last sliver: done
+  return { tau: lim >= 1 && 1 - tau < 1e-3 ? 1 : tau, v };
 };

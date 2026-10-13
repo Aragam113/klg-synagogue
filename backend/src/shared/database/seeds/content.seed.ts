@@ -32,7 +32,9 @@ const DEFAULT_IMG_DIR = resolve(__dirname, '../../../../seed-assets/photos');
 const CREDIT_MAX = 300;
 
 /** `_sources.txt`: «файл | лицензия | автор | дата | страница | описание» → атрибуция. */
-async function readCredits(imgDir: string): Promise<Map<string, string>> {
+export async function readCredits(
+  imgDir: string = DEFAULT_IMG_DIR
+): Promise<Map<string, string>> {
   const text = await readFile(resolve(imgDir, '_sources.txt'), 'utf8');
   const credits = new Map<string, string>();
   for (const line of text.split(/\r?\n/)) {

@@ -1,11 +1,11 @@
 import {
-  blendFrames,
-  bufferedTime,
-  videoTime,
-  coarsePass,
+  blendCached,
+  cacheBudgetMB,
+  cachePlan,
   coverRect,
   frameIndex,
   improvesFrame,
+  loadOrder,
   nearestLoaded,
   parseManifest,
 } from './scrub-model';
@@ -121,80 +121,104 @@ describe('parseManifest — light set for phones', () => {
   });
 });
 
-describe('blendFrames — crossfade only between real neighbours, never far frames', () => {
-  const all = [true, true, true, true, true];
-  it('i and i+1 loaded → crossfade with alpha = the fraction', () => {
-    expect(blendFrames(2.25, all)).toEqual({ a: 2, b: 3, alpha: 0.25 });
-  });
-  it('a whole position → one frame, no blend', () => {
-    expect(blendFrames(3, all)).toEqual({ a: 3, b: 3, alpha: 0 });
-  });
-  it('coarse pass (every 4th) → the nearest loaded frame alone, no double image', () => {
-    const coarse = [true, false, false, false, true];
-    expect(blendFrames(1.25, coarse)).toEqual({ a: 0, b: 0, alpha: 0 });
-    expect(blendFrames(2.75, coarse)).toEqual({ a: 4, b: 4, alpha: 0 });
-  });
-  it('the neighbour is missing → the loaded frame alone', () => {
-    expect(blendFrames(2.25, [true, false, true, false, true])).toEqual({ a: 2, b: 2, alpha: 0 });
-  });
-  it('nothing loaded → null', () => {
-    expect(blendFrames(1, [false, false])).toBeNull();
-  });
-});
-
-describe('parseManifest — scrub video for phones', () => {
-  it('resolves video.src against the folder, keeps frames and fps', () => {
+describe('parseManifest — portrait phone set', () => {
+  it('resolves `touch` (t/manifest.json) against the folder; the old `video` key is ignored', () => {
     const m = parseManifest(
       {
         frames: ['a.webp'],
-        width: 4,
-        height: 3,
-        video: { src: 'v/scene.mp4', frames: 260, fps: 10 },
+        width: 1280,
+        height: 720,
+        touch: 't/manifest.json',
+        video: { src: 'v/scene.mp4', frames: 650, fps: 25 },
       },
       '/media/scrub/'
     );
-    expect(m?.video).toEqual({ src: '/media/scrub/v/scene.mp4', frames: 260, fps: 10 });
+    expect(m?.touch).toBe('/media/scrub/t/manifest.json');
+    expect(m).not.toHaveProperty('video');
   });
-  it('broken or missing video → undefined (the frames are used)', () => {
-    const base = { frames: ['a.webp'], width: 4, height: 3 };
-    expect(parseManifest(base, '/m/')?.video).toBeUndefined();
+  it('no `touch` → undefined', () => {
     expect(
-      parseManifest({ ...base, video: { src: 'x.mp4', frames: 0, fps: 10 } }, '/m/')?.video
+      parseManifest({ frames: ['a.webp'], width: 1, height: 1 }, '/x/')?.touch
     ).toBeUndefined();
   });
 });
 
-describe('videoTime — the middle of the frame for scroll progress (frame-accurate seek)', () => {
-  it('p=0 → first frame, p=1 → last, half → round(p·(N−1))', () => {
-    expect(videoTime(0, 260, 10)).toBeCloseTo(0.05, 6);
-    expect(videoTime(1, 260, 10)).toBeCloseTo(25.95, 6);
-    expect(videoTime(0.5, 260, 10)).toBeCloseTo(13.05, 6);
-    expect(videoTime(2, 260, 10)).toBeCloseTo(25.95, 6);
+describe('cacheBudgetMB — decoded-frame memory a phone may spend on the scene', () => {
+  it('navigator.deviceMemory 4 GB and more → 200 MB', () => {
+    expect(cacheBudgetMB(4)).toBe(200);
+    expect(cacheBudgetMB(8)).toBe(200);
+  });
+  it('2 GB → 100 MB, 1 GB and less → 50 MB', () => {
+    expect(cacheBudgetMB(2)).toBe(100);
+    expect(cacheBudgetMB(1)).toBe(50);
+    expect(cacheBudgetMB(0.5)).toBe(50);
+  });
+  it('unknown (Safari, Firefox) → 200 MB (an out-of-memory decode degrades at run time)', () => {
+    expect(cacheBudgetMB(undefined)).toBe(200);
+    expect(cacheBudgetMB(NaN)).toBe(200);
   });
 });
 
-describe('coarsePass — the first frames to load on a phone', () => {
-  it('every 4th frame plus the last one', () => {
-    expect(coarsePass(10, 4)).toEqual([0, 4, 8, 9]);
-    expect(coarsePass(9, 4)).toEqual([0, 4, 8]);
+describe('cachePlan — which frames of the set are decoded within the budget', () => {
+  // 406×720 RGBA = 1 169 280 bytes ≈ 1.115 MB a frame
+  const frame = 406 * 720 * 4;
+  it('162 frames fit 200 MB → every frame (≈181 MB)', () => {
+    const p = cachePlan(162, frame, 200);
+    expect(p.stride).toBe(1);
+    expect(p.frames).toHaveLength(162);
+    expect(Math.round(p.mb)).toBe(181);
+  });
+  it('100 MB → every 2nd frame plus the last one', () => {
+    const p = cachePlan(162, frame, 100);
+    expect(p.stride).toBe(2);
+    expect(p.frames.slice(0, 3)).toEqual([0, 2, 4]);
+    expect(p.frames[p.frames.length - 1]).toBe(161);
+    expect(p.frames).toHaveLength(82);
+    expect(p.mb).toBeLessThanOrEqual(100);
+  });
+  it('50 MB → every 4th', () => {
+    const p = cachePlan(162, frame, 50);
+    expect(p.stride).toBe(4);
+    expect(p.mb).toBeLessThanOrEqual(50);
   });
 });
 
-describe('bufferedTime — while the video loads, seek only into what is already downloaded', () => {
-  const ranges: [number, number][] = [
-    [0, 4],
-    [10, 12],
-  ];
-  it('inside a downloaded range → the time itself', () => {
-    expect(bufferedTime(3, ranges, 0.1)).toBe(3);
-    expect(bufferedTime(11, ranges, 0.1)).toBe(11);
+describe('loadOrder — the poster first, then ever finer even passes (the scene is usable at any moment)', () => {
+  it('9 frames, poster 4: poster, then every 8th, 4th, 2nd, the rest', () => {
+    expect(loadOrder([0, 1, 2, 3, 4, 5, 6, 7, 8], 4)).toEqual([4, 0, 8, 2, 6, 1, 3, 5, 7]);
   });
-  it('outside → the nearest downloaded frame (half a frame — the 3rd argument — inside a range end)', () => {
-    expect(bufferedTime(6, ranges, 0.1)).toBeCloseTo(3.9, 6);
-    expect(bufferedTime(9, ranges, 0.1)).toBe(10);
-    expect(bufferedTime(20, ranges, 0.1)).toBeCloseTo(11.9, 6);
+  it('a strided plan keeps its own frame numbers and has no repeats', () => {
+    const o = loadOrder([0, 2, 4, 6, 8, 10], 6);
+    expect(o[0]).toBe(6);
+    expect([...o].sort((a, b) => a - b)).toEqual([0, 2, 4, 6, 8, 10]);
   });
-  it('nothing downloaded yet → the time itself', () => {
-    expect(bufferedTime(7, [], 0.1)).toBe(7);
+});
+
+describe('blendCached — crossfade of neighbouring decoded frames by the fractional position', () => {
+  const all = [true, true, true, true, true];
+  const plan = [0, 1, 2, 3, 4];
+  it('both neighbours decoded → a crossfade with alpha = the fraction', () => {
+    expect(blendCached(2.25, plan, all)).toEqual({ a: 2, b: 3, alpha: 0.25 });
+  });
+  it('a whole position → one frame', () => {
+    expect(blendCached(3, plan, all)).toEqual({ a: 3, b: 3, alpha: 0 });
+  });
+  it('a strided plan (every 2nd) blends its own neighbours 2 frames apart', () => {
+    expect(blendCached(3, [0, 2, 4], [true, true, true])).toEqual({ a: 2, b: 4, alpha: 0.5 });
+  });
+  it('a gap wider than maxGap while loading → the nearest decoded frame alone (no double image)', () => {
+    const loaded = [true, false, false, false, true];
+    expect(blendCached(1.25, plan, loaded, 2)).toEqual({ a: 0, b: 0, alpha: 0 });
+    expect(blendCached(2.75, plan, loaded, 2)).toEqual({ a: 4, b: 4, alpha: 0 });
+  });
+  it('a gap within maxGap while loading → still a crossfade', () => {
+    expect(blendCached(1.5, plan, [true, false, true, false, true], 2)).toEqual({
+      a: 0,
+      b: 2,
+      alpha: 0.75,
+    });
+  });
+  it('nothing decoded → null', () => {
+    expect(blendCached(1, [0, 1], [false, false])).toBeNull();
   });
 });

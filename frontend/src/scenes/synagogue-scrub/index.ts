@@ -1,9 +1,11 @@
 export { SynagogueScrub, type ScrubChapter, type SynagogueScrubProps } from './synagogue-scrub';
 export {
-  blendFrames,
-  coarsePass,
+  blendCached,
+  cacheBudgetMB,
+  cachePlan,
   coverRect,
   frameIndex,
+  loadOrder,
   nearestLoaded,
   parseManifest,
   type ScrubManifest,

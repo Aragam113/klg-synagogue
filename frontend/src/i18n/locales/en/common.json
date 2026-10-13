@@ -112,6 +112,10 @@
     "text": "It may have moved, or the address has a typo.",
     "home": "Go home"
   },
+  "example": {
+    "badge": "Example",
+    "hint": "Demo entry, not a real community event or fundraiser"
+  },
   "fallback": {
     "ruOnly": "Available in Russian"
   },

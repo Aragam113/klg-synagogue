@@ -14,9 +14,14 @@
  * On touch the synagogue scene scrubs by native scroll (frame at p≈0.1 ≠ p≈0.9 and back,
  * sticky 100svh), the Dawn rosette turns by itself (two marks 3 s apart) and with scroll, the hexagram
  * background parallaxes — at 390×844 and 360×740; shots e2e/shots/g12_*.
- * Touch path (390×844): no Lenis, sticky in fixed px (the address bar does not move it), the sharp light set,
- * crossfaded frames; auto-settle — a drag stopped mid-chapter glides to the chapter stop (m2_snap_before/after),
- * a touch cancels the glide, nothing is pulled outside the scene. Desktop keeps the full set.
+ * Touch path (390×844): no Lenis, sticky in fixed px (the address bar does not move it), the portrait set decoded
+ * into bitmaps (≤ 200 MB), crossfaded neighbours while moving, one whole frame at rest; degradation — a 1 GB phone
+ * decodes every 4th frame (≤ 50 MB), no createImageBitmap → decoded <img>, landscape → the light 16:9 set;
+ * auto-settle — only a rest between two chapters glides, along the movement, into the next/previous chapter
+ * (m5_scene_snap_before/after), a touch cancels the glide, nothing is pulled at the entry/exit or outside the scene.
+ * Desktop keeps the full set.
+ * News previews (home, «more news»): a horizontal snap rail at 390 — ~82% cards, 16px fields, next card peeks,
+ * RTL in he, a swipe snaps to card 2 and moves the dot without a page jump (news_rail_*); /news stays a vertical feed.
  */
 import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
@@ -83,7 +88,7 @@ const open = async (path, width, { reduced = false, cookie = true, height = 800 
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: reduced ? 'reduce' : 'no-preference' }]);
   await page.goto(`${WEB}${path}`, { waitUntil: 'networkidle2', timeout: 90000 });
   await page.waitForSelector('.hdr', { timeout: 60000 });
-  await page.waitForFunction(() => !document.querySelector('[data-preloader]'), { timeout: 8000 }).catch(() => undefined);
+  await page.waitForFunction(() => !document.querySelector('[data-preloader]'), { timeout: 15000 }).catch(() => undefined);
   await sleep(600);
   return page;
 };
@@ -435,10 +440,11 @@ try {
       entryOk(home, 'back at the entry');
       check(JSON.stringify(home.arch) === JSON.stringify(entry.arch) && home.titleOp === entry.titleOp,
         `${tag}: back at the entry — the same arch as on the way in`, JSON.stringify([entry.arch, home.arch]));
-      // a finger drag inside the section moves the chapter (native touch scroll, then the auto-settle)
+      // a finger drag inside the section moves the chapter (native touch scroll); stopped between chapters 1 and 2
+      // (~1 screen) it glides on into chapter 2 (auto-settle)
       await at(0);
       await page.touchscreen.touchStart(w / 2, h - 144);
-      for (let i = 1; i <= 20; i++) {
+      for (let i = 1; i <= 34; i++) {
         await page.touchscreen.touchMove(w / 2, h - 144 - i * 25);
         await sleep(25);
       }
@@ -446,7 +452,7 @@ try {
       await page.touchscreen.touchEnd();
       await sleep(1800);
       const dragged = await page.evaluate(() => document.querySelector('#community .pinned').dataset.active);
-      check(dragged === '1', `${tag}: a finger drag of ~0.6 screen moves to chapter 2 (auto-settle)`, dragged);
+      check(dragged === '1', `${tag}: a finger drag of ~1 screen stopped between chapters glides on to chapter 2 (auto-settle)`, dragged);
     }
     await page.close();
   };
@@ -560,23 +566,28 @@ try {
     await page.close();
   }
 
-  // ---- 4c. touch scroll path (390×844): engine, scrub video (main path), fixed sticky height vs the address bar
+  // ---- 4c. touch scroll path (390×844): engine, the decoded frame cache (portrait set), crossfade while moving,
+  // one whole frame at rest, fixed sticky height vs the address bar
   {
     const page = await open('/?lang=ru', 390, { height: 844 });
     const tag = '390 touch';
-    const main = await (await fetch(`${WEB}/media/scrub/manifest.json`)).json();
-    await page.waitForFunction(() => document.querySelector('.scrub')?.dataset.pass === 'video', { timeout: 30000 }).catch(() => undefined);
+    const touchSet = await (await fetch(`${WEB}/media/scrub/t/manifest.json`)).json();
+    await page.waitForFunction(() => document.querySelector('.scrub')?.dataset.loaded === 'all', { timeout: 40000 }).catch(() => undefined);
     const base = await page.evaluate(() => {
-      const v = document.querySelector('.scrub video');
+      const s = document.querySelector('.scrub');
       return {
         touch: document.documentElement.dataset.touch ?? null,
         lenis: document.documentElement.classList.contains('lenis'),
         vhFix: document.documentElement.style.getPropertyValue('--vh-fix'),
-        sceneH: document.querySelector('.scrub').offsetHeight,
-        media: document.querySelector('.scrub').dataset.media,
-        pass: document.querySelector('.scrub').dataset.pass,
-        video: v ? { frames: +v.dataset.frames, muted: v.muted, inline: v.playsInline, preload: v.preload, paused: v.paused } : null,
-        canvas: !!document.querySelector('.scrub canvas'),
+        sceneH: s.offsetHeight,
+        media: s.dataset.media,
+        set: s.dataset.set,
+        pass: s.dataset.pass,
+        cache: s.dataset.cache,
+        stride: s.dataset.stride,
+        mb: +s.dataset.mb,
+        frames: +(document.querySelector('.scrub canvas')?.dataset.frames ?? 0),
+        video: !!document.querySelector('.scrub video'),
         noHScroll: document.documentElement.scrollWidth <= innerWidth,
         pinned: getComputedStyle(document.querySelector('#community .pinned__sticky')).position === 'sticky',
         spin: getComputedStyle(document.querySelector('.home-dawn__spin') ?? document.body).animationName,
@@ -585,20 +596,25 @@ try {
     check(base.touch === 'on' && base.vhFix === '844px' && !base.lenis, `${tag}: touch path on (no Lenis), viewport fixed in px`, JSON.stringify(base));
     check(base.noHScroll && base.pinned && base.spin !== 'none', `${tag}: no h-scroll, community pinned, Dawn spin kept`, JSON.stringify(base));
     check(base.sceneH > 844 * 3, `${tag}: scene runway in fixed px`, String(base.sceneH));
+    const n = touchSet.frames.length;
     check(
-      base.media === 'video' && base.pass === 'video' && !base.canvas && base.video?.frames === main.video?.frames &&
-        base.video.muted && base.video.inline && base.video.preload === 'auto' && base.video.paused,
-      `${tag}: phone scrubs the scene video (muted, playsinline, preload auto, paused)`,
-      JSON.stringify({ ...base.video, manifest: main.video })
+      base.media === 'bitmaps' && base.set === 'touch' && !base.video && base.frames === n && base.cache === `${n}/${n}` &&
+        base.stride === '1' && base.mb > 0 && base.mb <= 200 && base.pass === 'coarse',
+      `${tag}: the whole portrait set (${n} frames ${touchSet.width}×${touchSet.height}) decoded into bitmaps, ≤ 200 MB, no video`,
+      JSON.stringify(base)
     );
     const read = () =>
-      page.evaluate(() => ({
-        p: +document.querySelector('.scrub').style.getPropertyValue('--p'),
-        f: +document.querySelector('.scrub [data-frames]').dataset.frame,
-        sh: Math.round(document.querySelector('.scrub__sticky').getBoundingClientRect().height),
-        poster: !!document.querySelector('.scrub__poster[data-waiting]'),
-        y: scrollY,
-      }));
+      page.evaluate(() => {
+        const c = document.querySelector('.scrub canvas');
+        return {
+          p: +document.querySelector('.scrub').style.getPropertyValue('--p'),
+          f: +c.dataset.frame,
+          blend: +c.dataset.blend,
+          sh: Math.round(document.querySelector('.scrub__sticky').getBoundingClientRect().height),
+          poster: !!document.querySelector('.scrub__poster[data-waiting]'),
+          y: scrollY,
+        };
+      });
     const geo = await page.evaluate(() => {
       const s = document.querySelector('.scrub');
       return { top: s.getBoundingClientRect().top + scrollY, runway: s.offsetHeight - 844 };
@@ -606,68 +622,82 @@ try {
     await page.evaluate((g) => window.scrollTo(0, g.top + g.runway * 0.3625), geo);
     await sleep(1200);
     const r1 = await read();
+    // while the page moves: a crossfade of neighbouring frames by the fractional position, every rAF
+    const moving = await page.evaluate(async (g) => {
+      const c = document.querySelector('.scrub canvas');
+      const out = { alphas: new Set(), far: 0, n: 0 };
+      for (let i = 0; i < 60; i++) {
+        window.scrollTo(0, g.top + g.runway * 0.3625 + i * 3);
+        await new Promise((r) => requestAnimationFrame(r));
+        const [a, b] = (c.dataset.pair ?? '').split('-').map(Number);
+        if (Math.abs(a - b) > 1) out.far++;
+        out.alphas.add(c.dataset.blend);
+        out.n++;
+      }
+      return { far: out.far, alphas: [...out.alphas].filter((x) => +x > 0 && +x < 1).length };
+    }, geo);
+    check(moving.far === 0 && moving.alphas >= 3, `${tag}: moving — crossfade of neighbouring frames only`, JSON.stringify(moving));
     await page.touchscreen.touchStart(195, 600);
     for (let i = 1; i <= 8; i++) await page.touchscreen.touchMove(195, 600 - i * 40);
     await page.touchscreen.touchEnd();
     await sleep(1800);
     const r2 = await read();
-    check(r2.y > r1.y && r2.f !== r1.f && !r2.poster, `${tag}: a finger drag scrubs the video`, `${JSON.stringify(r1)} → ${JSON.stringify(r2)}`);
-    await page.screenshot({ path: join(SHOTS, 'm4_scene_mid_390.png') });
+    check(r2.y > r1.y && r2.f !== r1.f && !r2.poster, `${tag}: a finger drag scrubs the scene`, `${JSON.stringify(r1)} → ${JSON.stringify(r2)}`);
+    check(r2.blend === 0, `${tag}: at rest — one whole frame, no double image`, JSON.stringify(r2));
+    await page.screenshot({ path: join(SHOTS, 'm5_scene_mid_390.png') });
     // the address bar hides: +56px of viewport at the same scrollY — sticky and --p must not jump
     await page.setViewport({ width: 390, height: 900, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
     await sleep(900);
     const r3 = await read();
     check(r3.sh === 844 && Math.abs(r3.p - r2.p) < 0.002, `${tag}: address bar does not move the scene`, `${JSON.stringify(r2)} → ${JSON.stringify(r3)}`);
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
-    // the very end of the scene: the last frame shows up although the browser stops preloading short of the end
     await page.evaluate((g) => window.scrollTo(0, g.top + g.runway), geo);
-    await page.waitForFunction((n) => +document.querySelector('.scrub video').dataset.frame >= n - 3, { timeout: 8000 }, main.video.frames).catch(() => undefined);
+    await page.waitForFunction((k) => +document.querySelector('.scrub canvas').dataset.frame === k, { timeout: 8000 }, n - 1).catch(() => undefined);
     const rEnd = await read();
-    check(rEnd.f >= main.video.frames - 3, `${tag}: the end of the scene shows the last frames`, `frame ${rEnd.f} of ${main.video.frames}`);
-    await page.screenshot({ path: join(SHOTS, 'm4_scene_end_390.png') });
+    check(rEnd.f === n - 1, `${tag}: the end of the scene shows the last frame`, `frame ${rEnd.f} of ${n}`);
+    await page.screenshot({ path: join(SHOTS, 'm5_scene_end_390.png') });
     await page.close();
   }
 
-  // ---- 4c'. fallback: the video does not load → the light frame set; crossfade only between real neighbours
+  // ---- 4c'. degradation: a weak phone (deviceMemory 1 GB) → every 4th frame within 50 MB; no createImageBitmap →
+  // decoded <img>; a phone held in landscape → the 16:9 light set decoded at 720 px
   {
-    const page = await browser.newPage();
-    await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
-    await page.evaluateOnNewDocument(() => {
-      localStorage.setItem('synagogue.preloaded', '1');
-      localStorage.setItem('synagogue.cookieConsent', '1');
-    });
-    await page.setRequestInterception(true);
-    page.on('request', (r) => (/\.mp4(\?|$)/.test(r.url()) ? r.abort() : r.continue()));
-    await page.goto(`${WEB}/?lang=ru`, { waitUntil: 'domcontentloaded', timeout: 90000 });
-    const tag = '390 fallback';
+    const variants = [
+      ['390 weak', { width: 390, height: 844 }, () => Object.defineProperty(Navigator.prototype, 'deviceMemory', { get: () => 1 })],
+      ['390 no-bitmap', { width: 390, height: 844 }, () => { delete window.createImageBitmap; }],
+      ['844 landscape', { width: 844, height: 390 }, null],
+    ];
     const light = await (await fetch(`${WEB}/media/scrub/m/manifest.json`)).json();
-    await page.waitForFunction(() => document.querySelector('.scrub')?.dataset.loaded === 'all', { timeout: 40000 }).catch(() => undefined);
-    const fb = await page.evaluate(() => ({
-      media: document.querySelector('.scrub').dataset.media,
-      frames: +(document.querySelector('.scrub canvas')?.dataset.frames ?? 0),
-      video: !!document.querySelector('.scrub video'),
-    }));
-    check(fb.media === 'frames' && !fb.video && fb.frames === light.frames.length, `${tag}: no video → the light frame set (${light.frames.length})`, JSON.stringify(fb));
-    const pairs = await page.evaluate(async () => {
-      const s = document.querySelector('.scrub');
-      const c = document.querySelector('.scrub canvas');
-      const top = s.getBoundingClientRect().top + scrollY;
-      const out = { alphas: new Set(), far: 0 };
-      for (let i = 0; i < 40; i++) {
-        window.scrollTo(0, top + 300 + i * 7);
-        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-        const [a, b] = (c.dataset.pair ?? '').split('-').map(Number);
-        if (Math.abs(a - b) > 1) out.far++;
-        out.alphas.add(c.dataset.blend);
-      }
-      return { far: out.far, alphas: [...out.alphas].filter((x) => +x > 0 && +x < 1).length };
-    });
-    check(pairs.far === 0 && pairs.alphas >= 3, `${tag}: crossfades only neighbouring frames (i, i+1)`, JSON.stringify(pairs));
-    await page.screenshot({ path: join(SHOTS, 'm4_scene_fallback_390.png') });
-    await page.close();
+    for (const [tag, vp, init] of variants) {
+      const page = await browser.newPage();
+      await page.setViewport({ ...vp, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+      await page.evaluateOnNewDocument(() => localStorage.setItem('synagogue.cookieConsent', '1'));
+      if (init) await page.evaluateOnNewDocument(init);
+      await page.goto(`${WEB}/?lang=ru`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+      await page.waitForFunction(() => document.querySelector('.scrub')?.dataset.loaded === 'all', { timeout: 40000 }).catch(() => undefined);
+      await page.evaluate(() => {
+        const s = document.querySelector('.scrub');
+        window.scrollTo(0, s.getBoundingClientRect().top + scrollY + (s.offsetHeight - innerHeight) * 0.5);
+      });
+      await sleep(1200);
+      const st = await page.evaluate(() => {
+        const d = document.querySelector('.scrub').dataset;
+        const c = document.querySelector('.scrub canvas');
+        return { set: d.set, stride: +d.stride, mb: +d.mb, cache: d.cache, loaded: d.loaded, frame: c ? +c.dataset.frame : null, frames: c ? +c.dataset.frames : 0 };
+      });
+      const ok =
+        tag === '390 weak'
+          ? st.set === 'touch' && st.stride === 4 && st.mb <= 50 && st.loaded === 'all' && st.frame % 4 === 0
+          : tag === '844 landscape'
+            ? st.set === 'light' && st.frames === light.frames.length && st.loaded === 'all' && st.frame > 0
+            : st.set === 'touch' && st.loaded === 'all' && st.frame > 0;
+      check(ok, `${tag}: the scene still scrubs (${tag === '390 weak' ? 'every 4th frame, ≤ 50 MB' : tag === '844 landscape' ? 'light 16:9 set' : 'decoded <img>'})`, JSON.stringify(st));
+      await page.screenshot({ path: join(SHOTS, `m5_scene_${tag.replace(/\W+/g, '_')}.png`) });
+      await page.close();
+    }
   }
 
-  // ---- 4d. auto-settle: once at rest, along the last movement, not at the entry/exit, a touch cancels it
+  // ---- 4d. auto-settle: only between two chapters, along the movement, ≤ half a chapter, soft; a touch cancels it
   {
     const page = await open('/?lang=ru', 390, { height: 844 });
     const tag = '390 snap';
@@ -677,9 +707,8 @@ try {
       const top = Math.round(s.getBoundingClientRect().top + scrollY);
       return { top, runway: s.offsetHeight - 844, h: s.offsetHeight };
     });
-    // stops of 4 chapters: 0, .3625, .6125, 1 of the runway (touch-scroll.ts chapterStops); a chapter = 844px
-    const stop1 = Math.round(geo.top + 0.3625 * geo.runway);
-    const stop2 = Math.round(geo.top + 0.6125 * geo.runway);
+    // 4 chapters, a chapter = runway / 4 = 844px; texts fully in over local .2 … .72 (touch-scroll.ts snapProgress)
+    const at = (p) => Math.round(geo.top + p * geo.runway);
     const y = () => page.evaluate(() => scrollY);
     const drag = async (dy, lift = true) => {
       await page.touchscreen.touchStart(195, 600);
@@ -689,58 +718,66 @@ try {
     };
     const settle = async (to) => {
       const t0 = Date.now();
-      let at = await y();
-      for (let i = 0; i < 30 && Math.abs(at - to) > 2; i++) {
+      let now = await y();
+      for (let i = 0; i < 30 && Math.abs(now - to) > 2; i++) {
         await sleep(100);
-        at = await y();
+        now = await y();
       }
-      return { at, ms: Date.now() - t0 };
+      return { at: now, ms: Date.now() - t0 };
     };
     const goTo = async (to) => {
       await page.evaluate((v) => window.scrollTo(0, v), to);
       await sleep(900);
     };
-    // forward: half a chapter down from chapter 02 → on to chapter 03
-    await goTo(stop1);
-    await drag(422, false);
+    // inside a readable chapter: left alone
+    await goTo(at(1.3 / 4));
+    await drag(127);
+    const lifted = await y();
+    await sleep(900);
+    const stay = await y();
+    check(Math.abs(stay - lifted) <= 1 && Math.abs(stay - at(1.45 / 4)) < 30, `${tag}: resting on a readable chapter → no glide`, `${lifted} → ${stay}`);
+    // between chapters 03 and 04 (local .85 of 03), moving down → on to 04, just fully in (local .22)
+    await goTo(at(2.45 / 4));
+    await drag(338, false);
     const yHeld0 = await y();
     await sleep(500);
-    await page.screenshot({ path: join(SHOTS, 'm4_scene_snap_before_390.png') });
+    await page.screenshot({ path: join(SHOTS, 'm5_scene_snap_before_390.png') });
     const yHeld = await y();
     check(Math.abs(yHeld - yHeld0) <= 1, `${tag}: no glide while the finger is down`, `${yHeld0} → ${yHeld}`);
     await page.touchscreen.touchEnd();
-    const fwd = await settle(stop2);
+    const fwd = await settle(at(3.22 / 4));
     await sleep(300);
-    await page.screenshot({ path: join(SHOTS, 'm4_scene_snap_after_390.png') });
+    await page.screenshot({ path: join(SHOTS, 'm5_scene_snap_after_390.png') });
     const act = await page.evaluate(() => document.querySelector('.scrub').dataset.active);
-    check(Math.abs(fwd.at - stop2) <= 2 && act === '2' && fwd.ms < 1200, `${tag}: half a chapter down → glides on to chapter 03`, `${yHeld} → ${fwd.at} (stop ${stop2}, ${fwd.ms} ms, chapter ${act})`);
-    // back: 15% of a chapter down → back to the chapter it left (≤ 0.3 screen against the movement)
-    await drag(127);
-    const back = await settle(stop2);
-    check(Math.abs(back.at - stop2) <= 2, `${tag}: a short pull down → back to the current chapter`, `${stop2 + 127} → ${back.at}`);
-    // up: half a chapter up → on to chapter 02 (the direction of the movement)
-    await drag(-422);
-    const upw = await settle(stop1);
-    check(Math.abs(upw.at - stop1) <= 2, `${tag}: half a chapter up → glides on up to chapter 02`, `${stop2 - 422} → ${upw.at}`);
+    check(
+      Math.abs(fwd.at - at(3.22 / 4)) <= 3 && act === '3' && fwd.ms < 1300 && Math.abs(fwd.at - yHeld) <= 0.5 * 844,
+      `${tag}: between two chapters, moving down → glides on into the next one (≤ half a chapter)`,
+      `${yHeld} → ${fwd.at} (target ${at(3.22 / 4)}, ${fwd.ms} ms, chapter ${act})`
+    );
+    // moving up from there into the zone → back into chapter 03 (local .70), along the movement
+    await drag(-200);
+    const upw = await settle(at(2.7 / 4));
+    check(Math.abs(upw.at - at(2.7 / 4)) <= 3, `${tag}: between two chapters, moving up → back into the previous one`, `→ ${upw.at} (target ${at(2.7 / 4)})`);
     // once per rest: after the glide the page stays
     await sleep(800);
     const still = await y();
-    check(Math.abs(still - stop1) <= 2, `${tag}: one glide per rest, no repeat`, `${upw.at} → ${still}`);
+    check(Math.abs(still - upw.at) <= 2, `${tag}: one glide per rest, no repeat`, `${upw.at} → ${still}`);
     // a touch during the glide stops it where it is
-    await drag(300);
-    await sleep(260); // 150 ms of rest, the glide on to chapter 03 has started
+    await goTo(at(1.45 / 4));
+    await drag(338);
+    await sleep(240); // 150 ms of rest, the glide has started
     await page.touchscreen.touchStart(195, 400);
     const yCut = await y();
     await sleep(700);
     const yCut2 = await y();
     await page.touchscreen.touchEnd();
-    check(Math.abs(yCut2 - yCut) <= 1 && Math.abs(yCut2 - stop2) > 5, `${tag}: a touch cancels the glide at once`, `${yCut} → ${yCut2}`);
+    check(Math.abs(yCut2 - yCut) <= 1 && Math.abs(yCut2 - at(2.22 / 4)) > 5, `${tag}: a touch cancels the glide at once`, `${yCut} → ${yCut2}`);
     // the entry and the exit of the scene, and outside it: nothing is pulled
-    for (const [what, at] of [['entry', geo.top + 100], ['exit', geo.top + geo.runway + 200], ['outside', geo.top + geo.h + 400]]) {
-      await goTo(at);
+    for (const [what, pos] of [['entry', geo.top + 100], ['exit', geo.top + geo.runway + 200], ['outside', geo.top + geo.h + 400]]) {
+      await goTo(pos);
       await sleep(600);
       const now = await y();
-      check(Math.abs(now - at) <= 1, `${tag}: no pull at the ${what} of the scene`, `${at} → ${now}`);
+      check(Math.abs(now - pos) <= 1, `${tag}: no pull at the ${what} of the scene`, `${pos} → ${now}`);
     }
     await page.close();
   }
@@ -827,6 +864,92 @@ try {
     check(bad.length === 0, '768 he: side margins ≥ 16px', bad.slice(0, 4).join(' | '));
     await shot(page, 'home_768_he_full', true);
     await page.close();
+  }
+
+  // ---- 7. news previews on a phone: a horizontal snap rail (home + «more news»), /news stays a vertical feed
+  if (!ONLY) {
+    const railGeo = (page, sel) =>
+      page.evaluate((s) => {
+        const t = document.querySelector(s);
+        if (!t) return null;
+        const cs = getComputedStyle(t);
+        const vw = document.documentElement.clientWidth;
+        const cards = [...t.children].map((c) => {
+          const r = c.getBoundingClientRect();
+          return { l: Math.round(r.left), r: Math.round(r.right), h: Math.round(r.height), op: getComputedStyle(c).opacity };
+        });
+        const dots = t.parentElement.querySelector('.news-rail__dots');
+        return {
+          vw, display: cs.display, ox: cs.overflowX, snap: cs.scrollSnapType, sl: Math.round(t.scrollLeft), cards,
+          dot: dots?.dataset.active ?? null, dots: dots ? dots.children.length : 0,
+          y: Math.round(scrollY), noHScroll: document.documentElement.scrollWidth <= innerWidth,
+        };
+      }, sel);
+    for (const lang of ['ru', 'he']) {
+      const page = await open(`/?lang=${lang}`, 390, { height: 844 });
+      const tag = `390 ${lang} news rail`;
+      const sel = '#news .news-rail__track';
+      await page.waitForSelector(sel, { timeout: 30000 });
+      await page.$eval(sel, (e) => e.scrollIntoView({ block: 'center' }));
+      await sleep(1500);
+      const g = await railGeo(page, sel);
+      const rtl = lang === 'he';
+      const [c0, c1] = g.cards;
+      check(g.display === 'flex' && g.ox === 'auto' && g.snap.startsWith('x') && g.cards.length >= 2, `${tag}: horizontal snap rail`, `${g.display} ${g.ox} ${g.snap} n=${g.cards.length}`);
+      check((c0.r - c0.l) / g.vw >= 0.78 && (c0.r - c0.l) / g.vw <= 0.86, `${tag}: card ≈ 80–85% of the screen`, String(c0.r - c0.l));
+      check(rtl ? c0.r === g.vw - 16 : c0.l === 16, `${tag}: first card at the 16px side field (${rtl ? 'right' : 'left'})`, `${c0.l}..${c0.r}`);
+      check(rtl ? c1.r > 16 && c1.r < c0.l : c1.l < g.vw - 16 && c1.l > c0.r, `${tag}: the next card peeks from the ${rtl ? 'left' : 'right'}`, `${c1.l}..${c1.r}`);
+      check(g.cards.every((c) => c.h === c0.h && c.op === '1'), `${tag}: cards of one height, all revealed`, g.cards.map((c) => `${c.h}/${c.op}`).join(' '));
+      check(g.dots === g.cards.length && g.dot === '0', `${tag}: position dots, first active`, `${g.dots} ${g.dot}`);
+      check(g.noHScroll, `${tag}: the page itself has no horizontal scroll`);
+      // a finger swipe across one card: the rail moves, snaps to card 2, the page stays put
+      const box = await (await page.$(sel)).boundingBox();
+      const yy = Math.round(box.y + box.height / 2);
+      const x0 = rtl ? 50 : g.vw - 50;
+      await page.touchscreen.touchStart(x0, yy);
+      for (let i = 1; i <= 20; i++) {
+        await page.touchscreen.touchMove(x0 + (rtl ? 1 : -1) * i * 13, yy + (i % 3));
+        await sleep(25);
+      }
+      await sleep(250);
+      await page.touchscreen.touchEnd();
+      await sleep(1200);
+      const s = await railGeo(page, sel);
+      const c = s.cards[1];
+      check(rtl ? s.sl < 0 : s.sl > 0, `${tag}: a horizontal swipe scrolls the rail ${rtl ? 'right to left' : 'left to right'}`, String(s.sl));
+      check(rtl ? c.r === g.vw - 16 : c.l === 16, `${tag}: snapped — card 2 at the side field`, `${c.l}..${c.r}`);
+      check(s.dot === '1', `${tag}: dot follows the swipe`, s.dot);
+      check(s.y === g.y, `${tag}: no vertical jump of the page on a swipe`, `${g.y} → ${s.y}`);
+      await page.$eval(sel, (e) => e.scrollIntoView({ block: 'center' }));
+      await sleep(300);
+      await shot(page, `news_rail_${lang}`);
+      await page.close();
+    }
+    // «more news» on a story: the same rail; the full /news feed stays vertical
+    const slug = await fetch(`${process.env.API_URL ?? 'http://localhost:3000/api/v1'}/news?limit=1`)
+      .then((r) => r.json())
+      .then((j) => j.data.items[0]?.slug ?? null)
+      .catch(() => null);
+    check(!!slug, '390 story: a published story for the «more news» check');
+    if (slug) {
+      const page = await open(`/news/${slug}?lang=ru`, 390, { height: 844 });
+      const sel = '[data-testid="news-more"] .news-rail__track';
+      const ok = await page.waitForSelector(sel, { timeout: 30000 }).catch(() => null);
+      const g = ok ? await railGeo(page, sel) : null;
+      check(!!g && g.display === 'flex' && g.ox === 'auto' && g.cards[0].l === 16 && g.noHScroll, '390 story: «more news» is a horizontal rail', JSON.stringify(g?.cards?.[0] ?? null));
+      await page.close();
+    }
+    {
+      const page = await open('/news?lang=ru', 390, { height: 844 });
+      await page.waitForSelector('[data-testid="news-list"] .cnt-news', { timeout: 30000 }).catch(() => undefined);
+      const feed = await page.evaluate(() => {
+        const l = document.querySelector('[data-testid="news-list"]');
+        const r = [...l.querySelectorAll('.cnt-news')].slice(0, 2).map((c) => c.getBoundingClientRect());
+        return { display: getComputedStyle(l).display, stacked: r.length === 2 && r[1].top >= r[0].bottom, noHScroll: document.documentElement.scrollWidth <= innerWidth };
+      });
+      check(feed.display === 'grid' && feed.stacked && feed.noHScroll, '390 /news: the full feed stays vertical', JSON.stringify(feed));
+      await page.close();
+    }
   }
 } catch (e) {
   check(false, `smoke crashed: ${e?.message ?? e}`);

@@ -8,7 +8,14 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomBytes, timingSafeEqual } from 'crypto';
-import { DataSource, EntityManager, IsNull, Not, Repository } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  IsNull,
+  Not,
+  Raw,
+  Repository,
+} from 'typeorm';
 import { createIdempotent } from '@common/forms';
 import { LangCode, localize } from '@common/localization';
 import { VALIDATION_MESSAGE } from '@common/pipes/field-validation.pipe';
@@ -358,10 +365,14 @@ export class PaymentsService {
     }));
   }
 
-  /** Сколько раз общину поддержали: оплаченные пожертвования (без молитв и билетов). */
+  /** Сколько раз общину поддержали: оплаченные пожертвования (без молитв, билетов и демо-платежей seed:demo). */
   countPaidDonations(): Promise<number> {
     return this.payments.count({
-      where: { purpose: 'donation', status: 'paid' },
+      where: {
+        purpose: 'donation',
+        status: 'paid',
+        idempotencyKey: Raw((k) => `(${k} IS NULL OR ${k} NOT LIKE 'demo-%')`),
+      },
     });
   }
 

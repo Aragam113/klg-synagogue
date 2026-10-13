@@ -196,6 +196,13 @@ export function holidayKey(basename: string): string {
     .replace(/^-|-$/g, '');
 }
 
+/**
+ * Правки носителя иврита к названиям из @hebcal/core (render 'he-x-NoNikud'):
+ * ключ — описание события hebcal (getDesc(): «Chanukah: 3 Candles», «Parashat Bereshit»),
+ * значение — как показывать на иврите (для глав — без «פרשת»). Пишет `npm run i18n:he-import`.
+ */
+export const HE_NAME_FIXES: Record<string, string> = {};
+
 type Texts = Record<LangCode, string>;
 
 export interface HolidayInfo {

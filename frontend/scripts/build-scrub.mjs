@@ -27,12 +27,13 @@
  *   --light-quality <q>  starting webp quality of the light set (default 74)
  *   --light-budget <MB>  size limit of the light set, quality drops by 4 until it fits (default 5.5)
  *
- *   --video          also encode the segment as an H.264 scrub video for phones (High profile, a keyframe every
- *                    --video-gop frames, no B-frames: a seek decodes at most gop frames; +faststart, no audio)
- *                    → public/media/scrub/v/scene.mp4; the main manifest gets "video": {src, frames, fps, width,
- *                    height}. Tuning: --video-width 854, --video-fps 0 (= the source's own rate), --video-gop 4
- *                    (1 = every frame a keyframe), --video-crf 28 (raised by 2 until it fits), --video-budget 12 (MB)
- *   --video-only     only (re)encode the video, the frames and the light set stay as they are
+ *   --touch <h>      height of the phone set (default 720, 0 = none): the segment cut again into --touch-frames
+ *                    frames (default 162 ≈ every 4th of a 25 fps film), centre-cropped to the portrait --touch-aspect
+ *                    (w/h, default 0.5625 = 9:16, what a portrait phone shows of the 16:9 film anyway)
+ *                    → public/media/scrub/t/ + its manifest.json; the main manifest gets "touch": "t/manifest.json".
+ *                    Phones decode the whole set into ImageBitmaps while the preloader runs and draw it on a canvas.
+ *                    Tuning: --touch-quality 72 (drops by 4 until it fits), --touch-budget 5 (MB)
+ *   --touch-only     only (re)cut the phone set from the video (needs <video> --from --to)
  *
  *   npm run build:scrub -- --light-only [--light 1024 --light-step 1 --light-quality 74 --light-budget 5.5]
  *                    re-encodes only the light set from the frames already in public/media/scrub/
@@ -53,12 +54,12 @@ const VIDEO = /\.(mp4|webm|mov|mkv|avi|m4v)$/i;
 const IMAGE = /\.(jpe?g|png|webp)$/i;
 
 const parseArgs = (argv) => {
-  const opts = { frames: 110, width: 1600, quality: 72, budget: 12, from: 0, to: null, credit: '', light: 1024, lightStep: 1, lightQuality: 74, lightBudget: 5.5, lightOnly: false, video: false, videoOnly: false, videoWidth: 854, videoFps: 0, videoGop: 4, videoCrf: 28, videoBudget: 12 };
+  const opts = { frames: 110, width: 1600, quality: 72, budget: 12, from: 0, to: null, credit: '', light: 1024, lightStep: 1, lightQuality: 74, lightBudget: 5.5, lightOnly: false, touch: 720, touchFrames: 162, touchAspect: 0.5625, touchQuality: 72, touchBudget: 5, touchOnly: false };
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--light-only' || a === '--video' || a === '--video-only') {
-      opts[a === '--light-only' ? 'lightOnly' : a === '--video' ? 'video' : 'videoOnly'] = true;
+    if (a === '--light-only' || a === '--touch-only') {
+      opts[a === '--light-only' ? 'lightOnly' : 'touchOnly'] = true;
       continue;
     }
     if (!a.startsWith('--')) {
@@ -71,7 +72,7 @@ const parseArgs = (argv) => {
     opts[key] = key === 'credit' ? val : Number(val);
     if (key !== 'credit' && !Number.isFinite(opts[key])) throw new Error(`${a} needs a number`);
   }
-  if (!rest[0] && !opts.lightOnly && !opts.videoOnly) throw new Error('usage: npm run build:scrub -- <video | photo folder> [options]');
+  if (!rest[0] && !opts.lightOnly) throw new Error('usage: npm run build:scrub -- <video | photo folder> [options]');
   opts.source = rest[0] ? path.resolve(process.cwd(), rest[0]) : '';
   opts.frames = Math.max(2, Math.min(120, Math.round(opts.frames)));
   return opts;
@@ -211,61 +212,66 @@ const writeLight = async (all, width, step, quality, budget) => {
   console.log(`scrub light: ${frames.length} frames ${meta.width}x${meta.height}, webp q${q}, ${(bytes / 1048576).toFixed(1)} MB → ${path.relative(ROOT, dir)}`);
 };
 
-/** Source frame rate (r_frame_rate as ffmpeg prints it: "25 fps"). */
-const probeFps = (file) => {
-  try {
-    execFileSync(ffmpegPath, ['-hide_banner', '-i', file], { stdio: 'pipe' });
-  } catch (e) {
-    const m = /, ([\d.]+) fps/.exec(String(e.stderr ?? ''));
-    if (m) return Number(m[1]);
-  }
-  throw new Error(`cannot read the frame rate of ${file}`);
-};
+const TOUCH = 't';
 
 /**
- * Scrub video at the source's own frame rate: a keyframe every `videoGop` frames and no B-frames, so a seek anywhere
- * decodes at most gop frames (1 = all-intra). CRF goes up by 2 until it fits the budget.
+ * Phone set: the video segment cut into `touchFrames` evenly spaced frames, centre-cropped to the portrait aspect
+ * `touchAspect` at `touch` px height (never upscaled) → scrub/t/ + manifest; linked from the main one as "touch".
+ * webp quality starts at `touchQuality` and drops by 4 until the set fits `touchBudget` MB.
  */
-const VIDEO_DIR = 'v';
-const writeVideo = (o) => {
-  const dir = path.join(OUT, VIDEO_DIR);
-  fs.mkdirSync(dir, { recursive: true });
-  const out = path.join(dir, 'scene.mp4');
-  const seg = ['-ss', String(o.from), ...(o.to !== null ? ['-to', String(o.to)] : [])];
-  const width = Math.round(o.videoWidth / 2) * 2;
-  let crf = o.videoCrf;
-  const fps = o.videoFps > 0 ? o.videoFps : probeFps(o.source);
-  const gop = String(Math.max(1, Math.round(o.videoGop)));
-  for (;;) {
-    run(['-y', ...seg, '-i', o.source, '-an', '-vf', `fps=${fps},scale=${width}:-2:flags=lanczos`, '-c:v', 'libx264', '-preset', 'slow', '-crf', String(crf), '-g', gop, '-keyint_min', gop, '-sc_threshold', '0', '-bf', '0', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-movflags', '+faststart', out]);
-    if (fs.statSync(out).size <= o.videoBudget * 1048576 || crf >= 40) break;
-    crf += 2;
-  }
-  const dur = (o.to ?? probeDuration(o.source)) - o.from;
-  const frames = Math.max(2, Math.round(dur * fps));
-  const height = Math.round((width * 9) / 16 / 2) * 2;
-  const mainPath = path.join(OUT, 'manifest.json');
-  const main = JSON.parse(fs.readFileSync(mainPath, 'utf8'));
-  const probe = (() => {
-    try {
-      execFileSync(ffmpegPath, ['-hide_banner', '-i', out], { stdio: 'pipe' });
-    } catch (e) {
-      const m = /, (\d+)x(\d+)/.exec(String(e.stderr ?? ''));
-      if (m) return { w: Number(m[1]), h: Number(m[2]) };
+const writeTouch = async (o) => {
+  if (!VIDEO.test(o.source)) return console.log('scrub touch: skipped (the phone set is cut from a video)');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'scrub-t-'));
+  try {
+    const raw = framesFromVideo({ ...o, frames: Math.max(2, Math.round(o.touchFrames)), width: 1e5 }, tmp);
+    const meta = await sharp(raw[0]).metadata();
+    const h = Math.min(meta.height, Math.round(o.touch / 2) * 2);
+    const w = Math.round((h * o.touchAspect) / 2) * 2;
+    // crop the centre at the source height first (cover-fit of a portrait screen keeps the centre too)
+    const cw = Math.min(meta.width, Math.round(meta.height * o.touchAspect));
+    const left = Math.round((meta.width - cw) / 2);
+    const cropped = [];
+    for (const f of raw)
+      cropped.push(await sharp(f).extract({ left, top: 0, width: cw, height: meta.height }).resize(w, h, { kernel: 'lanczos3' }).toBuffer());
+    let q = o.touchQuality;
+    let bufs = [];
+    for (;;) {
+      bufs = [];
+      for (const r of cropped) bufs.push(await sharp(r).webp({ quality: q, effort: 6, smartSubsample: true }).toBuffer());
+      if (bufs.reduce((s, b) => s + b.length, 0) <= o.touchBudget * 1048576 || q <= 40) break;
+      q -= 4;
     }
-    return { w: width, h: height };
-  })();
-  const video = { src: `${VIDEO_DIR}/scene.mp4`, frames, fps, width: probe.w, height: probe.h };
-  fs.writeFileSync(mainPath, `${JSON.stringify({ ...main, video }, null, 2)}
+    const dir = path.join(OUT, TOUCH);
+    fs.mkdirSync(dir, { recursive: true });
+    for (const f of fs.readdirSync(dir)) if (/^frame-\d+\.webp$/.test(f) || f === 'manifest.json') fs.unlinkSync(path.join(dir, f));
+    let bytes = 0;
+    const frames = bufs.map((buf, i) => {
+      const name = `frame-${String(i + 1).padStart(3, '0')}.webp`;
+      fs.writeFileSync(path.join(dir, name), buf);
+      bytes += buf.length;
+      return name;
+    });
+    const mainPath = path.join(OUT, 'manifest.json');
+    const main = JSON.parse(fs.readFileSync(mainPath, 'utf8'));
+    const poster = Math.round((frames.length - 1) / 2);
+    const manifest = { frames, width: w, height: h, credits: main.credits ?? '', poster };
+    fs.writeFileSync(path.join(dir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}
 `);
-  console.log(`scrub video: ${frames} frames ${probe.w}x${probe.h} @${fps} fps, gop ${gop}, crf ${crf}, ${(fs.statSync(out).size / 1048576).toFixed(1)} MB → ${path.relative(ROOT, out)}`);
+    delete main.video;
+    fs.writeFileSync(mainPath, `${JSON.stringify({ ...main, touch: `${TOUCH}/manifest.json` }, null, 2)}
+`);
+    const mem = (frames.length * w * h * 4) / 1048576;
+    console.log(`scrub touch: ${frames.length} frames ${w}x${h}, webp q${q}, ${(bytes / 1048576).toFixed(1)} MB (decoded ${mem.toFixed(0)} MB) → ${path.relative(ROOT, dir)}`);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
 };
 
 const main = async () => {
   const o = parseArgs(process.argv.slice(2));
-  if (o.videoOnly) {
-    if (!fs.existsSync(o.source) || !VIDEO.test(o.source)) throw new Error('--video-only needs a video file');
-    writeVideo(o);
+  if (o.touchOnly) {
+    if (!fs.existsSync(o.source) || !VIDEO.test(o.source)) throw new Error('--touch-only needs a video file');
+    await writeTouch(o);
     return;
   }
   if (o.lightOnly) {
@@ -300,7 +306,7 @@ const main = async () => {
     fs.writeFileSync(path.join(OUT, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
     writeCredits(credits);
     if (o.light > 0) await writeLight(raw, o.light, o.lightStep, o.lightQuality, o.lightBudget);
-    if (o.video && !isDir) writeVideo(o);
+    if (o.touch > 0 && !isDir) await writeTouch(o);
     console.log(
       `scrub: ${frames.length} frames ${meta.width}x${meta.height}, webp q${q}, ${(total() / 1048576).toFixed(1)} MB → ${path.relative(ROOT, OUT)}`
     );

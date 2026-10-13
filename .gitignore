@@ -12,3 +12,11 @@ coverage/
 /uploads/
 /backend/uploads/
 frontend/e2e/shots/
+
+# локальные рабочие материалы — не публикуются
+/docs/adr/
+
+# локальный запуск (npm start): встроенный Postgres, логин dev-админа, снимок БД для архива
+/.devdata/
+/DEV-LOGIN.txt
+/dev-data/

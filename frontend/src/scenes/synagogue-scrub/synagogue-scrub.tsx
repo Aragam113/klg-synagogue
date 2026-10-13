@@ -1,22 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { assetUrl } from '@/config/demo';
+import { reportLoad } from '@/scenes/preloader/load-gate';
 import { Title } from '@/ui/kit';
 import { motionAllowed, touchMode } from '@/ui/motion/engine';
 import { useScrollProgress } from '@/ui/motion/hooks';
+import { approach } from '@/ui/motion/touch-scroll';
 
+import { type Drawable, type FrameCache, startFrameCache } from './frame-cache';
 import {
   type Blend,
-  blendFrames,
-  bufferedTime,
-  coarsePass,
+  blendCached,
+  cacheBudgetMB,
+  cachePlan,
   coverRect,
   frameIndex,
-  improvesFrame,
-  nearestLoaded,
+  loadOrder,
   parseManifest,
   type ScrubManifest,
-  videoTime,
 } from './scrub-model';
 import './styles';
 
@@ -43,43 +44,47 @@ export interface SynagogueScrubProps {
 
 const DEFAULT_MANIFEST = assetUrl('/media/scrub/manifest.json');
 const pad = (n: number) => String(n).padStart(2, '0');
-/** Phones: the first pass loads every COARSE-th frame; the scene scrubs (crossfading over the gaps) once it is in. */
-const COARSE = 4;
 /** Blend alpha is drawn in steps of 1/ALPHA_STEPS: a tiny `--p` change does not repaint the canvas. */
 const ALPHA_STEPS = 32;
-/** Phones: no first video frame this long after the first touch (or an error) → the frames instead. */
-const VIDEO_WAIT_MS = 12000;
-/** A seek that has not finished this long is superseded by the next one (a slow range request on a bad network). */
-const SEEK_STALE_MS = 600;
+/** Touch, landscape: the 16:9 light set is decoded at this width (≈720 px on the long side). */
+const LANDSCAPE_W = 720;
+/** Touch: below this width/height the portrait set is used. */
+const PORTRAIT_MAX = 0.9;
+/** The poster goes (phones) once every READY_STEP-th frame of the plan is decoded. */
+const READY_STEP = 8;
+/** Desktop: the preloader waits for this many frames (the start of the scene). */
+const DESK_CRITICAL = 24;
+/** The scroll stands still this long → the picture settles on a whole frame (SETTLE_K of the gap per 60 Hz frame). */
+const REST_MS = 120;
+const SETTLE_K = 0.16;
+/** The canvas backing store is at most this × the frame height (upscaling further only costs fill rate). */
+const BACKING_MAX = 1.5;
 
-const rangesOf = (b: TimeRanges): [number, number][] =>
-  Array.from({ length: b.length }, (_, i) => [b.start(i), b.end(i)] as [number, number]);
-
-const canPlayMp4 = (): boolean => {
-  try {
-    return !!document.createElement('video').canPlayType('video/mp4; codecs="avc1.64001E"');
-  } catch {
-    return false;
-  }
-};
+type SetKind = 'touch' | 'light' | 'full';
+const portraitNow = () => window.innerWidth / Math.max(1, window.innerHeight) < PORTRAIT_MAX;
+const sizeOf = (d: Drawable) =>
+  'naturalWidth' in d ? { w: d.naturalWidth, h: d.naturalHeight } : { w: d.width, h: d.height };
+const deviceMemory = (): number | undefined =>
+  (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
 
 /**
- * Pinned scroll scene: a sticky 100svh canvas inside a (chapters + 1) × 100svh runway.
- * Desktop: the full set, frame = round(p·(N−1)) strictly by scroll; the frame for the current progress loads first,
- * the rest after it, nearest first; until a frame arrives the nearest loaded one is drawn.
- * Touch (`html[data-touch]`), main path: the scrub video (`manifest.video`, the source's 25 fps, a keyframe every
- * 4 frames, no B-frames) — `muted playsinline preload="auto"`, `currentTime` = the middle of frame round(p·(N−1))
- * of the lerped `--p`, a new seek only once the previous one is on screen (requestVideoFrameCallback; `seeked`
- * without it), always to the newest target; primed by play+pause on the first touch (iOS).
- * Fallback (no H.264, an error, no first frame VIDEO_WAIT_MS after the first touch): the light frame set
- * (`manifest.light`), loaded progressively — the poster, then every 4th frame (the poster stays on top until this
- * first pass is in), then the frames between, nearest to the current position first. The canvas crossfades only real
- * neighbours i, i+1 (`blendFrames`), otherwise draws the nearest loaded frame alone, and repaints only when
- * (a, b, alpha/32) changes. The engine pulls the page to a chapter stop once the scroll rests inside (`snap`).
- * Chapters enter/leave by `--p` in CSS. Reduced motion: static poster frame + chapters as a swipe ribbon.
- * `data-frame` (frame on screen), `data-frames`, `data-blend`/`data-pair` (canvas) and `data-draws` on the media;
- * on the root `data-media="video|frames"`, `data-pass="video|coarse"` once it scrubs on a phone and
- * `data-loaded="all"` once all of the media is in.
+ * Pinned scroll scene: a sticky 100svh canvas inside a (chapters + 1) × 100svh runway; the picture follows the scroll
+ * progress `--p` (lerped on touch by the engine): position x = p·(N−1) over the frame set.
+ * Every frame is drawn from a DECODED cache (frame-cache.ts) — no video seeks, no decode on the main thread — and the
+ * two cached frames around x are crossfaded by the fraction (blendCached); the canvas repaints only when
+ * (a, b, alpha/32) changes.
+ * Touch, portrait: the portrait set `manifest.touch` (406×720, 162 frames ≈ every 4th of the film) decoded into
+ * ImageBitmaps while the preloader runs; the plan fits the device memory (cacheBudgetMB 200 / 100 / 50 MB → every
+ * frame / every 2nd / every 4th); a decode that fails for lack of memory stops the cache with what is in.
+ * Touch, landscape: the light 16:9 set decoded at 720 px wide. Desktop: the full 1280px set as decoded `<img>`.
+ * Download order: the poster, then ever finer even passes (loadOrder) — the scene is usable at any moment; on phones
+ * the poster covers it until every 8th frame is in. Progress goes to the preloader as `scene` (load-gate).
+ * The engine pulls the page to a chapter stop once the scroll rests inside (`snap`, touch). Chapters enter/leave by
+ * `--p` in CSS. Reduced motion: static poster frame + chapters as a swipe ribbon.
+ * Canvas: `data-frame` (frame on screen), `data-pos` (shown position a + alpha·(b − a)), `data-frames`, `data-pair`,
+ * `data-blend`, `data-draws`. Root: `data-media="bitmaps|images"`, `data-set="touch|light|full"`,
+ * `data-pass="coarse"` once it scrubs on a phone, `data-loaded="all"` once the plan is in, `data-cache="<in>/<plan>"`,
+ * `data-stride`, `data-mb` (decoded MB of the plan), `data-cache-stop="memory"`.
  */
 export const SynagogueScrub = ({
   chapters,
@@ -90,85 +95,61 @@ export const SynagogueScrub = ({
 }: SynagogueScrubProps) => {
   const root = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
-  const video = useRef<HTMLVideoElement>(null);
-  const seekAt = useRef(0);
-  /** a seek was set and its frame is not on screen yet (requestVideoFrameCallback; `seeked` without it) */
-  const seekBusy = useRef(false);
-  const imgs = useRef<HTMLImageElement[]>([]);
-  const loaded = useRef<boolean[]>([]);
+  const cache = useRef<FrameCache | null>(null);
+  const plan = useRef<number[]>([]);
+  const gap = useRef<number | undefined>(undefined);
+  const count = useRef(0);
   const progress = useRef(0);
-  const drawn = useRef(-1);
   const drawnKey = useRef('');
   const draws = useRef(0);
+  const box = useRef({ w: 0, h: 0 });
+  /** position on screen (frames of the set): follows the scroll, settles on one whole frame at rest */
+  const shownX = useRef(-1);
+  const movedAt = useRef(0);
+  const stepAt = useRef(0);
+  const settleRaf = useRef(0);
   const [m, setM] = useState<ScrubManifest | null>(null);
+  const [kind, setKind] = useState<SetKind>('full');
   const [failed, setFailed] = useState(false);
   const [motion, setMotion] = useState(false);
   const [active, setActive] = useState(0);
   const [touch, setTouch] = useState(false);
-  /** touch: the coarse pass is in (scrubs); desktop: every frame is in */
+  const [portrait, setPortrait] = useState(true);
+  /** phones: every READY_STEP-th frame of the plan is decoded — the poster may go */
   const [ready, setReady] = useState(false);
-  const [all, setAll] = useState(false);
-  /** video: the browser has enough to play through (it may stop preloading short of the end) */
-  const [enough, setEnough] = useState(false);
   const readyRef = useRef(false);
+  const [all, setAll] = useState(false);
   const n = chapters.length;
-  /** Phones: the light set, poster until its first pass is in. */
-  const light = motion && touch;
-  const lightRef = useRef(false);
-  lightRef.current = light;
-  /** Phones: the scrub video is tried first; false → the frames (fallback). */
-  const [videoOk, setVideoOk] = useState(true);
-  const vid = light && videoOk && m?.video ? m.video : null;
-  const vidRef = useRef(vid);
-  vidRef.current = vid;
+  const phone = motion && touch;
 
-  /**
-   * Video: seek to the frame for the current (lerped) progress, unless the previous seek has not been painted yet —
-   * one seek per presented frame (requestVideoFrameCallback), the newest target only: targets passed while the
-   * decoder was busy are skipped, never queued.
-   */
-  const pump = useCallback(() => {
-    const v = video.current;
-    const vi = vidRef.current;
-    if (!v || !vi || v.readyState < 1) return;
-    const now = performance.now();
-    if ((seekBusy.current || v.seeking) && now - seekAt.current < SEEK_STALE_MS) return;
-    const want = videoTime(progress.current, vi.frames, vi.fps);
-    // while it is downloading: only into what is already here (no stall on a range request, the download stays
-    // linear); once the browser has paused the download (preload stops short of the end) — anywhere, it resumes
-    const t = v.networkState === 2 ? bufferedTime(want, rangesOf(v.buffered), 0.5 / vi.fps) : want;
-    if (Math.abs(v.currentTime - t) < 0.25 / vi.fps) return;
-    seekAt.current = now;
-    seekBusy.current = true;
-    v.currentTime = t;
-  }, []);
-
-  const draw = useCallback(() => {
+  const paint = useCallback((x: number) => {
     const c = canvas.current;
-    const list = imgs.current;
-    if (!c || !list.length || (lightRef.current && !readyRef.current)) return;
-    let bl: Blend | null;
-    if (lightRef.current) {
-      const x = Math.min(1, Math.max(0, progress.current)) * (list.length - 1);
-      bl = blendFrames(x, loaded.current);
-      if (bl) {
-        const q = Math.round(bl.alpha * ALPHA_STEPS) / ALPHA_STEPS;
-        bl =
-          q <= 0
-            ? { a: bl.a, b: bl.a, alpha: 0 }
-            : q >= 1
-              ? { a: bl.b, b: bl.b, alpha: 0 }
-              : { ...bl, alpha: q };
-      }
-    } else {
-      const k = nearestLoaded(frameIndex(progress.current, list.length), loaded.current);
-      bl = k < 0 ? null : { a: k, b: k, alpha: 0 };
-    }
+    const fc = cache.current;
+    const list = plan.current;
+    if (!c || !fc || !list.length) return;
+    let bl: Blend | null = blendCached(x, list, fc.loaded, gap.current);
     if (!bl) return;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const w = Math.round(c.clientWidth * dpr);
-    const h = Math.round(c.clientHeight * dpr);
-    if (!w || !h) return;
+    if (bl.alpha > 0) {
+      const q = Math.round(bl.alpha * ALPHA_STEPS) / ALPHA_STEPS;
+      bl =
+        q <= 0
+          ? { a: bl.a, b: bl.a, alpha: 0 }
+          : q >= 1
+            ? { a: bl.b, b: bl.b, alpha: 0 }
+            : { ...bl, alpha: q };
+    }
+    const ia = fc.items[list.indexOf(bl.a)];
+    const ib = fc.items[list.indexOf(bl.b)];
+    if (!ia || !ib) return;
+    const src = sizeOf(ia);
+    const { w: cw, h: ch } = box.current;
+    if (!cw || !ch || !src.h) return;
+    const scale = Math.max(
+      1,
+      Math.min(Math.min(2, window.devicePixelRatio || 1), (BACKING_MAX * src.h) / ch)
+    );
+    const w = Math.round(cw * scale);
+    const h = Math.round(ch * scale);
     // the same picture at the same size is already on the canvas: no repaint on every --p write
     const key = `${bl.a}:${bl.b}:${bl.alpha}`;
     if (key === drawnKey.current && c.width === w && c.height === h) return;
@@ -176,261 +157,198 @@ export const SynagogueScrub = ({
       c.width = w;
       c.height = h;
     }
-    const img = list[bl.a];
-    const r = coverRect(img.naturalWidth, img.naturalHeight, w, h);
-    const ctx = c.getContext('2d');
+    const ctx = c.getContext('2d', { alpha: false });
     if (!ctx) return;
+    const r = coverRect(src.w, src.h, w, h);
     ctx.globalAlpha = 1;
-    ctx.drawImage(img, r.x, r.y, r.w, r.h);
+    ctx.drawImage(ia, r.x, r.y, r.w, r.h);
     if (bl.alpha > 0) {
       ctx.globalAlpha = bl.alpha;
-      ctx.drawImage(list[bl.b], r.x, r.y, r.w, r.h);
+      ctx.drawImage(ib, r.x, r.y, r.w, r.h);
       ctx.globalAlpha = 1;
     }
     drawnKey.current = key;
-    drawn.current = bl.alpha < 0.5 ? bl.a : bl.b;
-    c.dataset.frame = String(drawn.current);
+    c.dataset.frame = String(bl.alpha < 0.5 ? bl.a : bl.b);
+    c.dataset.pos = (bl.a + bl.alpha * (bl.b - bl.a)).toFixed(2);
     c.dataset.blend = String(bl.alpha);
     c.dataset.pair = `${bl.a}-${bl.b}`;
     c.dataset.draws = String(++draws.current);
   }, []);
 
+  /**
+   * The position to paint: exactly the scroll's while it moves (the crossfade gives the in-between frames); once the
+   * scroll rests REST_MS it eases onto the nearest whole decoded frame — a crossfade standing still reads as a
+   * double image. Its own rAF runs only for that settle.
+   */
+  const draw = useCallback(() => {
+    const fc = cache.current;
+    if (!fc || !plan.current.length) return;
+    const now = performance.now();
+    const xt = Math.min(1, Math.max(0, progress.current)) * (count.current - 1);
+    const resting = now - movedAt.current > REST_MS;
+    let target = xt;
+    if (resting) {
+      const bl = blendCached(xt, plan.current, fc.loaded, gap.current);
+      if (bl) target = bl.alpha < 0.5 ? bl.a : bl.b;
+    }
+    const dt = Math.min(100, now - stepAt.current);
+    stepAt.current = now;
+    const cur = shownX.current < 0 ? target : shownX.current;
+    shownX.current = resting ? approach(cur, target, SETTLE_K, dt) : target;
+    if (Math.abs(shownX.current - target) < 0.02) shownX.current = target;
+    paint(shownX.current);
+    cancelAnimationFrame(settleRaf.current);
+    if (!resting || shownX.current !== target) settleRaf.current = requestAnimationFrame(draw);
+  }, [paint]);
+
   useScrollProgress(root, {
     mode: 'pin',
-    snap: light ? n : undefined,
+    snap: phone ? n : undefined,
     onChange: (p) => {
       progress.current = p;
+      movedAt.current = performance.now();
       if (motion) setActive(Math.min(n - 1, Math.floor(p * n)));
-      if (vidRef.current) pump();
-      else draw();
+      draw();
     },
   });
 
-  // Live or static follows the media queries (pointer / reduced motion) — the same ones the motion engine watches.
+  // Live or static follows the media queries (pointer / reduced motion) — the same ones the motion engine watches;
+  // on touch the orientation picks the portrait or the landscape set.
   useEffect(() => {
     const sync = () => {
       setMotion(motionAllowed());
       setTouch(touchMode());
+      setPortrait(portraitNow());
     };
     sync();
     const mqs = ['(pointer: coarse)', '(prefers-reduced-motion: reduce)'].map((q) =>
       window.matchMedia(q)
     );
     mqs.forEach((q) => q.addEventListener('change', sync));
-    return () => mqs.forEach((q) => q.removeEventListener('change', sync));
+    window.addEventListener('resize', sync);
+    return () => {
+      mqs.forEach((q) => q.removeEventListener('change', sync));
+      window.removeEventListener('resize', sync);
+    };
   }, []);
 
+  // The canvas box comes from a ResizeObserver — never read in the per-frame draw (no forced layout after --p writes).
   useEffect(() => {
-    let gone = false;
-    fetch(manifestUrl)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((raw) => {
-        if (gone) return;
-        const base = manifestUrl.slice(0, manifestUrl.lastIndexOf('/') + 1);
-        const parsed = parseManifest(raw, base);
-        if (!parsed) return setFailed(true);
-        if (!parsed.light || !motionAllowed() || !touchMode()) return setM(parsed);
-        setVideoOk(!!parsed.video && canPlayMp4());
-        const lightUrl = parsed.light;
-        return fetch(lightUrl)
-          .then((r) => (r.ok ? r.json() : null))
-          .then((lr) => {
-            if (gone) return;
-            const lb = lightUrl.slice(0, lightUrl.lastIndexOf('/') + 1);
-            const lp = parseManifest(lr, lb);
-            // the video is listed in the main manifest only
-            setM(lp ? { ...lp, ...(parsed.video ? { video: parsed.video } : {}) } : parsed);
-          })
-          .catch(() => !gone && setM(parsed));
-      })
-      .catch(() => !gone && setFailed(true));
-    return () => {
-      gone = true;
-    };
-  }, [manifestUrl]);
+    const c = canvas.current;
+    if (!c || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => {
+      box.current = { w: c.clientWidth, h: c.clientHeight };
+      drawnKey.current = '';
+      draw();
+    });
+    ro.observe(c);
+    return () => ro.disconnect();
+  }, [m, motion, draw]);
 
-  // Frames. Desktop: the one for the current progress first, then the rest (6 at a time), nearest first.
-  // Phones: the poster, then the coarse pass (every 4th) → scrubs, then the frames between, nearest first.
-  // Phones, video: ready on the first decoded frame; a seek waits for the previous one to be painted; the shown frame from
-  // requestVideoFrameCallback; primed on the first touch (iOS loads nothing before a gesture); fallback to frames.
-  const vSrc = vid?.src;
+  // The manifest: the main one, then (touch) the portrait or the landscape set.
   useEffect(() => {
-    const v = video.current;
-    const vi = vidRef.current;
-    if (!v || !vi || !vSrc) return;
     let gone = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let shown = 0;
-    readyRef.current = false;
-    setReady(false);
-    setAll(false);
+    const want: SetKind = !phone ? 'full' : portrait ? 'touch' : 'light';
+    const sub = async (url: string): Promise<ScrubManifest | null> => {
+      const r = await fetch(url);
+      if (!r.ok) return null;
+      return parseManifest(await r.json(), url.slice(0, url.lastIndexOf('/') + 1));
+    };
     const fail = () => {
-      if (!gone) setVideoOk(false);
-    };
-    const wait = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        if (v.readyState < 2) fail();
-      }, VIDEO_WAIT_MS);
-    };
-    const onData = () => {
-      if (gone || readyRef.current) return;
-      clearTimeout(timer);
-      readyRef.current = true;
-      setReady(true);
-      pump();
-    };
-    const mark = (t: number) => {
-      v.dataset.frame = String(Math.min(vi.frames - 1, Math.max(0, Math.floor(t * vi.fps + 0.01))));
-      v.dataset.draws = String(++shown);
-    };
-    type Rvfc = (cb: (now: number, meta: { mediaTime: number }) => void) => number;
-    const rvfc = (
-      v as HTMLVideoElement & { requestVideoFrameCallback?: Rvfc }
-    ).requestVideoFrameCallback?.bind(v);
-    const onFrame = (_: number, meta: { mediaTime: number }) => {
       if (gone) return;
-      mark(meta.mediaTime);
-      // the frame of the last seek is on screen: the next seek may go
-      seekBusy.current = false;
-      rvfc?.(onFrame);
-      pump();
+      reportLoad('scene', 1);
+      setFailed(true);
     };
-    rvfc?.(onFrame);
-    const onSeeked = () => {
-      if (!rvfc) {
-        mark(v.currentTime);
-        seekBusy.current = false;
-        pump();
-      }
-    };
-    const onProgress = () => {
-      const have = rangesOf(v.buffered).reduce((sum, [s, e]) => sum + e - s, 0);
-      if (v.duration > 0 && have >= v.duration - 0.3) setAll(true);
-      else if (v.readyState >= 4) setEnough(true);
-      pump();
-    };
-    const prime = () => {
-      wait();
-      if (v.readyState >= 2) return;
-      v.play()
-        .then(() => {
-          v.pause();
-          pump();
-        })
-        .catch(() => undefined);
-    };
-    v.addEventListener('loadeddata', onData);
-    v.addEventListener('seeked', onSeeked);
-    v.addEventListener('progress', onProgress);
-    v.addEventListener('canplaythrough', onProgress);
-    v.addEventListener('suspend', onProgress);
-    v.addEventListener('error', fail);
-    window.addEventListener('touchstart', prime, { once: true, passive: true });
-    if (v.readyState >= 2) onData();
-    onProgress();
+    (async () => {
+      const main = await sub(manifestUrl);
+      if (gone) return;
+      if (!main) return fail();
+      const url = want === 'touch' ? main.touch : want === 'light' ? main.light : undefined;
+      const set = url ? await sub(url).catch(() => null) : null;
+      if (gone) return;
+      setKind(set ? want : 'full');
+      setM(set ?? main);
+    })().catch(fail);
     return () => {
       gone = true;
-      clearTimeout(timer);
-      v.removeEventListener('loadeddata', onData);
-      v.removeEventListener('seeked', onSeeked);
-      v.removeEventListener('progress', onProgress);
-      v.removeEventListener('canplaythrough', onProgress);
-      v.removeEventListener('suspend', onProgress);
-      v.removeEventListener('error', fail);
-      window.removeEventListener('touchstart', prime);
     };
-  }, [vSrc, pump]);
+  }, [manifestUrl, phone, portrait]);
 
+  // The frame cache: the plan within the memory budget (phones), the load order, progress to the preloader.
   useEffect(() => {
-    if (!m || !motion || vSrc) return;
-    let gone = false;
+    if (!m) return;
+    if (!motion) {
+      reportLoad('scene', 1);
+      return;
+    }
     const N = m.frames.length;
-    const phone = lightRef.current;
-    loaded.current = new Array(N).fill(false);
-    drawn.current = -1;
+    const bitmaps = kind !== 'full';
+    const resize =
+      kind === 'light' && m.width > LANDSCAPE_W
+        ? { w: LANDSCAPE_W, h: Math.round((LANDSCAPE_W * m.height) / m.width) }
+        : undefined;
+    const fw = resize?.w ?? m.width;
+    const fh = resize?.h ?? m.height;
+    const p = bitmaps
+      ? cachePlan(N, fw * fh * 4, cacheBudgetMB(deviceMemory()))
+      : { stride: 1, frames: Array.from({ length: N }, (_, i) => i), mb: 0 };
+    plan.current = p.frames;
+    count.current = N;
+    // phones: the pass before the last one (2 plan steps apart) crossfades too while the rest loads
+    gap.current = bitmaps ? 2 * p.stride : undefined;
     drawnKey.current = '';
     readyRef.current = false;
     setReady(false);
     setAll(false);
-    let count = 0;
-    // phones: decode off the main thread before the frame counts as loaded (drawImage then never decodes)
-    const decode = window.matchMedia('(pointer: coarse)').matches;
-    imgs.current = m.frames.map(() => new Image());
-    const load = (i: number) =>
-      new Promise<void>((resolve) => {
-        const img = imgs.current[i];
-        img.decoding = 'async';
-        const done = () => {
-          if (!gone) {
-            loaded.current[i] = true;
-            if (++count === N) {
-              readyRef.current = true;
-              setReady(true);
-              setAll(true);
-              draw();
-            } else if (phone) draw();
-            else if (improvesFrame(frameIndex(progress.current, N), i, drawn.current)) draw();
-          }
-          resolve();
-        };
-        img.onload = () => {
-          if (decode && img.decode) img.decode().then(done, done);
-          else done();
-        };
-        img.onerror = () => resolve();
-        img.src = m.frames[i];
-      });
-    // each worker takes the queued frame nearest to the CURRENT scroll position (it moves while frames load)
-    const drain = (queue: number[], workers: number) => {
-      const worker = async () => {
-        while (!gone && queue.length) {
-          const want = frameIndex(progress.current, N);
-          let best = 0;
-          for (let j = 1; j < queue.length; j++)
-            if (Math.abs(queue[j] - want) < Math.abs(queue[best] - want)) best = j;
-          await load(queue.splice(best, 1)[0]);
+    const el = root.current;
+    const critical = bitmaps ? p.frames.length : Math.min(N, DESK_CRITICAL);
+    const firstPass = new Set(p.frames.filter((_, j) => j % READY_STEP === 0));
+    let firstLeft = firstPass.size;
+    if (el) {
+      el.dataset.stride = String(p.stride);
+      el.dataset.mb = p.mb.toFixed(0);
+      el.dataset.cache = `0/${p.frames.length}`;
+      delete el.dataset.cacheStop;
+    }
+    reportLoad('scene', 0);
+    const fc = startFrameCache({
+      urls: m.frames,
+      plan: p.frames,
+      order: loadOrder(p.frames, bitmaps ? m.poster : frameIndex(progress.current, N)),
+      resize,
+      bitmaps,
+      workers: 6,
+      onFrame: (f) => {
+        const done = fc.settled();
+        if (el) el.dataset.cache = `${done}/${p.frames.length}`;
+        reportLoad('scene', done / critical);
+        if (firstPass.has(f)) firstLeft--;
+        if (!readyRef.current && (firstLeft <= 0 || !bitmaps)) {
+          readyRef.current = true;
+          setReady(true);
         }
-      };
-      return Promise.all(Array.from({ length: workers }, worker));
-    };
-    const first = phone ? m.poster : frameIndex(progress.current, N);
-    load(first).then(async () => {
-      if (!phone) {
-        await drain(
-          Array.from({ length: N }, (_, i) => i).filter((i) => i !== first),
-          6
-        );
-        return;
-      }
-      const pass = coarsePass(N, COARSE);
-      await drain(
-        pass.filter((i) => i !== first),
-        6
-      );
-      if (gone) return;
-      readyRef.current = true;
-      setReady(true);
-      draw();
-      await drain(
-        Array.from({ length: N }, (_, i) => i).filter((i) => i !== first && !pass.includes(i)),
-        4
-      );
+        draw();
+      },
+      onEnd: (why) => {
+        if (el) {
+          el.dataset.cache = `${fc.settled()}/${p.frames.length}`;
+          if (why === 'memory') el.dataset.cacheStop = 'memory';
+        }
+        reportLoad('scene', 1);
+        readyRef.current = true;
+        setReady(true);
+        setAll(true);
+        draw();
+      },
     });
-    const onResize = () => draw();
-    window.addEventListener('resize', onResize);
+    cache.current = fc;
     return () => {
-      gone = true;
-      window.removeEventListener('resize', onResize);
-      // abort frames still downloading
-      imgs.current.forEach((img, i) => {
-        if (loaded.current[i]) return;
-        img.onload = null;
-        img.onerror = null;
-        img.removeAttribute('src');
-      });
+      fc.cancel();
+      cancelAnimationFrame(settleRaf.current);
+      shownX.current = -1;
+      if (cache.current === fc) cache.current = null;
     };
-  }, [m, motion, draw, vSrc]);
+  }, [m, kind, motion, draw]);
 
   // Touch / reduced motion: the chapters are a swipe ribbon (scroll-snap) and the dots follow it.
   const ribbon = useRef<HTMLOListElement>(null);
@@ -453,27 +371,16 @@ export const SynagogueScrub = ({
       className={`scrub ${motion ? 'scrub--live' : 'scrub--static'}`}
       style={{ ['--chapters' as string]: n }}
       data-active={active}
-      data-media={light ? (vid ? 'video' : 'frames') : undefined}
-      data-pass={light && ready ? (vid ? 'video' : 'coarse') : undefined}
-      data-loaded={all ? 'all' : enough ? 'enough' : undefined}
+      data-media={motion && m ? (kind === 'full' ? 'images' : 'bitmaps') : undefined}
+      data-set={motion && m ? kind : undefined}
+      data-pass={phone && ready ? 'coarse' : undefined}
+      data-loaded={all ? 'all' : undefined}
       aria-label={ariaLabel}
       role="region"
     >
       <div className="scrub__sticky">
         <div className="scrub__media">
-          {motion && m && vid ? (
-            <video
-              ref={video}
-              className="scrub__canvas scrub__video"
-              src={vid.src}
-              data-frames={vid.frames}
-              muted
-              playsInline
-              preload="auto"
-              disablePictureInPicture
-              aria-hidden
-            />
-          ) : motion && m ? (
+          {motion && m ? (
             <canvas
               ref={canvas}
               className="scrub__canvas"
@@ -483,7 +390,7 @@ export const SynagogueScrub = ({
           ) : poster ? (
             <img className="scrub__poster" src={poster} alt="" />
           ) : null}
-          {motion && light && !ready && poster ? (
+          {phone && !ready && poster ? (
             <img className="scrub__poster" src={poster} alt="" data-waiting="" />
           ) : null}
           {failed ? <div className="scrub__fallback" aria-hidden /> : null}

@@ -111,6 +111,19 @@ export const Placeholder = ({ children }: { children: ReactNode }) => (
   </mark>
 );
 
+/** Demo records (seed `npm run seed:demo`) carry the slug prefix `demo-`: they are examples, not community facts. */
+export const isDemoSlug = (slug?: string | null): boolean => !!slug && slug.startsWith('demo-');
+
+/** Unobtrusive "Example" plate on demo cards and pages (slug `demo-*`). */
+export const DemoBadge = ({ slug }: { slug?: string | null }) => {
+  const { t } = useLang();
+  return isDemoSlug(slug) ? (
+    <span className="badge badge--demo" data-demo title={t('example.hint')}>
+      {t('example.badge')}
+    </span>
+  ) : null;
+};
+
 /** "Доступно на русском" chip for API objects with `fallback: true`. */
 export const FallbackBadge = ({ show }: { show?: boolean }) => {
   const { t } = useLang();

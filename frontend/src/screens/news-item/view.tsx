@@ -1,6 +1,6 @@
 import { useLang } from '@/i18n/use-lang';
 import { Lightbox, PhotoGrid } from '@/screens/album/lightbox';
-import { NewsCard } from '@/screens/events/cards';
+import { NewsRail } from '@/screens/events/news-rail';
 import { RichText } from '@/screens/events/rich-text';
 import '@/screens/events/styles';
 import { mediaUrl, type NewsNeighbour } from '@/store/api/content';
@@ -309,13 +309,7 @@ export const NewsItemView = ({
                 <Reveal>
                   <Eyebrow>{t('news.more')}</Eyebrow>
                 </Reveal>
-                <div className="cnt-grid">
-                  {more.map((n, i) => (
-                    <Reveal key={n.id} delay={i * 0.06}>
-                      <NewsCard item={n} />
-                    </Reveal>
-                  ))}
-                </div>
+                <NewsRail items={more} className="cnt-grid" step={0.06} />
               </section>
             </Container>
           ) : null}

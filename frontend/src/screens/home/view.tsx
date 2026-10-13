@@ -2,7 +2,8 @@ import { Fragment, useRef, type PointerEvent as RPointerEvent } from 'react';
 
 import { PHOTO_TALL, PHOTOS } from '@/content';
 import { SynagogueScrub } from '@/scenes/synagogue-scrub';
-import { EventCard, FundraiserCard, NewsCard } from '@/screens/events/cards';
+import { EventCard, FundraiserCard } from '@/screens/events/cards';
+import { NewsRail } from '@/screens/events/news-rail';
 import { countdownText } from '@/screens/schedule/model';
 import type { EventItem, Fundraiser, NewsItem } from '@/store/api/content';
 import {
@@ -482,13 +483,11 @@ export const HomeView = ({
           {news.state === 'loading' ? (
             <Skeleton />
           ) : news.state === 'ready' ? (
-            <div className="grid grid--3">
-              {news.items.slice(0, 3).map((n, i) => (
-                <Reveal key={n.id} delay={i * 0.08}>
-                  <NewsCard item={n} />
-                </Reveal>
-              ))}
-            </div>
+            <NewsRail
+              items={news.items.slice(0, 3)}
+              className="grid grid--3"
+              testId="home-news-rail"
+            />
           ) : (
             <Text className="home-note">{t('news.empty')}</Text>
           )}
