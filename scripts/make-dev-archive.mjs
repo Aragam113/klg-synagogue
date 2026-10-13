@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * `npm run dev:archive [-- <путь.zip>]` — личный dev-архив для запуска на другом компьютере (`npm start`).
- * Состав: всё отслеживаемое git плюс новые неигнорируемые файлы рабочего дерева, CLAUDE.md и docs/adr,
+ * Состав: всё отслеживаемое git плюс новые неигнорируемые файлы рабочего дерева, заметки *.md из корня и docs/adr,
  * dev-data/ (дамп БД + картинки; свежий — `npm run dev:dump`), README-DEV.md.
- * Без: node_modules, .autopilot/, .env, backend/uploads, frontend/e2e/shots, dist, .devdata, DEV-LOGIN.txt.
+ * Без: node_modules, служебных папок с точкой в корне (кроме .github), .env, backend/uploads, frontend/e2e/shots, dist, .devdata, DEV-LOGIN.txt.
  * По умолчанию — ~/Downloads/klg-synagogue-dev.zip. Zip пишется своим кодом (zlib), без внешних утилит.
  */
 import { execFileSync } from 'node:child_process';
@@ -17,7 +17,7 @@ const OUT = path.resolve(process.argv[2] || path.join(os.homedir(), 'Downloads',
 const TOP = 'klg-synagogue';
 const EXCLUDE = [
   /(^|\/)node_modules\//,
-  /^\.autopilot\//,
+  /^\.(?!github\/)[^/]+\//,
   /(^|\/)\.env$/,
   /(^|\/)\.env\.(?!example$)[^/]+$/,
   /^backend\/uploads\//,
@@ -47,7 +47,8 @@ function fileList() {
     .toString('utf8')
     .split('\0')
     .filter(Boolean);
-  const extra = ['CLAUDE.md', 'README-DEV.md', ...['docs/adr', 'dev-data'].flatMap((d) => (existsSync(path.join(ROOT, d)) ? walk(d) : []))];
+  const notes = readdirSync(ROOT).filter((f) => f.endsWith('.md') && statSync(path.join(ROOT, f)).isFile());
+  const extra = [...notes, ...['docs/adr', 'dev-data'].flatMap((d) => (existsSync(path.join(ROOT, d)) ? walk(d) : []))];
   const files = [...new Set([...git, ...extra])].filter(
     (f) => !EXCLUDE.some((re) => re.test(f)) && existsSync(path.join(ROOT, f)) && statSync(path.join(ROOT, f)).isFile()
   );
