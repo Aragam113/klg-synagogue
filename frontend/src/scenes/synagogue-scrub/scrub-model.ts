@@ -93,45 +93,6 @@ export interface Blend {
 }
 
 /**
- * Decoded-frame memory (MB) a phone may spend on the scene, by `navigator.deviceMemory` (GB): ≥ 4 → 200, 2–3 → 100,
- * less → 50. Unknown (Safari, Firefox) → 200: a decode that fails for lack of memory stops the cache at run time.
- */
-export const cacheBudgetMB = (deviceMemory: number | undefined): number => {
-  if (deviceMemory === undefined || !Number.isFinite(deviceMemory)) return 200;
-  if (deviceMemory >= 4) return 200;
-  if (deviceMemory >= 2) return 100;
-  return 50;
-};
-
-export interface CachePlan {
-  /** Every `stride`-th frame of the set is decoded (plus the last one). */
-  stride: number;
-  /** Frame numbers to decode, ascending. */
-  frames: number[];
-  /** Decoded size of the plan, MB. */
-  mb: number;
-}
-
-/** Frames 0, k, 2k… plus the last one. */
-const every = (n: number, k: number): number[] => {
-  const out: number[] = [];
-  for (let i = 0; i < n; i += k) out.push(i);
-  if (n > 0 && out[out.length - 1] !== n - 1) out.push(n - 1);
-  return out;
-};
-
-/** The smallest stride whose frames (`frameBytes` each, decoded RGBA) fit `budgetMB`. */
-export const cachePlan = (n: number, frameBytes: number, budgetMB: number): CachePlan => {
-  let stride = 1;
-  let frames = every(n, 1);
-  while (frames.length > 2 && (frames.length * frameBytes) / 1048576 > budgetMB) {
-    stride++;
-    frames = every(n, stride);
-  }
-  return { stride, frames, mb: (frames.length * frameBytes) / 1048576 };
-};
-
-/**
  * Download/decode order of a plan: the poster first, then ever finer even passes over the plan (every 8th slot,
  * every 4th, 2nd, the rest) — whenever the loading stops, what is in is spread evenly over the whole scene.
  */
@@ -186,4 +147,36 @@ export const blendCached = (
   const near =
     lo < 0 ? plan[hi] : hi < 0 ? plan[lo] : c - plan[lo] <= plan[hi] - c ? plan[lo] : plan[hi];
   return { a: near, b: near, alpha: 0 };
+};
+
+/**
+ * Phones: `k` key frames spread evenly over a set of `n` (the first and the last included) — the scene shows these
+ * as decoded `<img>` layers crossfaded by CSS instead of scrubbing every frame on a canvas.
+ */
+export const keyFrames = (n: number, k: number): number[] => {
+  if (n <= 0) return [];
+  if (k >= n) return Array.from({ length: n }, (_, i) => i);
+  const out: number[] = [];
+  for (let i = 0; i < k; i++) {
+    const f = Math.round((i * (n - 1)) / Math.max(1, k - 1));
+    if (out[out.length - 1] !== f) out.push(f);
+  }
+  return out;
+};
+
+/** Phones: the two key layers on screen — `on` (on top, fading in) over `under` (the previous one, opaque). -1 = none. */
+export interface KeyLayers {
+  on: number;
+  under: number;
+}
+
+/**
+ * Phones: the key to show for the wanted key `want` (index into the keys; `loaded` by key): the nearest loaded one
+ * goes on top and the one shown so far stays right under it while the new one fades in — never more than two layers.
+ * The same key or nothing loaded → the very same state object (nothing to touch in the DOM).
+ */
+export const keyStep = (s: KeyLayers, want: number, loaded: readonly boolean[]): KeyLayers => {
+  const k = nearestLoaded(Math.min(loaded.length - 1, Math.max(0, want)), loaded);
+  if (k < 0 || k === s.on) return s;
+  return { on: k, under: s.on };
 };

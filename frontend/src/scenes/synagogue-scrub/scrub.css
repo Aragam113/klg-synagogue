@@ -97,3 +97,20 @@ html[data-motion='on'][data-touch] .scrub--live .scrub__sticky { height: var(--v
 .scrub--static .scrub__chapters[data-ribbon] > .scrub__chapter { flex: 0 0 100%; max-width: none; min-width: 0;
   padding-inline: var(--gutter); scroll-snap-align: start; scroll-snap-stop: always; }
 
+
+/* Touch: the picture is a stack of decoded key frames (synagogue-scrub.tsx TOUCH_KEYS). The key for the scroll goes
+   on top and fades in by an opacity animation (compositor) over the one shown before; the rest are not rendered at all.
+   No per-frame zoom of the picture and no --p-driven text on touch: nothing is repainted while the finger scrolls. */
+.scrub__keys { position: absolute; inset: 0; overflow: hidden; background: var(--deeper); will-change: transform; }
+.scrub__key { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; visibility: hidden; }
+.scrub__key[data-layer] { opacity: 1; visibility: visible; }
+.scrub__key[data-layer='under'] { z-index: 1; }
+.scrub__key[data-layer='on'] { z-index: 2; animation: scrub-key-in 0.32s ease-out both; }
+@keyframes scrub-key-in { from { opacity: 0; } to { opacity: 1; } }
+html[data-motion='on'][data-touch] .scrub--live .scrub__media { transform: none; }
+/* touch chapters: the current one comes in by a transition once the scroll crosses into it, the old one goes first */
+html[data-motion='on'][data-touch] .scrub--live .scrub__chapter {
+  opacity: 0; transform: translateY(1.5rem); transition: opacity 0.2s ease-in, transform 0.2s ease-in; }
+html[data-motion='on'][data-touch] .scrub--live .scrub__chapter[data-current='true'] {
+  opacity: 1; transform: none; transition: opacity 0.42s ease-out 0.12s, transform 0.42s ease-out 0.12s; }
+@media (prefers-reduced-motion: reduce) { .scrub__key[data-layer='on'] { animation: none; } }

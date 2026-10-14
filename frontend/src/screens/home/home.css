@@ -181,33 +181,30 @@ html[data-motion='on'] .home-dawn__note { opacity: clamp(0.15, (var(--p) - 0.25)
 :root[lang='he'] .home-threshold__he { display: none; }
 @media (max-width: 599px) { .home-threshold { min-height: 0; } }
 
-/* ---- «Community life» on a phone (≤ 767px, touch, motion on): a big arch that opens into a full-screen photo ----
-   The pinned screen is one stack: the chapter photos fill the whole screen (portrait crops, Ken Burns from --p,
-   crossfade between chapters), the chapter lies over them at the bottom, the head on top. At the entry the photo is
-   clipped to a big arch (16px side margins, a round top) between the big section title and the first chapter
-   (`--life-top`/`--life-bottom`, measured by useLifeMorph/lifeArch only when sizes change). Over the first 30% of
-   the first chapter (`--m`, strictly from --p, so scrolling back folds it into the arch again) the clip opens to
-   the full screen, the round top goes to 0, the big title shrinks to the eyebrow, the shade, the plate under the
-   text, the chapter number, the counter and the stories-like progress come in, the text rides down 12px
-   (LIFE_TEXT_LIFT). Only clip-path/transform/opacity follow --p. Reduced motion: a static column, a full-width photo
-   per chapter. Everywhere else these nodes stay hidden and the layout above is untouched. */
+/* ---- «Community life» on a phone (≤ 767px, touch, motion on): full-screen photos crossfading chapter by chapter ----
+   The pinned screen is one stack: the chapter photo fills the whole screen (portrait crops PHOTO_TALL), the chapter
+   lies over it at the bottom on a plate, the head on top. All four photos are downloaded and decoded (`img.decode()`)
+   before the section comes near (LifePhotos, view.tsx); a photo is never shown before it is decoded. On a chapter
+   change the new photo goes on top and fades in by an opacity animation (compositor) over the previous one — two
+   layers at most, the others are not rendered; the chapter text changes by transitions on `data-current`. Nothing here
+   follows --p per frame except the thin stories-like progress. Until 2026-10-14 the entry was an arch opening to the
+   full screen by a per-frame clip-path with a Ken Burns transform on all four stacked full-screen layers: on real
+   phones that showed half-drawn and overlapping photos. Reduced motion: a static column, a full-width photo per
+   chapter. Everywhere else these nodes stay hidden and the layout above is untouched. */
 .home-life__segments, .home-life__frame, .home-chapter__photo { display: none; }
 @media (max-width: 767px) {
   html[data-motion='on'][data-touch] .home-community { padding-inline: 0; }
   html[data-motion='on'][data-touch] .home-community .pinned__sticky {
     --pn: calc(var(--p, 0) * var(--chapters));
-    --m: clamp(0, calc(var(--pn) / 0.3), 1);
-    --um: calc(1 - var(--m));
     display: block; padding: 0; }
   html[data-motion='on'][data-touch] .home-community .pinned__progress,
   html[data-motion='on'][data-touch] .home-community .home-arch { display: none; }
   html[data-motion='on'][data-touch] .home-community .pinned__body { display: block; }
   html[data-motion='on'][data-touch] .home-community .pinned__aside { position: absolute; inset: 0; z-index: 0; display: block; }
 
-  /* stories-like progress: segment i fills while chapter i scrolls by; it comes in with the full-screen photo */
+  /* stories-like progress: segment i fills while chapter i scrolls by */
   html[data-motion='on'][data-touch] .home-community .home-life__segments {
-    display: flex; gap: 4px; position: absolute; z-index: 4; top: 0.857rem; inset-inline: var(--gutter); height: 2px;
-    opacity: var(--m); }
+    display: flex; gap: 4px; position: absolute; z-index: 4; top: 0.857rem; inset-inline: var(--gutter); height: 2px; }
   html[data-motion='on'][data-touch] .home-community .home-life__segments > span {
     position: relative; flex: 1 1 0; overflow: hidden; border-radius: 1px; background: #f6f1e64d; }
   html[data-motion='on'][data-touch] .home-community .home-life__segments > span::after {
@@ -215,31 +212,22 @@ html[data-motion='on'] .home-dawn__note { opacity: clamp(0.15, (var(--p) - 0.25)
     transform: scaleX(clamp(0, calc(var(--pn) - var(--i)), 1)); }
   html[dir='rtl'][data-motion='on'][data-touch] .home-community .home-life__segments > span::after { transform-origin: right center; }
 
-  /* the photo: full screen, clipped to the arch at the entry; the radius is half the arch width (a round top); the top
-     edge opens eased (um²) so it rises under the big title only once the title has faded */
+  /* the photos: one composited stack; the current one on top fading in, the previous one right under it */
   html[data-motion='on'][data-touch] .home-community .home-life__frame {
-    --r: calc(var(--um) * (50vw - 16px));
-    display: block; position: absolute; inset: 0; overflow: hidden; background: var(--line);
-    clip-path: inset(calc(var(--um) * var(--um) * var(--life-top, 11rem)) calc(var(--um) * 16px) calc(var(--um) * var(--life-bottom, 21rem))
-      round var(--r) var(--r) calc(var(--um) * 7px) calc(var(--um) * 7px)); }
+    display: block; position: absolute; inset: 0; overflow: hidden; background: var(--deeper); }
   .home-life__photos { position: absolute; inset: 0; }
-  /* later chapters on top, each fades in across its chapter boundary; slow Ken Burns while visible */
+  html[data-motion='on'][data-touch] .home-community .home-life__photos { will-change: transform; }
   html[data-motion='on'][data-touch] .home-community .home-life__photo {
-    --kb: clamp(0, calc((var(--pn) - var(--i) + 0.3) / 1.6), 1);
-    --kx: 1;
     position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%;
-    opacity: clamp(0, calc((var(--pn) - var(--i) + 0.15) / 0.3), 1);
-    transform: translate3d(calc((var(--kb) - 0.5) * 3% * var(--kx)), calc((var(--kb) - 0.5) * -2%), 0) scale(calc(1.05 + var(--kb) * 0.09));
-    transform-origin: 50% 15%; will-change: transform, opacity; }
-  html[data-motion='on'][data-touch] .home-community .home-life__photo:first-child { opacity: 1; }
-  html[data-motion='on'][data-touch] .home-community .home-life__photo:nth-child(even) { --kx: -1; }
-  html[dir='rtl'][data-motion='on'][data-touch] .home-community .home-life__photo { --kx: -1; }
-  html[dir='rtl'][data-motion='on'][data-touch] .home-community .home-life__photo:nth-child(even) { --kx: 1; }
+    opacity: 0; visibility: hidden; }
+  html[data-motion='on'][data-touch] .home-community .home-life__photo[data-ready][data-layer] { opacity: 1; visibility: visible; }
+  html[data-motion='on'][data-touch] .home-community .home-life__photo[data-layer='under'] { z-index: 1; }
+  html[data-motion='on'][data-touch] .home-community .home-life__photo[data-layer='on'] { z-index: 2; animation: life-photo-in 0.6s ease-out both; }
   .home-life__shade { position: absolute; inset: 0; pointer-events: none; }
-  html[data-motion='on'][data-touch] .home-community .home-life__shade { opacity: var(--m); background:
+  html[data-motion='on'][data-touch] .home-community .home-life__shade { z-index: 3; background:
     linear-gradient(180deg, #0b151ae6 0%, #0b151a99 22%, #0b151a00 40%, #0b151a00 44%, #0b151ab3 66%, #0b151af2 100%); }
 
-  /* the head: the big title through the entry, then only the eyebrow and the counter */
+  /* the head: eyebrow + counter always; the big title only over the first chapter */
   html[data-motion='on'][data-touch] .home-community .pinned__head {
     position: absolute; z-index: 3; top: 0; inset-inline: var(--gutter); padding-top: 1.714rem; align-items: flex-start; }
   html[data-motion='on'][data-touch] .home-community .pinned__head > div:first-child { flex: 1 1 auto; min-width: 0; }
@@ -247,25 +235,24 @@ html[data-motion='on'] .home-dawn__note { opacity: clamp(0.15, (var(--p) - 0.25)
   html[data-motion='on'][data-touch] .home-community .home-head .eyebrow { color: var(--light); text-shadow: 0 1px 0.4rem #0b151ae6; }
   html[data-motion='on'][data-touch] .home-community .home-head .title {
     color: var(--light); text-shadow: 0 1px 3px #0b151ab3, 0 0 1.6rem #0b151a99;
-    transform-origin: top left; opacity: clamp(0, calc(1 - var(--m) * 2), 1);
-    transform: translateY(calc(var(--m) * -0.714rem)) scale(calc(1 - var(--m) * 0.3)); }
-  html[dir='rtl'][data-motion='on'][data-touch] .home-community .home-head .title { transform-origin: top right; }
-  html[data-motion='on'][data-touch] .home-community .pinned__counter {
-    color: var(--light); opacity: var(--m); text-shadow: 0 1px 0.4rem #0b151ae6; }
+    opacity: 0; transform: translateY(-0.714rem); transition: opacity 0.3s ease-in, transform 0.3s ease-in; }
+  html[data-motion='on'][data-touch] .home-community .pinned[data-active='0'] .home-head .title {
+    opacity: 1; transform: none; transition: opacity 0.45s ease-out, transform 0.45s ease-out; }
+  html[data-motion='on'][data-touch] .home-community .pinned__counter { color: var(--light); text-shadow: 0 1px 0.4rem #0b151ae6; }
 
-  /* the chapter at the bottom: under the arch at the entry (lifted by LIFE_TEXT_LIFT), over the shade after */
+  /* the chapter at the bottom on a plate; it changes by transitions, not by --p */
   html[data-motion='on'][data-touch] .home-community .pinned__stage {
-    position: absolute; z-index: 2; inset-inline: var(--gutter); bottom: 1.714rem; height: 20rem; min-height: 0;
-    transform: translateY(calc(var(--um) * -12px)); }
-  /* the plate under the chapter, as under the scroll-scene chapters on a phone */
+    position: absolute; z-index: 3; inset-inline: var(--gutter); bottom: 1.714rem; height: 20rem; min-height: 0; }
   html[data-motion='on'][data-touch] .home-community .pinned__stage::before {
     content: ''; position: absolute; z-index: -1; pointer-events: none; inset: 2rem calc(-1 * var(--gutter)) -1.714rem;
-    opacity: var(--m);
     background: radial-gradient(farthest-side at 40% 72%, #0b151ad9 0%, #0b151ab3 45%, #0b151a59 75%, #0b151a00 100%); }
-  html[data-motion='on'][data-touch] .home-community .pinned__chapter { justify-content: flex-end; }
+  html[data-motion='on'][data-touch] .home-community .pinned__chapter {
+    justify-content: flex-end; opacity: 0; transform: translateY(1.5rem);
+    transition: opacity 0.2s ease-in, transform 0.2s ease-in; }
+  html[data-motion='on'][data-touch] .home-community .pinned__chapter[data-current='true'] {
+    opacity: 1; transform: none; transition: opacity 0.42s ease-out 0.12s, transform 0.42s ease-out 0.12s; }
   html[data-motion='on'][data-touch] .home-community .home-chapter__n {
-    font-size: 3.429rem; line-height: 1; -webkit-text-stroke-color: #dcc08c; text-shadow: 0 0 1.2rem #0b151acc;
-    opacity: var(--m); }
+    font-size: 3.429rem; line-height: 1; -webkit-text-stroke-color: #dcc08c; text-shadow: 0 0 1.2rem #0b151acc; }
   html[data-motion='on'][data-touch] .home-community .home-chapter .title {
     color: var(--light); text-shadow: 0 1px 3px #0b151ab3, 0 0 1.6rem #0b151a99; }
   html[data-motion='on'][data-touch] .home-community .home-chapter__text { color: var(--light); text-shadow: 0 1px 0.6rem #0b151ae6; }
@@ -277,3 +264,4 @@ html[data-motion='on'] .home-dawn__note { opacity: clamp(0.15, (var(--p) - 0.25)
     display: block; width: calc(100% + 2 * var(--gutter)); max-width: none; margin: 0 calc(-1 * var(--gutter)) 0.571rem;
     aspect-ratio: 4 / 5; object-fit: cover; object-position: 50% 30%; }
 }
+@keyframes life-photo-in { from { opacity: 0; } to { opacity: 1; } }
