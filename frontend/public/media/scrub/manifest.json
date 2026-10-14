@@ -115,5 +115,18 @@
   "height": 720,
   "credits": "Облёт 3D-модели синагоги — kldsynagogue.com, 2017 (заглушка, лицензия не указана; © Фонд строительства синагоги в Калининграде)",
   "light": "m/manifest.json",
-  "touch": "t/manifest.json"
+  "touch": "t/manifest.json",
+  "film": {
+    "p": "v/scene-p.mp4",
+    "pr": "v/scene-p-rev.mp4",
+    "l": "v/scene-l.mp4",
+    "lr": "v/scene-l-rev.mp4",
+    "duration": 26,
+    "holds": [
+      0,
+      8.667,
+      17.333,
+      26
+    ]
+  }
 }

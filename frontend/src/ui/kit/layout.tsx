@@ -3,7 +3,7 @@ import { type ReactNode, useRef } from 'react';
 
 import { useLang } from '@/i18n/use-lang';
 import { HexPattern } from '@/ui/judaica/hex-pattern';
-import { useScrollProgress } from '@/ui/motion/hooks';
+import { useOnscreen, useScrollProgress } from '@/ui/motion/hooks';
 
 import { pageTitle } from './page-title';
 
@@ -64,7 +64,9 @@ export const Section = ({
 }: SectionProps) => {
   const ref = useRef<HTMLElement>(null);
   const none = useRef<HTMLElement>(null);
-  useScrollProgress(progress ? ref : none);
+  // --p for CSS only where scroll timelines are missing (styles/scroll-timelines.css runs it elsewhere)
+  useScrollProgress(progress ? ref : none, { cssOnly: true });
+  useOnscreen(ref);
   const cls = [
     'sec',
     `tone-${tone}`,

@@ -3,11 +3,12 @@ import {
   coverRect,
   frameIndex,
   improvesFrame,
+  filmMove,
   keyFrames,
-  keyStep,
   loadOrder,
   nearestLoaded,
   parseManifest,
+  touchFrameCount,
 } from './scrub-model';
 
 describe('frameIndex — кадр строго по прогрессу прокрутки', () => {
@@ -200,26 +201,68 @@ describe('keyFrames — телефон: ключевые кадры поровн
   });
 });
 
-describe('keyStep — телефон: не больше двух слоёв, новый проявляется поверх прежнего', () => {
-  const all = [true, true, true, true];
-  it('нужный ключ сменился → он сверху, прежний под ним', () => {
-    expect(keyStep({ on: 1, under: 0 }, 2, all)).toEqual({ on: 2, under: 1 });
+describe('touchFrameCount — фазы сцены на телефоне (?s=1): плотность по памяти устройства', () => {
+  it('≥ 4 ГБ или неизвестно (Safari) → 120 кадров (~79 МБ при 304×540)', () => {
+    expect(touchFrameCount(undefined)).toBe(120);
+    expect(touchFrameCount(8)).toBe(120);
+    expect(touchFrameCount(4)).toBe(120);
   });
-  it('тот же ключ → состояние не меняется (никакой перерисовки)', () => {
-    const s = { on: 2, under: 1 };
-    expect(keyStep(s, 2, all)).toBe(s);
+  it('2–3 ГБ → 80, меньше → 54', () => {
+    expect(touchFrameCount(2)).toBe(80);
+    expect(touchFrameCount(1)).toBe(54);
+    expect(touchFrameCount(0.5)).toBe(54);
   });
-  it('нужный ещё не загружен → ближайший загруженный', () => {
-    expect(keyStep({ on: 0, under: -1 }, 2, [true, false, false, true])).toEqual({
-      on: 3,
-      under: 0,
+});
+
+describe('filmMove — «кино по главам» (?s=2): куда и с какой скоростью играть', () => {
+  // 26 s, 4 chapters: holds 0 / 8.667 / 17.333 / 26
+  it('вперёд на одну главу — обычная скорость 1.75', () => {
+    expect(filmMove(0, 8.667, 26, 4)).toEqual({ dir: 1, rate: 1.75 });
+  });
+  it('назад на две главы — вдвое быстрее (3.5)', () => {
+    expect(filmMove(17.333, 0, 26, 4)).toEqual({ dir: -1, rate: 3.5 });
+  });
+  it('через три главы — не быстрее 3 × 1.75', () => {
+    expect(filmMove(0, 26, 26, 4).rate).toBeCloseTo(5.25, 5);
+  });
+  it('уже на месте (ближе 1/50 с) → стоять', () => {
+    expect(filmMove(8.66, 8.667, 26, 4)).toEqual({ dir: 0, rate: 0 });
+  });
+});
+
+describe('parseManifest — chapter film (?s=2)', () => {
+  it('resolves the four files against the folder and keeps duration and holds', () => {
+    const m = parseManifest(
+      {
+        frames: ['a.webp'],
+        width: 1,
+        height: 1,
+        film: {
+          p: 'v/p.mp4',
+          pr: 'v/pr.mp4',
+          l: 'v/l.mp4',
+          lr: 'v/lr.mp4',
+          duration: 26,
+          holds: [0, 13, 26],
+        },
+      },
+      '/media/scrub/'
+    );
+    expect(m?.film).toEqual({
+      p: '/media/scrub/v/p.mp4',
+      pr: '/media/scrub/v/pr.mp4',
+      l: '/media/scrub/v/l.mp4',
+      lr: '/media/scrub/v/lr.mp4',
+      duration: 26,
+      holds: [0, 13, 26],
     });
   });
-  it('ничего не загружено → состояние не меняется', () => {
-    const s = { on: -1, under: -1 };
-    expect(keyStep(s, 1, [false, false])).toBe(s);
-  });
-  it('первый показ → снизу ничего', () => {
-    expect(keyStep({ on: -1, under: -1 }, 0, all)).toEqual({ on: 0, under: -1 });
+  it('a film without all four files or holds → no film', () => {
+    expect(
+      parseManifest(
+        { frames: ['a.webp'], width: 1, height: 1, film: { p: 'v/p.mp4', duration: 26 } },
+        '/x/'
+      )?.film
+    ).toBeUndefined();
   });
 });

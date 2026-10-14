@@ -4,6 +4,7 @@ import {
   motionAllowed,
   type MotionEl,
   pinAllowed,
+  registerOnscreen,
   registerProgress,
   registerReveal,
   type RegisterOptions,
@@ -21,16 +22,28 @@ export const useScrollProgress = (
   useEffect(() => {
     cb.current = opts.onChange;
   });
-  const { mode, snap } = opts;
+  const { mode, snap, css, cssOnly, timeline } = opts;
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     return registerProgress(el, {
       mode,
       snap,
+      css,
+      cssOnly,
+      timeline,
       onChange: (p) => cb.current?.(p),
     });
-  }, [ref, mode, snap]);
+  }, [ref, mode, snap, css, cssOnly, timeline]);
+};
+
+/** `data-onscreen` while the element is on screen (idle CSS loops pause off screen). */
+export const useOnscreen = (ref: RefObject<MotionEl | null>): void => {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    return registerOnscreen(el);
+  }, [ref]);
 };
 
 /** One-shot `data-revealed="true"` when 20% of the element is visible (immediately when motion is off). */

@@ -147,7 +147,7 @@ try {
 
         const pBefore = await page.evaluate(() => {
           const el = document.querySelector('.hexpattern');
-          return el ? getComputedStyle(el).getPropertyValue('--p') : '';
+          return el ? getComputedStyle(el).transform : '';
         });
         await scrollThrough();
         const after = await page.evaluate(() => {
@@ -156,7 +156,7 @@ try {
           return {
             reveals: all.length,
             hidden: all.filter((e) => e.dataset.revealed !== 'true').length,
-            p: hex ? getComputedStyle(hex).getPropertyValue('--p') : '',
+            p: hex ? getComputedStyle(hex).transform : '',
             sw: document.documentElement.scrollWidth,
             iw: window.innerWidth,
           };
@@ -164,7 +164,7 @@ try {
         check(after.sw <= after.iw, `${tag}: no horizontal scroll`, `${after.sw} > ${after.iw}`);
         if (!NO_HERO.has(path) && top.motion === 'on') {
           check(after.reveals > 0 && after.hidden === 0, `${tag}: Reveal`, `${after.hidden}/${after.reveals} hidden`);
-          check(pBefore !== after.p, `${tag}: --p moves (parallax)`, `${pBefore} → ${after.p}`);
+          check(pBefore !== after.p, `${tag}: the background moves with the scroll (parallax: --p or the scroll timeline)`, `${pBefore} → ${after.p}`);
         }
 
         if (path === '/visit/how-to-get') {
@@ -181,7 +181,8 @@ try {
             const toc = [...document.querySelectorAll('.sx-toc a')].map((a) => a.getAttribute('href'));
             const missing = toc.filter((x) => !document.querySelector(x));
             const tl = document.querySelector('.sx-timeline');
-            const p = () => Number(getComputedStyle(tl).getPropertyValue('--p') || 0);
+            // the drawn share of the line: scaleY of ::before (from --p or the scroll timeline)
+            const p = () => new DOMMatrix(getComputedStyle(tl, '::before').transform).d;
             const top = tl.getBoundingClientRect().top + window.scrollY;
             window.scrollTo(0, top - window.innerHeight * 0.8);
             await new Promise((r) => setTimeout(r, 400));
@@ -192,7 +193,7 @@ try {
           });
           check(h.toc >= 5 && h.missing.length === 0, `${tag}: TOC anchors`, h.missing.join(','));
           check(h.figs > 0, `${tag}: photos with attribution`);
-          if (top.motion === 'on') check(h.p2 > h.p1, `${tag}: timeline draws from --p`, `${h.p1} → ${h.p2}`);
+          if (top.motion === 'on') check(h.p2 > h.p1, `${tag}: the timeline line draws with the scroll`, `${h.p1} → ${h.p2}`);
         }
 
         check(errors.length === 0, `${tag}: console clean`, errors.slice(0, 3).join(' | '));

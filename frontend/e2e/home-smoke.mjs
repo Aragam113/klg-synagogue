@@ -189,10 +189,10 @@ try {
     check(d.appReady === 'true' && d.preloadScene === '1', '390 touch: the preloader leaves with the scene cache in', JSON.stringify(d));
     await page.close();
   }
-  // 390 touch, the scene frames slowed down: the line waits while the cache can make it before the ceiling, and lets
+  // 390 touch, the scene as frames (?s=1) slowed down: the line waits while the cache can make it before the ceiling, and lets
   // the site in without a cache that cannot (it goes on loading in the background).
   for (const [delay, wait] of [
-    [400, true], // 24 key frames, 4 at a time: ~2.4 s — worth waiting for
+    [80, true], // ?s=1: 120 frames, 4 at a time: ~2.4 s — worth waiting for
     [1500, false],
   ]) {
     const page = await browser.newPage();
@@ -203,7 +203,7 @@ try {
       if (/\/media\/scrub\/t\/frame-\d+\.webp/.test(r.url())) setTimeout(() => r.continue().catch(() => undefined), delay);
       else r.continue().catch(() => undefined);
     });
-    await page.goto(`${WEB}/?lang=ru`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+    await page.goto(`${WEB}/?lang=ru&s=1`, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true', { timeout: 20000 }).catch(() => undefined);
     const d = await page.evaluate(() => ({ ms: +document.documentElement.dataset.preloadMs, scene: document.documentElement.dataset.preloadScene, cache: document.querySelector('.scrub')?.dataset.cache }));
     if (wait) check(d.scene === '1' && d.ms > 2000 && d.ms < 7000 + 1800, `390 frames +${delay} ms each: the line waits for the scene cache`, JSON.stringify(d));
@@ -259,7 +259,7 @@ try {
   // 390 touch: the scene scrubs by native scroll too, no horizontal scroll.
   {
     const { page, errors } = await open('/?lang=ru', 390);
-    check(!!(await page.$('.scrub--live .scrub__keys[data-frames]')), '390: live scene on touch (decoded key frames as <img> layers)');
+    check(!!(await page.$('.scrub--live .scrub__film video')), '390: live scene on touch (the chapter film by default)');
     await sleep(1500);
     await checkEyebrow(page, '390 ru');
     await walk(page, 'home_390');

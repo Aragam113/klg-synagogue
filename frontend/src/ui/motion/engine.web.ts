@@ -33,6 +33,8 @@ interface Entry {
   cur: number;
   /** touch: chapters of a pinned scene that pulls the page to its stops */
   snap?: number;
+  /** false: no `--p` write (the CSS runs on a scroll timeline) */
+  css: boolean;
   onChange?: (p: number) => void;
 }
 
@@ -51,6 +53,8 @@ let vhFix = 0;
 let vhW = 0;
 let activeIO: IntersectionObserver | null = null;
 let revealIO: IntersectionObserver | null = null;
+let onscreenIO: IntersectionObserver | null = null;
+const onscreenEls = new Set<MotionEl>();
 let layoutRO: ResizeObserver | null = null;
 const mqs: MediaQueryList[] = [];
 /** touch: scroll state polled every rAF */
@@ -71,6 +75,20 @@ export { progressOf } from './progress';
 /** The visitor asked the OS for reduced motion (one-off animations such as the preloader check only this). */
 export const reducedMotion = (): boolean =>
   typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/**
+ * CSS scroll-driven animations (`animation-timeline: view()`, Chrome 115+, Safari 26+) run the `--p` choreography on
+ * the compositor (styles/scroll-timelines.css under html[data-sda='on']): no per-frame `--p` writes — a `--p` written
+ * on a section re-styled its whole subtree every frame (up to 100 elements, ~half of the main thread on a CPU ×6
+ * phone). `?sda=0` forces the `--p` fallback (benchmarks); browsers without scroll timelines get it anyway.
+ */
+export const scrollTimelines = (): boolean =>
+  typeof window !== 'undefined' &&
+  !reducedMotion() &&
+  typeof CSS !== 'undefined' &&
+  typeof CSS.supports === 'function' &&
+  CSS.supports('animation-timeline: view()') &&
+  !/[?&]sda=0(&|$)/.test(window.location.search);
 
 /** Scroll-driven motion (`--p`, scroll scene): everywhere, touch included, unless reduced motion. */
 export const motionAllowed = (): boolean => !reducedMotion();
@@ -95,7 +113,7 @@ const minStep = () => (touch ? 2e-4 : 4e-4);
 const set = (e: Entry, p: number) => {
   if (Math.abs(p - e.last) > minStep() || (p !== e.last && (p === 0 || p === 1))) {
     e.last = p;
-    e.el.style.setProperty('--p', p.toFixed(4));
+    if (e.css) e.el.style.setProperty('--p', p.toFixed(4));
     e.onChange?.(p);
   }
 };
@@ -103,7 +121,9 @@ const set = (e: Entry, p: number) => {
 /** Within half a pixel-step of an end it is the end (a fractional section top must not leave --p at 1e-4). */
 const toEnds = (p: number) => (p < 2e-4 ? 0 : p > 1 - 2e-4 ? 1 : p);
 
-const writeAll = (dt: number) => {
+/** Writes the progress of the active entries; true while a touch lerp is still catching up. */
+const writeAll = (dt: number): boolean => {
+  let lagging = false;
   const vh = touch ? vhFix : window.innerHeight;
   const todo: [Entry, number][] = [];
   entries.forEach((e) => {
@@ -114,9 +134,15 @@ const writeAll = (dt: number) => {
     else {
       e.cur = e.cur < 0 ? p : approach(e.cur, p, TOUCH_LERP, dt);
       set(e, e.cur);
+      if (e.cur !== p) lagging = true;
     }
   }
+  return lagging;
 };
+
+/** Touch: idle frames in a row (nothing moved, nothing to glide or ease) before the polling loop stops. */
+const IDLE_FRAMES = 12;
+let idle = 0;
 
 const scrollToY = (y: number) => window.scrollTo({ top: y, behavior: 'instant' as ScrollBehavior });
 
@@ -187,8 +213,16 @@ const tick = (t: number) => {
   lastT = t;
   lenis?.raf(t);
   if (touch) touchStep(t);
-  writeAll(dt);
-  if (lenis || touch) raf = requestAnimationFrame(tick);
+  const lagging = writeAll(dt);
+  // touch: the loop polls only while something moves — a finger, inertia, a glide, a lerp, the snap wait; at rest no
+  // frame is requested at all (a perpetual rAF made the page produce a frame every vsync for nothing). Any scroll,
+  // touch or resize starts it again (schedule).
+  if (touch) {
+    const quiet =
+      !glide && !lagging && (tp.settled || tp.finger) && t - tp.movedAt > SNAP_IDLE + 100;
+    idle = quiet ? idle + 1 : 0;
+  }
+  if (lenis || (touch && idle < IDLE_FRAMES)) raf = requestAnimationFrame(tick);
   else {
     raf = 0;
     lastT = 0;
@@ -197,6 +231,7 @@ const tick = (t: number) => {
 
 /** Starts a frame (a single one when nothing needs the continuous loop). */
 const schedule = () => {
+  idle = 0;
   if (raf || !users) return;
   raf = requestAnimationFrame(tick);
 };
@@ -210,6 +245,8 @@ const onResize = () => {
 
 // Touch: a finger on the screen holds the snap back and stops a running glide; so do a wheel, keys and a mouse.
 const onFingerDown = () => {
+  idle = 0;
+  schedule();
   tp.finger = true;
   tp.settled = false;
   tp.anchor = window.scrollY;
@@ -219,6 +256,8 @@ const onFingerUp = (ev: Event) => {
   if ((ev as TouchEvent).touches?.length) return;
   tp.finger = false;
   tp.movedAt = performance.now();
+  idle = 0;
+  schedule();
 };
 const onInterrupt = () => {
   // a wheel / key / mouse: stop a glide and keep the page where the visitor leaves it until they scroll again
@@ -248,6 +287,7 @@ const applyMode = () => {
   html.dataset.pin = pin ? 'on' : 'off';
   // Cheap time/reveal animations (marquee, Reveal, hero words) also run on touch; only reduced motion stops them.
   html.dataset.anim = anim ? 'on' : 'off';
+  html.dataset.sda = scrollTimelines() ? 'on' : 'off';
   const before = touch;
   touch = !pin && anim;
   if (touch) {
@@ -292,6 +332,17 @@ export const startEngine = (): void => {
       }),
     { threshold: 0.2, rootMargin: '0px 0px -8% 0px' }
   );
+  // idle loops (ghost words, marquee, rosette, flame, cue) run only while their section is on screen (data-onscreen)
+  onscreenIO = new IntersectionObserver(
+    (list) =>
+      list.forEach((x) => {
+        const el = x.target as HTMLElement;
+        if (x.isIntersecting) el.dataset.onscreen = '';
+        else delete el.dataset.onscreen;
+      }),
+    { rootMargin: '10% 0px 10% 0px' }
+  );
+  onscreenEls.forEach((el) => onscreenIO?.observe(el));
   entries.forEach((e) => activeIO?.observe(e.el));
   document
     .querySelectorAll<HTMLElement>('[data-reveal]:not([data-revealed])')
@@ -325,6 +376,8 @@ export const stopEngine = (): void => {
   layoutRO = null;
   activeIO?.disconnect();
   revealIO?.disconnect();
+  onscreenIO?.disconnect();
+  onscreenIO = null;
   activeIO = null;
   revealIO = null;
   mqs.splice(0).forEach((mq) => mq.removeEventListener('change', applyMode));
@@ -333,6 +386,7 @@ export const stopEngine = (): void => {
 };
 
 export const registerProgress = (el: MotionEl, opts: RegisterOptions = {}): (() => void) => {
+  if (opts.cssOnly && scrollTimelines()) return () => undefined;
   const e: Entry = {
     el,
     mode: opts.mode ?? 'through',
@@ -340,6 +394,7 @@ export const registerProgress = (el: MotionEl, opts: RegisterOptions = {}): (() 
     last: -1,
     cur: -1,
     snap: opts.snap,
+    css: opts.css !== false && !(opts.timeline && scrollTimelines()),
     onChange: opts.onChange,
   };
   entries.set(el, e);
@@ -348,6 +403,16 @@ export const registerProgress = (el: MotionEl, opts: RegisterOptions = {}): (() 
   return () => {
     entries.delete(el);
     activeIO?.unobserve(el);
+  };
+};
+
+/** `data-onscreen` while the element is (nearly) on screen: CSS pauses its idle animations otherwise. */
+export const registerOnscreen = (el: MotionEl): (() => void) => {
+  onscreenEls.add(el);
+  onscreenIO?.observe(el);
+  return () => {
+    onscreenEls.delete(el);
+    onscreenIO?.unobserve(el);
   };
 };
 

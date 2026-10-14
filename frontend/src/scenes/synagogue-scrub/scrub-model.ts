@@ -53,6 +53,20 @@ export interface ScrubManifest {
   light?: string;
   /** Absolute URL of the portrait phone set (406×720, build:scrub --touch): touch devices held in portrait. */
   touch?: string;
+  /** Chapter film of the phone scene (?s=2, build:scrub --film-chapters): forward/reversed, portrait/landscape. */
+  film?: SceneFilm;
+}
+
+export interface SceneFilm {
+  /** portrait forward / reversed, landscape forward / reversed (absolute URLs) */
+  p: string;
+  pr: string;
+  l: string;
+  lr: string;
+  /** seconds */
+  duration: number;
+  /** chapter holds, seconds of the forward film, ascending (0 … duration) */
+  holds: number[];
 }
 
 /** manifest.json → absolute frame URLs (relative names resolve against base); null if unusable. */
@@ -69,6 +83,24 @@ export const parseManifest = (raw: unknown, base: string): ScrubManifest | null 
   const frames = names.map(abs);
   const light = typeof r.light === 'string' && r.light ? abs(r.light) : undefined;
   const touch = typeof r.touch === 'string' && r.touch ? abs(r.touch) : undefined;
+  const fr = (r.film && typeof r.film === 'object' ? r.film : {}) as Record<string, unknown>;
+  const files = (['p', 'pr', 'l', 'lr'] as const).map((k) =>
+    typeof fr[k] === 'string' ? (fr[k] as string) : ''
+  );
+  const holds = Array.isArray(fr.holds)
+    ? fr.holds.filter((t): t is number => typeof t === 'number')
+    : [];
+  const film: SceneFilm | undefined =
+    files.every(Boolean) && Number(fr.duration) > 0 && holds.length >= 2
+      ? {
+          p: abs(files[0]),
+          pr: abs(files[1]),
+          l: abs(files[2]),
+          lr: abs(files[3]),
+          duration: Number(fr.duration),
+          holds,
+        }
+      : undefined;
   const poster =
     typeof r.poster === 'number' && r.poster >= 0 && r.poster < frames.length
       ? Math.round(r.poster)
@@ -81,6 +113,7 @@ export const parseManifest = (raw: unknown, base: string): ScrubManifest | null 
     poster,
     ...(light ? { light } : {}),
     ...(touch ? { touch } : {}),
+    ...(film ? { film } : {}),
   };
 };
 
@@ -164,19 +197,33 @@ export const keyFrames = (n: number, k: number): number[] => {
   return out;
 };
 
-/** Phones: the two key layers on screen — `on` (on top, fading in) over `under` (the previous one, opaque). -1 = none. */
-export interface KeyLayers {
-  on: number;
-  under: number;
-}
+/**
+ * Phone scene, frames (?s=1): how many frames of the portrait set to decode (ImageBitmaps at 540 px height, 0.66 MB
+ * each) by `navigator.deviceMemory` (GB): ≥ 4 or unknown (Safari, Firefox) → 120, 2–3 → 80, less → 54.
+ */
+export const touchFrameCount = (deviceMemory: number | undefined): number => {
+  if (deviceMemory === undefined || !Number.isFinite(deviceMemory) || deviceMemory >= 4) return 120;
+  if (deviceMemory >= 2) return 80;
+  return 54;
+};
+
+/** Phone scene, chapter film (?s=2): playback rate for one chapter of travel. */
+export const FILM_RATE = 1.75;
 
 /**
- * Phones: the key to show for the wanted key `want` (index into the keys; `loaded` by key): the nearest loaded one
- * goes on top and the one shown so far stays right under it while the new one fades in — never more than two layers.
- * The same key or nothing loaded → the very same state object (nothing to touch in the DOM).
+ * Phone scene, chapter film (?s=2): from the film position `pos` to the chapter hold `target` (seconds of the forward
+ * film, `duration` T, `chapters` holds 0…T): play forward (dir 1, the forward file) or back (dir −1, the reversed
+ * file) at FILM_RATE per chapter of travel, faster for a longer jump (up to 3×); within 1/50 s — stay.
  */
-export const keyStep = (s: KeyLayers, want: number, loaded: readonly boolean[]): KeyLayers => {
-  const k = nearestLoaded(Math.min(loaded.length - 1, Math.max(0, want)), loaded);
-  if (k < 0 || k === s.on) return s;
-  return { on: k, under: s.on };
+export const filmMove = (
+  pos: number,
+  target: number,
+  duration: number,
+  chapters: number
+): { dir: -1 | 0 | 1; rate: number } => {
+  const d = target - pos;
+  if (Math.abs(d) < 0.02) return { dir: 0, rate: 0 };
+  const step = duration / Math.max(1, chapters - 1);
+  const k = Math.min(3, Math.max(1, Math.round((Math.abs(d) / step) * 100) / 100));
+  return { dir: d > 0 ? 1 : -1, rate: Math.round(FILM_RATE * k * 1000) / 1000 };
 };
