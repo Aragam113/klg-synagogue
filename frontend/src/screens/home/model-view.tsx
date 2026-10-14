@@ -13,7 +13,6 @@ import {
 } from '@/store/api/content';
 import { useGetDedicationsQuery } from '@/store/api/payments';
 
-import { useLifeMorph } from './life-morph';
 import { blockState, sceneChapters, todayBlock } from './model';
 import { HomeView } from './view';
 
@@ -21,7 +20,6 @@ import { HomeView } from './view';
 export const HomeScreen = () => {
   const { t, lang } = useLang('home');
   const now = useNow();
-  useLifeMorph(lang);
 
   const today = useGetTodayQuery(undefined, { pollingInterval: 30 * 60 * 1000 });
   const events = useGetEventsQuery({ lang, page: 1 });

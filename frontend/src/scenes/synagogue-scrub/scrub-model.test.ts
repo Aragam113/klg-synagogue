@@ -1,10 +1,10 @@
 import {
   blendCached,
-  cacheBudgetMB,
-  cachePlan,
   coverRect,
   frameIndex,
   improvesFrame,
+  keyFrames,
+  keyStep,
   loadOrder,
   nearestLoaded,
   parseManifest,
@@ -143,46 +143,6 @@ describe('parseManifest — portrait phone set', () => {
   });
 });
 
-describe('cacheBudgetMB — decoded-frame memory a phone may spend on the scene', () => {
-  it('navigator.deviceMemory 4 GB and more → 200 MB', () => {
-    expect(cacheBudgetMB(4)).toBe(200);
-    expect(cacheBudgetMB(8)).toBe(200);
-  });
-  it('2 GB → 100 MB, 1 GB and less → 50 MB', () => {
-    expect(cacheBudgetMB(2)).toBe(100);
-    expect(cacheBudgetMB(1)).toBe(50);
-    expect(cacheBudgetMB(0.5)).toBe(50);
-  });
-  it('unknown (Safari, Firefox) → 200 MB (an out-of-memory decode degrades at run time)', () => {
-    expect(cacheBudgetMB(undefined)).toBe(200);
-    expect(cacheBudgetMB(NaN)).toBe(200);
-  });
-});
-
-describe('cachePlan — which frames of the set are decoded within the budget', () => {
-  // 406×720 RGBA = 1 169 280 bytes ≈ 1.115 MB a frame
-  const frame = 406 * 720 * 4;
-  it('162 frames fit 200 MB → every frame (≈181 MB)', () => {
-    const p = cachePlan(162, frame, 200);
-    expect(p.stride).toBe(1);
-    expect(p.frames).toHaveLength(162);
-    expect(Math.round(p.mb)).toBe(181);
-  });
-  it('100 MB → every 2nd frame plus the last one', () => {
-    const p = cachePlan(162, frame, 100);
-    expect(p.stride).toBe(2);
-    expect(p.frames.slice(0, 3)).toEqual([0, 2, 4]);
-    expect(p.frames[p.frames.length - 1]).toBe(161);
-    expect(p.frames).toHaveLength(82);
-    expect(p.mb).toBeLessThanOrEqual(100);
-  });
-  it('50 MB → every 4th', () => {
-    const p = cachePlan(162, frame, 50);
-    expect(p.stride).toBe(4);
-    expect(p.mb).toBeLessThanOrEqual(50);
-  });
-});
-
 describe('loadOrder — the poster first, then ever finer even passes (the scene is usable at any moment)', () => {
   it('9 frames, poster 4: poster, then every 8th, 4th, 2nd, the rest', () => {
     expect(loadOrder([0, 1, 2, 3, 4, 5, 6, 7, 8], 4)).toEqual([4, 0, 8, 2, 6, 1, 3, 5, 7]);
@@ -220,5 +180,46 @@ describe('blendCached — crossfade of neighbouring decoded frames by the fracti
   });
   it('nothing decoded → null', () => {
     expect(blendCached(1, [0, 1], [false, false])).toBeNull();
+  });
+});
+
+describe('keyFrames — телефон: ключевые кадры поровну по всей сцене', () => {
+  it('162 кадра, 24 ключа → 0, 7, 14 … 161 (каждый 7-й, первый и последний включены)', () => {
+    const k = keyFrames(162, 24);
+    expect(k).toHaveLength(24);
+    expect(k[0]).toBe(0);
+    expect(k[1]).toBe(7);
+    expect(k[23]).toBe(161);
+    expect(k.every((f, i) => i === 0 || f > k[i - 1])).toBe(true);
+  });
+  it('ключей больше, чем кадров → все кадры по разу', () => {
+    expect(keyFrames(5, 24)).toEqual([0, 1, 2, 3, 4]);
+  });
+  it('пустой набор → пусто', () => {
+    expect(keyFrames(0, 24)).toEqual([]);
+  });
+});
+
+describe('keyStep — телефон: не больше двух слоёв, новый проявляется поверх прежнего', () => {
+  const all = [true, true, true, true];
+  it('нужный ключ сменился → он сверху, прежний под ним', () => {
+    expect(keyStep({ on: 1, under: 0 }, 2, all)).toEqual({ on: 2, under: 1 });
+  });
+  it('тот же ключ → состояние не меняется (никакой перерисовки)', () => {
+    const s = { on: 2, under: 1 };
+    expect(keyStep(s, 2, all)).toBe(s);
+  });
+  it('нужный ещё не загружен → ближайший загруженный', () => {
+    expect(keyStep({ on: 0, under: -1 }, 2, [true, false, false, true])).toEqual({
+      on: 3,
+      under: 0,
+    });
+  });
+  it('ничего не загружено → состояние не меняется', () => {
+    const s = { on: -1, under: -1 };
+    expect(keyStep(s, 1, [false, false])).toBe(s);
+  });
+  it('первый показ → снизу ничего', () => {
+    expect(keyStep({ on: -1, under: -1 }, 0, all)).toEqual({ on: 0, under: -1 });
   });
 });

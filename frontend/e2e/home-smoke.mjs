@@ -192,7 +192,7 @@ try {
   // 390 touch, the scene frames slowed down: the line waits while the cache can make it before the ceiling, and lets
   // the site in without a cache that cannot (it goes on loading in the background).
   for (const [delay, wait] of [
-    [80, true],
+    [400, true], // 24 key frames, 4 at a time: ~2.4 s — worth waiting for
     [1500, false],
   ]) {
     const page = await browser.newPage();
@@ -259,7 +259,7 @@ try {
   // 390 touch: the scene scrubs by native scroll too, no horizontal scroll.
   {
     const { page, errors } = await open('/?lang=ru', 390);
-    check(!!(await page.$('.scrub--live canvas[data-frames]')), '390: live scene on touch (decoded frames on a canvas)');
+    check(!!(await page.$('.scrub--live .scrub__keys[data-frames]')), '390: live scene on touch (decoded key frames as <img> layers)');
     await sleep(1500);
     await checkEyebrow(page, '390 ru');
     await walk(page, 'home_390');

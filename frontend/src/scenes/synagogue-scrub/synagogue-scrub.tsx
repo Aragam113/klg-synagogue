@@ -7,14 +7,15 @@ import { motionAllowed, touchMode } from '@/ui/motion/engine';
 import { useScrollProgress } from '@/ui/motion/hooks';
 import { approach } from '@/ui/motion/touch-scroll';
 
-import { type Drawable, type FrameCache, startFrameCache } from './frame-cache';
+import { type FrameCache, startFrameCache } from './frame-cache';
 import {
   type Blend,
   blendCached,
-  cacheBudgetMB,
-  cachePlan,
   coverRect,
   frameIndex,
+  keyFrames,
+  type KeyLayers,
+  keyStep,
   loadOrder,
   parseManifest,
   type ScrubManifest,
@@ -46,45 +47,42 @@ const DEFAULT_MANIFEST = assetUrl('/media/scrub/manifest.json');
 const pad = (n: number) => String(n).padStart(2, '0');
 /** Blend alpha is drawn in steps of 1/ALPHA_STEPS: a tiny `--p` change does not repaint the canvas. */
 const ALPHA_STEPS = 32;
-/** Touch, landscape: the 16:9 light set is decoded at this width (≈720 px on the long side). */
-const LANDSCAPE_W = 720;
 /** Touch: below this width/height the portrait set is used. */
 const PORTRAIT_MAX = 0.9;
-/** The poster goes (phones) once every READY_STEP-th frame of the plan is decoded. */
+/** Touch: key frames of the set shown as crossfaded `<img>` layers (≈ one per 0.2 screen of scroll). */
+const TOUCH_KEYS = 24;
+/** Touch: the poster goes once every READY_STEP-th key is decoded. */
 const READY_STEP = 8;
 /** Desktop: the preloader waits for this many frames (the start of the scene). */
 const DESK_CRITICAL = 24;
-/** The scroll stands still this long → the picture settles on a whole frame (SETTLE_K of the gap per 60 Hz frame). */
+/** Desktop: the scroll stands still this long → the picture settles on a whole frame (SETTLE_K of the gap per 60 Hz frame). */
 const REST_MS = 120;
 const SETTLE_K = 0.16;
-/** The canvas backing store is at most this × the frame height (upscaling further only costs fill rate). */
+/** Desktop: the canvas backing store is at most this × the frame height (upscaling further only costs fill rate). */
 const BACKING_MAX = 1.5;
 
 type SetKind = 'touch' | 'light' | 'full';
 const portraitNow = () => window.innerWidth / Math.max(1, window.innerHeight) < PORTRAIT_MAX;
-const sizeOf = (d: Drawable) =>
-  'naturalWidth' in d ? { w: d.naturalWidth, h: d.naturalHeight } : { w: d.width, h: d.height };
-const deviceMemory = (): number | undefined =>
-  (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+const NO_LAYERS: KeyLayers = { on: -1, under: -1 };
 
 /**
- * Pinned scroll scene: a sticky 100svh canvas inside a (chapters + 1) × 100svh runway; the picture follows the scroll
- * progress `--p` (lerped on touch by the engine): position x = p·(N−1) over the frame set.
- * Every frame is drawn from a DECODED cache (frame-cache.ts) — no video seeks, no decode on the main thread — and the
- * two cached frames around x are crossfaded by the fraction (blendCached); the canvas repaints only when
- * (a, b, alpha/32) changes.
- * Touch, portrait: the portrait set `manifest.touch` (406×720, 162 frames ≈ every 4th of the film) decoded into
- * ImageBitmaps while the preloader runs; the plan fits the device memory (cacheBudgetMB 200 / 100 / 50 MB → every
- * frame / every 2nd / every 4th); a decode that fails for lack of memory stops the cache with what is in.
- * Touch, landscape: the light 16:9 set decoded at 720 px wide. Desktop: the full 1280px set as decoded `<img>`.
- * Download order: the poster, then ever finer even passes (loadOrder) — the scene is usable at any moment; on phones
- * the poster covers it until every 8th frame is in. Progress goes to the preloader as `scene` (load-gate).
+ * Pinned scroll scene: a sticky 100svh picture inside a (chapters + 1) × 100svh runway; the picture follows the scroll
+ * progress `--p` (lerped on touch by the engine).
+ * Touch (phones, tablets): TOUCH_KEYS key frames of the portrait set `manifest.touch` (406×720; landscape — the light
+ * 16:9 set) as decoded `<img>` layers; the key for `--p` goes on top and fades in by a CSS animation (opacity only,
+ * run by the compositor) over the one shown before — never more than two layers, nothing painted per scroll frame,
+ * no canvas, ~28 MB decoded. The per-frame canvas scrub was not reliable on real phones: the main thread was ~90% busy
+ * during flings (CPU ×6), fast flings crossfaded frames far apart into a double image, 181 MB of decoded frames.
+ * Desktop: the full 1280px set as decoded `<img>` drawn on a canvas, position x = p·(N−1), the two frames around x
+ * crossfaded by the fraction (blendCached), settling on a whole frame at rest.
+ * Download order: the poster, then ever finer even passes (loadOrder) — the scene is usable at any moment; on touch
+ * the poster covers it until every READY_STEP-th key is in. Progress goes to the preloader as `scene` (load-gate).
  * The engine pulls the page to a chapter stop once the scroll rests inside (`snap`, touch). Chapters enter/leave by
- * `--p` in CSS. Reduced motion: static poster frame + chapters as a swipe ribbon.
- * Canvas: `data-frame` (frame on screen), `data-pos` (shown position a + alpha·(b − a)), `data-frames`, `data-pair`,
- * `data-blend`, `data-draws`. Root: `data-media="bitmaps|images"`, `data-set="touch|light|full"`,
- * `data-pass="coarse"` once it scrubs on a phone, `data-loaded="all"` once the plan is in, `data-cache="<in>/<plan>"`,
- * `data-stride`, `data-mb` (decoded MB of the plan), `data-cache-stop="memory"`.
+ * `--p` in CSS on desktop, by `data-current` + CSS transitions on touch. Reduced motion: static poster + ribbon.
+ * Touch keys: container `.scrub__keys` with `data-frame` (frame on top), `data-under`, `data-frames`,
+ * `data-switches`; each `<img>` `data-layer="on|under"`. Desktop canvas: `data-frame`, `data-pos`, `data-frames`,
+ * `data-pair`, `data-blend`, `data-draws`. Root: `data-media="keys|images"`, `data-set="touch|light|full"`,
+ * `data-pass="coarse"` once it plays on touch, `data-loaded="all"`, `data-cache="<in>/<plan>"`.
  */
 export const SynagogueScrub = ({
   chapters,
@@ -95,15 +93,17 @@ export const SynagogueScrub = ({
 }: SynagogueScrubProps) => {
   const root = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const keysEl = useRef<HTMLDivElement>(null);
   const cache = useRef<FrameCache | null>(null);
   const plan = useRef<number[]>([]);
-  const gap = useRef<number | undefined>(undefined);
   const count = useRef(0);
   const progress = useRef(0);
   const drawnKey = useRef('');
   const draws = useRef(0);
+  const layers = useRef<KeyLayers>(NO_LAYERS);
+  const switches = useRef(0);
   const box = useRef({ w: 0, h: 0 });
-  /** position on screen (frames of the set): follows the scroll, settles on one whole frame at rest */
+  /** desktop: position on screen (frames of the set): follows the scroll, settles on one whole frame at rest */
   const shownX = useRef(-1);
   const movedAt = useRef(0);
   const stepAt = useRef(0);
@@ -115,19 +115,43 @@ export const SynagogueScrub = ({
   const [active, setActive] = useState(0);
   const [touch, setTouch] = useState(false);
   const [portrait, setPortrait] = useState(true);
-  /** phones: every READY_STEP-th frame of the plan is decoded — the poster may go */
+  /** touch: every READY_STEP-th key is decoded — the poster may go */
   const [ready, setReady] = useState(false);
   const readyRef = useRef(false);
   const [all, setAll] = useState(false);
   const n = chapters.length;
   const phone = motion && touch;
 
+  /** Touch: the key for the scroll on top (fading in), the one shown so far right under it, the rest hidden. */
+  const showKey = useCallback(() => {
+    const fc = cache.current;
+    const holder = keysEl.current;
+    const list = plan.current;
+    if (!fc || !holder || !list.length) return;
+    const was = layers.current;
+    const next = keyStep(was, frameIndex(progress.current, list.length), fc.loaded);
+    if (next === was) return;
+    const el = (j: number) => (j >= 0 ? fc.items[j] : null);
+    if (was.under >= 0 && was.under !== next.under && was.under !== next.on) {
+      const gone = el(was.under);
+      if (gone) delete gone.dataset.layer;
+    }
+    const under = el(next.under);
+    if (under) under.dataset.layer = 'under';
+    const on = el(next.on);
+    if (on) on.dataset.layer = 'on';
+    layers.current = next;
+    holder.dataset.frame = String(list[next.on]);
+    holder.dataset.under = next.under >= 0 ? String(list[next.under]) : '';
+    holder.dataset.switches = String(++switches.current);
+  }, []);
+
   const paint = useCallback((x: number) => {
     const c = canvas.current;
     const fc = cache.current;
     const list = plan.current;
     if (!c || !fc || !list.length) return;
-    let bl: Blend | null = blendCached(x, list, fc.loaded, gap.current);
+    let bl: Blend | null = blendCached(x, list, fc.loaded);
     if (!bl) return;
     if (bl.alpha > 0) {
       const q = Math.round(bl.alpha * ALPHA_STEPS) / ALPHA_STEPS;
@@ -141,12 +165,11 @@ export const SynagogueScrub = ({
     const ia = fc.items[list.indexOf(bl.a)];
     const ib = fc.items[list.indexOf(bl.b)];
     if (!ia || !ib) return;
-    const src = sizeOf(ia);
     const { w: cw, h: ch } = box.current;
-    if (!cw || !ch || !src.h) return;
+    if (!cw || !ch || !ia.naturalHeight) return;
     const scale = Math.max(
       1,
-      Math.min(Math.min(2, window.devicePixelRatio || 1), (BACKING_MAX * src.h) / ch)
+      Math.min(Math.min(2, window.devicePixelRatio || 1), (BACKING_MAX * ia.naturalHeight) / ch)
     );
     const w = Math.round(cw * scale);
     const h = Math.round(ch * scale);
@@ -159,7 +182,7 @@ export const SynagogueScrub = ({
     }
     const ctx = c.getContext('2d', { alpha: false });
     if (!ctx) return;
-    const r = coverRect(src.w, src.h, w, h);
+    const r = coverRect(ia.naturalWidth, ia.naturalHeight, w, h);
     ctx.globalAlpha = 1;
     ctx.drawImage(ia, r.x, r.y, r.w, r.h);
     if (bl.alpha > 0) {
@@ -176,19 +199,22 @@ export const SynagogueScrub = ({
   }, []);
 
   /**
-   * The position to paint: exactly the scroll's while it moves (the crossfade gives the in-between frames); once the
-   * scroll rests REST_MS it eases onto the nearest whole decoded frame — a crossfade standing still reads as a
-   * double image. Its own rAF runs only for that settle.
+   * Touch: the key layers. Desktop: the position to paint — exactly the scroll's while it moves (the crossfade gives
+   * the in-between frames); once the scroll rests REST_MS it eases onto the nearest whole frame (own rAF only then).
    */
   const draw = useCallback(() => {
     const fc = cache.current;
     if (!fc || !plan.current.length) return;
+    if (keysEl.current) {
+      showKey();
+      return;
+    }
     const now = performance.now();
     const xt = Math.min(1, Math.max(0, progress.current)) * (count.current - 1);
     const resting = now - movedAt.current > REST_MS;
     let target = xt;
     if (resting) {
-      const bl = blendCached(xt, plan.current, fc.loaded, gap.current);
+      const bl = blendCached(xt, plan.current, fc.loaded);
       if (bl) target = bl.alpha < 0.5 ? bl.a : bl.b;
     }
     const dt = Math.min(100, now - stepAt.current);
@@ -199,7 +225,7 @@ export const SynagogueScrub = ({
     paint(shownX.current);
     cancelAnimationFrame(settleRaf.current);
     if (!resting || shownX.current !== target) settleRaf.current = requestAnimationFrame(draw);
-  }, [paint]);
+  }, [paint, showKey]);
 
   useScrollProgress(root, {
     mode: 'pin',
@@ -232,7 +258,7 @@ export const SynagogueScrub = ({
     };
   }, []);
 
-  // The canvas box comes from a ResizeObserver — never read in the per-frame draw (no forced layout after --p writes).
+  // Desktop: the canvas box comes from a ResizeObserver — never read in the per-frame draw.
   useEffect(() => {
     const c = canvas.current;
     if (!c || typeof ResizeObserver === 'undefined') return;
@@ -243,7 +269,7 @@ export const SynagogueScrub = ({
     });
     ro.observe(c);
     return () => ro.disconnect();
-  }, [m, motion, draw]);
+  }, [m, motion, phone, draw]);
 
   // The manifest: the main one, then (touch) the portrait or the landscape set.
   useEffect(() => {
@@ -274,7 +300,7 @@ export const SynagogueScrub = ({
     };
   }, [manifestUrl, phone, portrait]);
 
-  // The frame cache: the plan within the memory budget (phones), the load order, progress to the preloader.
+  // The frames: touch — the key frames as <img> layers; desktop — every frame for the canvas.
   useEffect(() => {
     if (!m) return;
     if (!motion) {
@@ -282,58 +308,52 @@ export const SynagogueScrub = ({
       return;
     }
     const N = m.frames.length;
-    const bitmaps = kind !== 'full';
-    const resize =
-      kind === 'light' && m.width > LANDSCAPE_W
-        ? { w: LANDSCAPE_W, h: Math.round((LANDSCAPE_W * m.height) / m.width) }
-        : undefined;
-    const fw = resize?.w ?? m.width;
-    const fh = resize?.h ?? m.height;
-    const p = bitmaps
-      ? cachePlan(N, fw * fh * 4, cacheBudgetMB(deviceMemory()))
-      : { stride: 1, frames: Array.from({ length: N }, (_, i) => i), mb: 0 };
-    plan.current = p.frames;
+    const keys = phone;
+    const frames = keys ? keyFrames(N, TOUCH_KEYS) : Array.from({ length: N }, (_, i) => i);
+    plan.current = frames;
     count.current = N;
-    // phones: the pass before the last one (2 plan steps apart) crossfades too while the rest loads
-    gap.current = bitmaps ? 2 * p.stride : undefined;
     drawnKey.current = '';
+    layers.current = NO_LAYERS;
     readyRef.current = false;
     setReady(false);
     setAll(false);
     const el = root.current;
-    const critical = bitmaps ? p.frames.length : Math.min(N, DESK_CRITICAL);
-    const firstPass = new Set(p.frames.filter((_, j) => j % READY_STEP === 0));
+    const holder = keysEl.current;
+    const critical = keys ? frames.length : Math.min(N, DESK_CRITICAL);
+    const firstPass = new Set(frames.filter((_, j) => j % READY_STEP === 0));
     let firstLeft = firstPass.size;
-    if (el) {
-      el.dataset.stride = String(p.stride);
-      el.dataset.mb = p.mb.toFixed(0);
-      el.dataset.cache = `0/${p.frames.length}`;
-      delete el.dataset.cacheStop;
-    }
+    if (el) el.dataset.cache = `0/${frames.length}`;
     reportLoad('scene', 0);
+    const start = keys
+      ? frames[frameIndex(m.poster / Math.max(1, N - 1), frames.length)]
+      : frameIndex(progress.current, N);
     const fc = startFrameCache({
       urls: m.frames,
-      plan: p.frames,
-      order: loadOrder(p.frames, bitmaps ? m.poster : frameIndex(progress.current, N)),
-      resize,
-      bitmaps,
-      workers: 6,
-      onFrame: (f) => {
+      plan: frames,
+      order: loadOrder(frames, start),
+      workers: keys ? 4 : 6,
+      onFrame: (f, slot) => {
         const done = fc.settled();
-        if (el) el.dataset.cache = `${done}/${p.frames.length}`;
+        if (el) el.dataset.cache = `${done}/${frames.length}`;
         reportLoad('scene', done / critical);
+        const img = fc.items[slot];
+        if (holder && img) {
+          img.className = 'scrub__key';
+          // decoded already: painted with the very frame it shows up in, never a blank or partial layer
+          img.decoding = 'sync';
+          img.alt = '';
+          img.dataset.slot = String(slot);
+          holder.appendChild(img);
+        }
         if (firstPass.has(f)) firstLeft--;
-        if (!readyRef.current && (firstLeft <= 0 || !bitmaps)) {
+        if (!readyRef.current && (firstLeft <= 0 || !keys)) {
           readyRef.current = true;
           setReady(true);
         }
         draw();
       },
-      onEnd: (why) => {
-        if (el) {
-          el.dataset.cache = `${fc.settled()}/${p.frames.length}`;
-          if (why === 'memory') el.dataset.cacheStop = 'memory';
-        }
+      onEnd: () => {
+        if (el) el.dataset.cache = `${fc.settled()}/${frames.length}`;
         reportLoad('scene', 1);
         readyRef.current = true;
         setReady(true);
@@ -344,11 +364,13 @@ export const SynagogueScrub = ({
     cache.current = fc;
     return () => {
       fc.cancel();
+      holder?.replaceChildren();
       cancelAnimationFrame(settleRaf.current);
       shownX.current = -1;
+      layers.current = NO_LAYERS;
       if (cache.current === fc) cache.current = null;
     };
-  }, [m, kind, motion, draw]);
+  }, [m, kind, motion, phone, draw]);
 
   // Touch / reduced motion: the chapters are a swipe ribbon (scroll-snap) and the dots follow it.
   const ribbon = useRef<HTMLOListElement>(null);
@@ -371,7 +393,7 @@ export const SynagogueScrub = ({
       className={`scrub ${motion ? 'scrub--live' : 'scrub--static'}`}
       style={{ ['--chapters' as string]: n }}
       data-active={active}
-      data-media={motion && m ? (kind === 'full' ? 'images' : 'bitmaps') : undefined}
+      data-media={motion && m ? (phone ? 'keys' : 'images') : undefined}
       data-set={motion && m ? kind : undefined}
       data-pass={phone && ready ? 'coarse' : undefined}
       data-loaded={all ? 'all' : undefined}
@@ -380,7 +402,9 @@ export const SynagogueScrub = ({
     >
       <div className="scrub__sticky">
         <div className="scrub__media">
-          {motion && m ? (
+          {phone && m ? (
+            <div ref={keysEl} className="scrub__keys" data-frames={m.frames.length} aria-hidden />
+          ) : motion && m ? (
             <canvas
               ref={canvas}
               className="scrub__canvas"

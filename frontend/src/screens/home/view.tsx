@@ -20,6 +20,7 @@ import { Button, Container, Eyebrow, Link, Section, Text, Title } from '@/ui/kit
 import { SubscribeForm } from '@/ui/layout/slots/subscribe-form';
 import { HandStroke, Marquee, Pinned, Reveal } from '@/ui/motion';
 
+import { LifePhotos } from './life-photos';
 import {
   COMMUNITY,
   LEDGER,
@@ -328,19 +329,7 @@ export const HomeView = ({
                     className="home-arch"
                   />
                   <div className="home-life__frame">
-                    <div className="home-life__photos">
-                      {COMMUNITY.map((c, i) => (
-                        <img
-                          key={c.id}
-                          className="home-life__photo"
-                          src={PHOTO_TALL[c.photo] ?? PHOTOS[c.photo]?.src}
-                          alt={i === active ? (PHOTOS[c.photo]?.alt[lang as 'ru'] ?? '') : ''}
-                          loading="lazy"
-                          data-current={i === active}
-                          style={{ ['--i' as string]: i }}
-                        />
-                      ))}
-                    </div>
+                    <LifePhotos active={active} alt={p?.alt[lang as 'ru'] ?? ''} />
                     <span className="home-life__shade" aria-hidden />
                   </div>
                 </>
