@@ -1,0 +1,82 @@
+/*
+ * Scroll choreography on CSS scroll timelines (html[data-sda='on'] — set by the motion engine where
+ * `animation-timeline: view()` is supported: Chrome 115+, Safari 26+). The same values the `--p` rules give
+ * (site.css, home.css, scrub.css, sections.css), but run by the browser from the scroll position — on the compositor
+ * for transform/opacity — instead of a `--p` written every frame on a section, which re-styled its whole subtree each
+ * frame. Without support the engine keeps writing `--p` and the `--p` rules apply as before.
+ *   --sec  a Section's view timeline; range `cover` = the engine's 'through' progress (0: top enters at the bottom,
+ *          1: bottom leaves at the top).
+ *   --pin  a pinned block (`<Pinned>`, the scroll scene); range `contain` = the engine's 'pin' progress over the
+ *          sticky runway.
+ * `animation` resets `animation-timeline`, so every rule sets the timeline after it.
+ */
+html[data-sda='on'][data-motion='on'] .sec { view-timeline: --sec block; }
+html[data-sda='on'][data-motion='on'] :is(.pinned, .scrub--live) { view-timeline: --pin block; }
+html[data-sda='on'][data-motion='on'] .sx-timeline { view-timeline: --sxt block; }
+
+/* ---- sections ('through') ---- */
+html[data-sda='on'][data-motion='on'] .hexpattern { animation: sda-hex linear both; animation-timeline: --sec; }
+@keyframes sda-hex { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(0, var(--par, -12%), 0); } }
+html[data-sda='on'][data-motion='on'] .rosette--spin { animation: sda-spin linear both; animation-timeline: --sec; }
+@keyframes sda-spin { from { transform: rotate(0deg); } to { transform: rotate(var(--spin, 30deg)); } }
+html[data-sda='on'][data-motion='on'] .gf-pos { animation: sda-gf linear both; animation-timeline: --sec; }
+@keyframes sda-gf {
+  from { transform: translate(calc(0.5 * var(--dx)), calc(0.5 * var(--dy))); }
+  to { transform: translate(calc(-0.5 * var(--dx)), calc(-0.5 * var(--dy))); } }
+html[data-sda='on'][data-motion='on'] .arch img { animation: sda-arch linear both; animation-timeline: --sec; }
+html[data-sda='on'][data-motion='on'] .pinned .arch img { animation-timeline: --pin; animation-range: contain 0% contain 100%; }
+@keyframes sda-arch { from { transform: scale(1.12) translateY(4%); } to { transform: scale(1.12) translateY(-4%); } }
+html[data-sda='on'][data-motion='on'] .stroke--progress path {
+  animation: sda-stroke linear both; animation-timeline: --sec;
+  animation-range: cover calc(var(--from) * 100%) cover calc((var(--from) + 1 / var(--k)) * 100%); }
+@keyframes sda-stroke { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+/* home */
+html[data-sda='on'][data-motion='on'] .home-line { animation: sda-line linear both; animation-timeline: --sec; }
+@keyframes sda-line { 0%, 40% { transform: scaleX(0); } 70%, 100% { transform: scaleX(1); } }
+html[data-sda='on'][data-motion='on'] .home-threshold__note { animation: sda-note linear both; animation-timeline: --sec; }
+@keyframes sda-note { 0%, 40% { opacity: 0; } 60%, 100% { opacity: 1; } }
+html[data-sda='on'][data-motion='on'] .home-vcard__media img { animation: sda-vcard linear both; animation-timeline: --sec; }
+@keyframes sda-vcard { from { transform: scale(1.12) translateY(3%); } to { transform: scale(1.12) translateY(-3%); } }
+html[data-sda='on'][data-motion='on'] .home-dawn__note { animation: sda-dawn linear both; animation-timeline: --sec; }
+@keyframes sda-dawn { 0%, 28.75% { opacity: 0.15; } 50%, 100% { opacity: 1; } }
+/* visit / history pages */
+html[data-sda='on'][data-motion='on'] .sx-hero__media { animation: sda-sxhero linear both; animation-timeline: --sec; }
+@keyframes sda-sxhero { from { transform: translateY(1.5rem); } to { transform: translateY(-1.5rem); } }
+html[data-sda='on'][data-motion='on'] .sx-timeline::before { animation: sda-sxt linear both; animation-timeline: --sxt; }
+@keyframes sda-sxt { 0% { transform: scaleY(0); } 62.5%, 100% { transform: scaleY(1); } }
+
+/* ---- pinned blocks ('pin') ---- */
+html[data-sda='on'][data-motion='on'] :is(.pinned__progress, .scrub__progress)::after {
+  animation: sda-bar linear both; animation-timeline: --pin; animation-range: contain 0% contain 100%; }
+@keyframes sda-bar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+/* chapter i of n: local progress 0..1 over contain i/n … (i+1)/n; in over the first .2, out after .72 (scene .78) */
+html[data-sda='on'][data-motion='on'] .pinned__chapter {
+  animation: sda-chapter linear both; animation-timeline: --pin;
+  animation-range: contain calc(var(--i) / var(--chapters) * 100%) contain calc((var(--i) + 1) / var(--chapters) * 100%); }
+html[data-sda='on'][data-motion='on'] .pinned__chapter:first-child { animation-name: sda-chapter-first; }
+html[data-sda='on'][data-motion='on'] .pinned__chapter:last-child { animation-name: sda-chapter-last; }
+@keyframes sda-chapter {
+  0% { opacity: 0; transform: translateY(3.143rem); } 20%, 72% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-3.143rem); } }
+@keyframes sda-chapter-first { 0%, 72% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-3.143rem); } }
+@keyframes sda-chapter-last { 0% { opacity: 0; transform: translateY(3.143rem); } 20%, 100% { opacity: 1; transform: none; } }
+html[data-sda='on'][data-motion='on'] .scrub--live .scrub__chapter {
+  animation: sda-scene-chapter linear both; animation-timeline: --pin;
+  animation-range: contain calc(var(--i) / var(--chapters) * 100%) contain calc((var(--i) + 1) / var(--chapters) * 100%); }
+html[data-sda='on'][data-motion='on'] .scrub--live .scrub__chapter:first-child { animation-name: sda-scene-chapter-first; }
+html[data-sda='on'][data-motion='on'] .scrub--live .scrub__chapter:last-child { animation-name: sda-scene-chapter-last; }
+@keyframes sda-scene-chapter {
+  0% { opacity: 0; transform: translateY(3.143rem); } 20%, 78% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-3.143rem); } }
+@keyframes sda-scene-chapter-first { 0%, 78% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-3.143rem); } }
+@keyframes sda-scene-chapter-last { 0% { opacity: 0; transform: translateY(3.143rem); } 20%, 100% { opacity: 1; transform: none; } }
+/* desktop scene: the slow zoom-out of the picture */
+html[data-sda='on'][data-motion='on'] .scrub--live .scrub__media {
+  animation: sda-scene-zoom linear both; animation-timeline: --pin; animation-range: contain 0% contain 100%; }
+html[data-sda='on'][data-motion='on'][data-touch] .scrub--live .scrub__media { animation: none; }
+@keyframes sda-scene-zoom { from { transform: scale(1.08); } to { transform: scale(1); } }
+
+/* ---- idle loops run only while their section is on screen (engine registerOnscreen → data-onscreen) ---- */
+html[data-anim='on'] .sec:not([data-onscreen]) :is(.gf-w, .marquee__track, .home-dawn__spin, .menorah__flame) {
+  animation-play-state: paused; }
+html[data-anim='on'] .sec:not([data-onscreen]) .home-cue i::after { animation-play-state: paused; }

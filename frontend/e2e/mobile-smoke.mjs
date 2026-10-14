@@ -7,16 +7,18 @@
  * Checks: side margins ≥ 16px in every home section at 360; the logo does not overlap the header icons;
  * the mobile menu is above the cookie banner; touch targets ≥ 44px (header icons, burger, menu languages,
  * close, checkbox label); the marquee moves; Reveal fires on scroll; «Жизнь общины» is pinned on touch too:
- * full-screen chapter photos, all decoded before the section, crossfade on a chapter change (≤ 2 layers, never an
- * undecoded one, also on a fast pass), the big title over chapter 1 only, chapters change by scroll down and up,
- * stories progress, nothing overlaps at 360/390/414 and he (life_*); reduced motion — a static column with a full-width photo per chapter;
+ * it enters as a big arch under the big title and opens into the full-screen photo over the first 30% of chapter 1
+ * (plates opened by transforms, forward and back by scroll position), then chapters change by scroll down and up, the
+ * photo follows (≤ 2 photo layers, none undecoded), stories progress, nothing overlaps at 360/390/414 and he (morph_*);
+ * reduced motion — a static column with a full-width photo per chapter;
  * the scene credit is one short line; with reduced motion nothing moves.
  * On touch the synagogue scene scrubs by native scroll (frame at p≈0.1 ≠ p≈0.9 and back,
  * sticky 100svh), the Dawn rosette turns by itself (two marks 3 s apart) and with scroll, the hexagram
  * background parallaxes — at 390×844 and 360×740; shots e2e/shots/g12_*.
- * Touch path (390×844): no Lenis, sticky in fixed px (the address bar does not move it), 24 key frames of the portrait
- * set as decoded <img> (no canvas), ≤ 2 layers while moving, one whole frame at rest; a 1 GB phone — the same keys,
- * landscape → the light 16:9 set;
+ * Touch path (390×844): no Lenis, sticky in fixed px (the address bar does not move it). Scene as frames (?s=1): 120
+ * frames of the portrait set decoded into bitmaps, crossfaded neighbours while moving, one whole frame at rest; a 1 GB
+ * phone — 54 frames, landscape → the light 16:9 set. Scene as the chapter film (default): a chapter plays the film to
+ * its hold, back up — the reversed file, it stops on the hold; landscape → the landscape file;
  * auto-settle — only a rest between two chapters glides, along the movement, into the next/previous chapter
  * (m5_scene_snap_before/after), a touch cancels the glide, nothing is pulled at the entry/exit or outside the scene.
  * Desktop keeps the full set.
@@ -261,13 +263,13 @@ try {
     await page.close();
   }
 
-  // ---- 4a. «Жизнь общины» on a phone: pinned chapters (touch path); full-screen chapter photos, all decoded before
-  //      the section, crossfading by an opacity animation on a chapter change — at most two photo layers rendered,
-  //      never one that is not decoded; the big title only over chapter 1. 390×844 — the sequence (life_390_*),
-  //      360×740, 414×896, he (life_{360,he}_*).
+  // ---- 4a. «Жизнь общины» on a phone: pinned chapters (touch path); the section enters as a big arch that opens into
+  //      the full-screen photo over the first 30% of chapter 1 (plates of the section colour opened by transforms on the
+  //      scroll timeline — no clip-path; back the same way); never more than two photo layers, never an undecoded one. 390×844 — the
+  //      sequence (morph_390_p00..p30, _ch2..4, _back_*), 360×740, 414×896, he (morph_{360,he}_*).
   /** Chapter stops of the auto-settle (touch-scroll chapterStops for 4): entry, 1.45/4, 2.45/4, end. */
   const STOPS = [0, 1.45 / 4, 2.45 / 4, 1];
-  /** Inside chapter 1. */
+  /** Chapter 1 once the arch has opened (pn 0.5). */
   const CH1 = 0.5 / 4;
   const over = (a, b) => a && b && a.t < b.b - 1 && b.t < a.b - 1 && a.l < b.r - 1 && b.l < a.r - 1;
   const lifeRun = async (w, h, lang, { shots = {}, deep = false } = {}) => {
@@ -286,7 +288,7 @@ try {
       `${tag}: pinned runway in fixed px (--vh-fix × (4+1)), one layout, no swipe ribbon`, JSON.stringify(geo));
     const runway = geo.h - h;
     /** Scroll to a share of the runway and read the state; `hold` keeps a finger down (a synthetic touchstart) so the
-     *  auto-settle leaves a passing state where it is. */
+     *  auto-settle leaves a passing state (the morph, the opened chapter 1) where it is. */
     const at = async (frac, { hold = false } = {}) => {
       if (hold) await page.evaluate(() => window.dispatchEvent(new Event('touchstart')));
       await page.evaluate((y) => window.scrollTo(0, y), Math.round(geo.top + runway * frac));
@@ -317,50 +319,82 @@ try {
           ? [...cur.querySelectorAll('.home-chapter__n, h3, p, .btn')]
             .filter((e) => getComputedStyle(e).display !== 'none' && eop(e) > 0.5).map(box)
           : [];
-        const photos = [...root.querySelectorAll('.home-life__photo')];
-        const shown = photos.map((p) => getComputedStyle(p).visibility === 'visible' && +getComputedStyle(p).opacity > 0.02);
-        const top = photos.findIndex((p) => p.dataset.layer === 'on');
+        const imgs = [...root.querySelectorAll('.home-life__photo')];
+        const photos = imgs.map((p) => +getComputedStyle(p).opacity);
+        const shownPhotos = imgs.filter((p) => getComputedStyle(p).visibility === 'visible' && getComputedStyle(p).display !== 'none' && +getComputedStyle(p).opacity > 0.02);
+        const topIx = photos.reduce((acc, o, k) => (o > 0.95 ? k : acc), -1);
         const segs = [...root.querySelectorAll('.home-life__segments > span')].map((s) =>
           Math.round(new DOMMatrix(getComputedStyle(s, '::after').transform).a * 100) / 100);
         const title = root.querySelector('.home-head .title');
-        const hit = (x, y) => !!document.elementFromPoint(x, y)?.closest('.home-life__frame');
+        // the arch the photo is seen through, from the same inputs as the CSS: the scroll → m, the measured insets
+        const run = root.offsetHeight - innerHeight;
+        const p = run > 0 ? Math.min(1, Math.max(0, -root.getBoundingClientRect().top / run)) : 0;
+        const m = Math.min(1, Math.max(0, (p * 4) / 0.3));
+        const um = 1 - m;
+        const lt = parseFloat(stickyEl.style.getPropertyValue('--life-top'));
+        const lb = parseFloat(stickyEl.style.getPropertyValue('--life-bottom'));
+        const W = innerWidth;
+        const H = sticky.height;
+        const arch = { t: Math.round(um * um * lt), b: Math.round(H - um * lb), l: Math.round(um * 16), r: Math.round(W - um * 16) };
+        // the plates are real: in the side field next to the arch a plate covers the photo at the entry, none when opened
+        const plates = [...root.querySelectorAll('.home-life__plate')].map((e) => e.getBoundingClientRect());
+        const hit = (x, y) => !plates.some((b) => b.width > 0.5 && b.height > 0.5 && x >= b.left && x <= b.right && y >= b.top && y <= b.bottom);
+        const top = root.querySelector('.home-life__plate--top');
+        const sy = top ? new DOMMatrix(getComputedStyle(top).transform).d : 1;
         return {
           active: root.dataset.active,
           op: cur ? +getComputedStyle(cur).opacity : 0,
           stickyTop: Math.round(sticky.top),
           stickyH: Math.round(sticky.height),
-          rendered: shown.filter(Boolean).length,
-          undecodedShown: photos.filter((p, i) => shown[i] && (!('ready' in p.dataset) || !p.complete || !p.naturalWidth)).length,
-          decoded: photos.filter((p) => 'ready' in p.dataset && p.naturalWidth > 0).length,
-          topOp: top >= 0 ? +getComputedStyle(photos[top]).opacity : 0,
-          full: hit(4, 4) && hit(innerWidth - 4, sticky.height - 4) && hit(4, Math.round(sticky.height / 2)),
+          m: Math.round(m * 100) / 100,
+          lt,
+          lb,
+          arch,
           clip: getComputedStyle(root.querySelector('.home-life__frame')).clipPath,
+          sy: Math.round(sy * 100) / 100,
+          layers: shownPhotos.length,
+          undecoded: shownPhotos.filter((p) => !('ready' in p.dataset) || !p.naturalWidth).length,
+          sideHit: hit(6, Math.round((arch.t + arch.b) / 2)),
+          cornerHit: hit(6, 4),
           head: [root.querySelector('.home-head .eyebrow'), title, root.querySelector('.pinned__counter')]
             .filter((e) => e && getComputedStyle(e).display !== 'none' && eop(e) > 0.5).map(box),
           titleOp: Math.round(eop(title) * 100) / 100,
+          titleBox: box(title),
+          segOp: +getComputedStyle(root.querySelector('.home-life__segments')).opacity,
+          shade: +getComputedStyle(root.querySelector('.home-life__shade')).opacity,
           oldArch: getComputedStyle(root.querySelector('.home-arch')).display,
-          src: top >= 0 ? photos[top].currentSrc : '',
-          top,
+          src: imgs[Math.max(0, topIx)]?.getAttribute('src') ?? '',
+          top: topIx,
           segs,
           parts,
           noHScroll: document.documentElement.scrollWidth <= innerWidth,
         };
       });
-    const snap = (name) => (name ? page.screenshot({ path: join(SHOTS, `life_${name}.png`) }) : undefined);
-    /** Text and head apart, inside the 16px fields, the screen pinned. */
+    const snap = (name) => (name ? page.screenshot({ path: join(SHOTS, `morph_${name}.png`) }) : undefined);
+    /** Text and head apart, inside the 16px fields; while the arch is not open, the text and the head off it. */
     const layoutOk = (r, what) => {
       const inside = r.parts.every((p) => p && p.t >= 0 && p.b <= h && p.l >= 15.5 && p.r <= w - 15.5);
       const clashHead = r.parts.some((p) => r.head.some((hd) => over(p, hd)));
-      check(inside && !clashHead && r.parts.length >= 2 && r.noHScroll && r.stickyTop === 0 && r.stickyH === h,
-        `${tag}: ${what} — text clear of the head, fits, no h-scroll`,
-        JSON.stringify({ head: r.head, parts: r.parts }));
+      const clashArch = r.m < 0.2 && (r.parts.some((p) => over(p, r.arch)) || r.head.some((hd) => over(hd, r.arch)));
+      check(inside && !clashHead && !clashArch && r.parts.length >= 2 && r.noHScroll && r.stickyTop === 0 && r.stickyH === h,
+        `${tag}: ${what} — text clear of the head${r.m < 0.2 ? ' and the arch' : ''}, fits, no h-scroll`,
+        JSON.stringify({ m: r.m, arch: r.arch, head: r.head, parts: r.parts }));
     };
-    /** Chapter i: its photo decoded on top over the whole screen (no clip), ≤ 2 photo layers, none undecoded. */
-    const chapterOk = (r, i, what) => {
-      check(r.active === String(i) && r.op > 0.95 && r.top === i && r.topOp > 0.95 && r.full && r.clip === 'none' &&
-        r.rendered <= 2 && r.undecodedShown === 0 && r.oldArch === 'none' && (i === 0 ? r.titleOp > 0.95 : r.titleOp < 0.05),
-        `${tag}: ${what} — full-screen decoded photo of chapter ${i + 1}, ≤ 2 photo layers, title ${i === 0 ? 'big' : 'gone'}`,
-        JSON.stringify({ active: r.active, op: r.op, top: r.top, topOp: r.topOp, full: r.full, clip: r.clip, rendered: r.rendered, undecoded: r.undecodedShown, titleOp: r.titleOp }));
+    /** The entry: the big title, under it the arch (16px fields, a real clip), the chapter text under the arch. */
+    const entryOk = (r, what) => {
+      const ah = r.arch.b - r.arch.t;
+      check(r.m === 0 && r.clip === 'none' && r.sy > 0.99 && !r.sideHit && r.titleOp > 0.95 && r.titleBox && r.titleBox.b <= r.arch.t &&
+        r.arch.l === 16 && r.arch.r === w - 16 && ah >= h * 0.3 && r.segOp < 0.05 && r.shade < 0.05 && r.active === '0',
+        `${tag}: ${what} — big title, an arch under it (${ah}px of ${h}), no progress yet`,
+        JSON.stringify({ m: r.m, clip: r.clip, sy: r.sy, side: r.sideHit, titleOp: r.titleOp, title: r.titleBox, arch: r.arch, seg: r.segOp }));
+      layoutOk(r, what);
+    };
+    /** Opened: the photo is the whole screen, the title shrunk to the eyebrow, progress and counter in. */
+    const openOk = (r, i, what) => {
+      check(r.m === 1 && r.sideHit && r.cornerHit && r.titleOp < 0.05 && r.segOp > 0.95 && r.shade > 0.95 &&
+        r.active === String(i) && r.op > 0.95 && r.top === i && r.oldArch === 'none' && r.layers <= 2 && r.undecoded === 0,
+        `${tag}: ${what} — full-screen photo of chapter ${i + 1}, title shrunk to the eyebrow`,
+        JSON.stringify({ m: r.m, side: r.sideHit, corner: r.cornerHit, titleOp: r.titleOp, seg: r.segOp, active: r.active, op: r.op, top: r.top, layers: r.layers, undecoded: r.undecoded }));
       check(r.segs.length === 4 && r.segs.slice(0, i).every((s) => s > 0.99) && r.segs.slice(i + 1).every((s) => s < 0.01),
         `${tag}: ${what} — stories progress`, r.segs.join(' '));
       layoutOk(r, what);
@@ -368,36 +402,36 @@ try {
 
     const entry = await at(0);
     await snap(shots.entry);
-    chapterOk(entry, 0, 'entry');
-    check(entry.decoded === 4, `${tag}: all four photos decoded by the time the section is on screen`, String(entry.decoded));
+    entryOk(entry, 'entry');
+    if (deep) {
+      // the morph forward: pn 0.1, 0.2 — part way; 0.3 — open
+      const mids = [];
+      for (const [pn, name] of [[0.1, 'p10'], [0.2, 'p20']]) {
+        const r = await at(pn / 4, { hold: true });
+        await snap(`${w}_${name}`);
+        mids.push(r);
+        layoutOk(r, `morph pn ${pn}`);
+      }
+      const [a, b] = mids;
+      check(a.m > 0.2 && a.m < 0.45 && b.m > 0.55 && b.m < 0.8 && a.arch.t > b.arch.t && a.arch.l > b.arch.l && a.arch.b < b.arch.b &&
+        entry.titleOp > a.titleOp && a.titleOp > b.titleOp && a.segOp < b.segOp,
+        `${tag}: the arch opens step by step, the title shrinks, progress comes in`,
+        JSON.stringify(mids.map((r) => ({ m: r.m, arch: r.arch, title: r.titleOp, seg: r.segOp }))));
+      const opened = await at(0.3 / 4, { hold: true });
+      await snap(`${w}_p30`);
+      openOk(opened, 0, 'morph pn 0.3');
+    }
     const seen = [await at(CH1, { hold: true })];
-    chapterOk(seen[0], 0, 'chapter 1');
+    openOk(seen[0], 0, 'chapter 1');
     for (let i = 1; i < geo.n; i++) {
       const r = await at(STOPS[i]);
       seen.push(r);
       await snap(shots[`ch${i + 1}`]);
-      chapterOk(r, i, `chapter ${i + 1}`);
+      openOk(r, i, `chapter ${i + 1}`);
     }
     check(new Set(seen.map((r) => r.src)).size === 4, `${tag}: the photo changes with every chapter`, seen.map((r) => r.src.split('/').pop()).join(' '));
     if (deep) {
-      // a fast pass through all chapters (no waiting): never more than two photo layers, never an undecoded one
-      await at(0);
-      const fast = await page.evaluate(async ({ top, runway }) => {
-        const root = document.querySelector('#community .pinned');
-        const photos = [...root.querySelectorAll('.home-life__photo')];
-        let maxShown = 0;
-        let undecoded = 0;
-        for (let k = 0; k <= 40; k++) {
-          scrollTo(0, Math.round(top + (runway * k) / 40));
-          await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-          const shown = photos.filter((p) => getComputedStyle(p).visibility === 'visible' && +getComputedStyle(p).opacity > 0.02);
-          maxShown = Math.max(maxShown, shown.length);
-          undecoded += shown.filter((p) => !('ready' in p.dataset)).length;
-        }
-        return { maxShown, undecoded, active: root.dataset.active };
-      }, { top: geo.top, runway });
-      check(fast.maxShown <= 2 && fast.undecoded === 0 && fast.active === '3', `${tag}: a fast pass — ≤ 2 photo layers, none undecoded`, JSON.stringify(fast));
-      // back up: chapters in reverse, the big title again at the entry
+      // back up: chapters in reverse, then the photo folds back into the arch — the same states as on the way in
       const back = [];
       for (let i = geo.n - 2; i >= 1; i--) {
         const r = await at(STOPS[i]);
@@ -406,9 +440,16 @@ try {
       }
       back.push((await at(CH1, { hold: true })).active);
       check(back.join() === '2,1,0', `${tag}: chapters change on scroll up`, back.join());
+      const half = await at(0.15 / 4, { hold: true });
+      await snap(`${w}_back_p15`);
+      check(half.m > 0.4 && half.m < 0.6,
+        `${tag}: back — half folded at pn 0.15`, String(half.m));
+      layoutOk(half, 'back pn 0.15');
       const home = await at(0);
       await snap(`${w}_back_p00`);
-      chapterOk(home, 0, 'back at the entry');
+      entryOk(home, 'back at the entry');
+      check(JSON.stringify(home.arch) === JSON.stringify(entry.arch) && home.titleOp === entry.titleOp,
+        `${tag}: back at the entry — the same arch as on the way in`, JSON.stringify([entry.arch, home.arch]));
       // a finger drag inside the section moves the chapter (native touch scroll); stopped between chapters 1 and 2
       // (~1 screen) it glides on into chapter 2 (auto-settle)
       await at(0);
@@ -490,11 +531,11 @@ try {
       }, p);
       await sleep(1200);
       return page.evaluate(() => {
-        const c = document.querySelector('.scrub [data-frames]');
+        const c = document.querySelector('.scrub canvas, .scrub__film');
         const st = document.querySelector('.scrub__sticky').getBoundingClientRect();
         const cur = document.querySelector('.scrub__chapter[data-current="true"]');
         return {
-          frame: c ? +c.dataset.frame : null,
+          frame: c ? +(c.dataset.frame ?? c.dataset.target) : null,
           cw: c ? c.clientWidth : 0,
           top: Math.round(st.top),
           sh: Math.round(st.height),
@@ -512,10 +553,11 @@ try {
     check(Math.abs(a.top) <= 1 && Math.abs(a.sh - h) <= 2, `${tag}: scene sticky at 100svh`, JSON.stringify(a));
     check(a.cw === w, `${tag}: scene picture fills the phone width`, String(a.cw));
     check(a.active !== b.active && a.op > 0.9 && b.op > 0.9, `${tag}: scene chapters enter/leave with scroll`, `${a.active}/${a.op} → ${b.active}/${b.op}`);
-    const t1 = await page.evaluate(() => +document.querySelector('.scrub [data-frames]')?.dataset.frame);
+    const sceneFrame = () => page.evaluate(() => { const c = document.querySelector('.scrub canvas, .scrub__film'); return c ? +(c.dataset.frame ?? c.dataset.target) : NaN; });
+    const t1 = await sceneFrame();
     // c rests where the auto-settle left it: drag down into the scene
     await touchScroll(Math.round(h * 0.8));
-    const t2 = await page.evaluate(() => +document.querySelector('.scrub [data-frames]')?.dataset.frame);
+    const t2 = await sceneFrame();
     check(Number.isFinite(t1) && Number.isFinite(t2) && t1 !== t2, `${tag}: a finger drag scrubs the scene`, `${t1} → ${t2}`);
 
     const par = () =>
@@ -535,11 +577,11 @@ try {
     await page.close();
   }
 
-  // ---- 4c. touch scroll path (390×844): engine, the decoded frame cache (portrait set), crossfade while moving,
-  // one whole frame at rest, fixed sticky height vs the address bar
+  // ---- 4c. touch scroll path (390×844), the scene as frames (?s=1): engine, the decoded frame cache (120 frames of
+  // the portrait set), crossfade of neighbours while moving, one whole frame at rest, fixed sticky height vs the address bar
   {
-    const page = await open('/?lang=ru', 390, { height: 844 });
-    const tag = '390 touch';
+    const page = await open('/?lang=ru&s=1', 390, { height: 844 });
+    const tag = '390 touch frames';
     const touchSet = await (await fetch(`${WEB}/media/scrub/t/manifest.json`)).json();
     await page.waitForFunction(() => document.querySelector('.scrub')?.dataset.loaded === 'all', { timeout: 40000 }).catch(() => undefined);
     const base = await page.evaluate(() => {
@@ -553,10 +595,8 @@ try {
         set: s.dataset.set,
         pass: s.dataset.pass,
         cache: s.dataset.cache,
-        keys: document.querySelectorAll('.scrub__key').length,
-        decoded: [...document.querySelectorAll('.scrub__key')].filter((i) => i.complete && i.naturalWidth > 0).length,
-        canvas: !!document.querySelector('.scrub canvas'),
-        frames: +(document.querySelector('.scrub__keys')?.dataset.frames ?? 0),
+        mode: s.dataset.mode,
+        frames: +(document.querySelector('.scrub canvas')?.dataset.frames ?? 0),
         video: !!document.querySelector('.scrub video'),
         noHScroll: document.documentElement.scrollWidth <= innerWidth,
         pinned: getComputedStyle(document.querySelector('#community .pinned__sticky')).position === 'sticky',
@@ -567,23 +607,21 @@ try {
     check(base.noHScroll && base.pinned && base.spin !== 'none', `${tag}: no h-scroll, community pinned, Dawn spin kept`, JSON.stringify(base));
     check(base.sceneH > 844 * 3, `${tag}: scene runway in fixed px`, String(base.sceneH));
     const n = touchSet.frames.length;
-    /** Key frames on touch (synagogue-scrub.tsx TOUCH_KEYS). */
-    const KEYS = 24;
+    /** frames decoded on a phone with ≥ 4 GB (touchFrameCount) */
+    const K = 120;
     check(
-      base.media === 'keys' && base.set === 'touch' && !base.video && !base.canvas && base.frames === n &&
-        base.cache === `${KEYS}/${KEYS}` && base.keys === KEYS && base.decoded === KEYS && base.pass === 'coarse',
-      `${tag}: ${KEYS} key frames of the portrait set (${n} frames ${touchSet.width}×${touchSet.height}) decoded as <img>, no canvas, no video`,
+      base.mode === 'frames' && base.media === 'bitmaps' && base.set === 'touch' && !base.video && base.frames === n &&
+        base.cache === `${K}/${K}` && base.pass === 'coarse',
+      `${tag}: ${K} frames of the portrait set (${n} frames ${touchSet.width}×${touchSet.height}) decoded into bitmaps, no video`,
       JSON.stringify(base)
     );
     const read = () =>
       page.evaluate(() => {
-        const c = document.querySelector('.scrub__keys');
-        const on = c.querySelector('[data-layer="on"]');
+        const c = document.querySelector('.scrub canvas');
         return {
           p: +document.querySelector('.scrub').style.getPropertyValue('--p'),
           f: +c.dataset.frame,
-          onOp: on ? +getComputedStyle(on).opacity : 0,
-          layers: c.querySelectorAll('[data-layer]').length,
+          blend: +c.dataset.blend,
           sh: Math.round(document.querySelector('.scrub__sticky').getBoundingClientRect().height),
           poster: !!document.querySelector('.scrub__poster[data-waiting]'),
           y: scrollY,
@@ -596,57 +634,119 @@ try {
     await page.evaluate((g) => window.scrollTo(0, g.top + g.runway * 0.3625), geo);
     await sleep(1200);
     const r1 = await read();
-    // while the page moves: the key for the scroll on top, never more than two layers, never an undecoded one
+    // while the page moves: a crossfade of neighbouring frames by the fractional position, every rAF
     const moving = await page.evaluate(async (g) => {
-      const c = document.querySelector('.scrub__keys');
-      const out = { frames: new Set(), maxLayers: 0, undecoded: 0 };
+      const c = document.querySelector('.scrub canvas');
+      const out = { alphas: new Set(), far: 0, n: 0 };
       for (let i = 0; i < 60; i++) {
-        window.scrollTo(0, g.top + g.runway * 0.3625 + i * 12);
+        window.scrollTo(0, g.top + g.runway * 0.3625 + i * 3);
         await new Promise((r) => requestAnimationFrame(r));
-        const layered = [...c.querySelectorAll('[data-layer]')];
-        out.maxLayers = Math.max(out.maxLayers, layered.length);
-        out.undecoded += layered.filter((im) => !im.complete || !im.naturalWidth).length;
-        out.frames.add(c.dataset.frame);
+        const [a, b] = (c.dataset.pair ?? '').split('-').map(Number);
+        // neighbours of the 120-frame plan are 1–2 frames of the set apart
+        if (Math.abs(a - b) > 2) out.far++;
+        out.alphas.add(c.dataset.blend);
+        out.n++;
       }
-      return { maxLayers: out.maxLayers, undecoded: out.undecoded, frames: out.frames.size };
+      return { far: out.far, alphas: [...out.alphas].filter((x) => +x > 0 && +x < 1).length };
     }, geo);
-    check(moving.maxLayers <= 2 && moving.undecoded === 0 && moving.frames >= 3, `${tag}: moving — keys follow the scroll, ≤ 2 decoded layers`, JSON.stringify(moving));
+    check(moving.far === 0 && moving.alphas >= 3, `${tag}: moving — crossfade of neighbouring frames only`, JSON.stringify(moving));
     await page.touchscreen.touchStart(195, 600);
     for (let i = 1; i <= 8; i++) await page.touchscreen.touchMove(195, 600 - i * 40);
     await page.touchscreen.touchEnd();
     await sleep(1800);
     const r2 = await read();
     check(r2.y > r1.y && r2.f !== r1.f && !r2.poster, `${tag}: a finger drag scrubs the scene`, `${JSON.stringify(r1)} → ${JSON.stringify(r2)}`);
-    check(r2.onOp === 1 && r2.layers <= 2, `${tag}: at rest — one whole frame on top, no double image`, JSON.stringify(r2));
+    check(r2.blend === 0, `${tag}: at rest — one whole frame, no double image`, JSON.stringify(r2));
     await page.screenshot({ path: join(SHOTS, 'm5_scene_mid_390.png') });
     // the address bar hides: +56px of viewport at the same scrollY — sticky and --p must not jump
     await page.setViewport({ width: 390, height: 900, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
     await sleep(900);
     const r3 = await read();
-    check(r3.sh === 844 && Math.abs(r3.p - r2.p) < 0.002, `${tag}: address bar does not move the scene`, `${JSON.stringify(r2)} → ${JSON.stringify(r3)}`);
+    check(r3.sh === 844 && r3.f === r2.f, `${tag}: address bar does not move the scene (same frame, same sticky height)`, `${JSON.stringify(r2)} → ${JSON.stringify(r3)}`);
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
     await page.evaluate((g) => window.scrollTo(0, g.top + g.runway), geo);
-    await page.waitForFunction((k) => +document.querySelector('.scrub__keys').dataset.frame === k, { timeout: 8000 }, n - 1).catch(() => undefined);
+    await page.waitForFunction((k) => +document.querySelector('.scrub canvas').dataset.frame === k, { timeout: 8000 }, n - 1).catch(() => undefined);
     const rEnd = await read();
     check(rEnd.f === n - 1, `${tag}: the end of the scene shows the last frame`, `frame ${rEnd.f} of ${n}`);
     await page.screenshot({ path: join(SHOTS, 'm5_scene_end_390.png') });
     await page.close();
   }
 
-  // ---- 4c'. a weak phone (deviceMemory 1 GB) gets the same key frames (~28 MB decoded); a phone held in landscape →
-  // the 16:9 light set
+
+  // ---- 4c-film. the default touch scene (390×844): the chapter film — crossing into a chapter plays the film to its
+  // hold in real time (forward file), back up — the reversed file; it stops on the hold; the text follows the chapter
+  {
+    const page = await open('/?lang=ru', 390, { height: 844 });
+    const tag = '390 touch film';
+    const main = await (await fetch(`${WEB}/media/scrub/manifest.json`)).json();
+    await page.waitForFunction(() => document.querySelector('.scrub')?.dataset.loaded === 'all', { timeout: 40000 }).catch(() => undefined);
+    const geo = await page.evaluate(() => {
+      const s = document.querySelector('.scrub');
+      return { top: s.getBoundingClientRect().top + scrollY, runway: s.offsetHeight - 844 };
+    });
+    const read = () =>
+      page.evaluate(() => {
+        const s = document.querySelector('.scrub');
+        const f = s.querySelector('.scrub__film');
+        const v = [...s.querySelectorAll('video')];
+        const cur = s.querySelector('.scrub__chapter[data-current="true"]');
+        return {
+          mode: s.dataset.mode,
+          media: s.dataset.media,
+          active: s.dataset.active,
+          pos: f ? +f.dataset.pos : NaN,
+          target: f ? +f.dataset.target : NaN,
+          dir: f ? +(f.dataset.dir ?? 0) : NaN,
+          on: v.map((x) => x.hasAttribute('data-on')),
+          playing: v.map((x) => !x.paused),
+          src: v.map((x) => (x.currentSrc || '').split('/').pop()),
+          op: cur ? +(+getComputedStyle(cur).opacity).toFixed(2) : 0,
+        };
+      });
+    const r0 = await read();
+    check(r0.mode === 'film' && r0.media === 'film' && r0.src[0] === 'scene-p.mp4' && r0.on[0] && !r0.on[1],
+      `${tag}: the default touch scene is the chapter film (portrait file shown)`, JSON.stringify(r0));
+    const holds = main.film.holds;
+    // into chapter 2 (finger held: no glide), the film plays forward
+    await page.evaluate(() => window.dispatchEvent(new Event('touchstart')));
+    await page.evaluate((g) => window.scrollTo(0, g.top + g.runway * 0.3), geo);
+    await sleep(700);
+    const r1 = await read();
+    check(r1.active === '1' && r1.target === +holds[1].toFixed(2) && r1.dir === 1 && r1.playing[0] && r1.pos > 0,
+      `${tag}: crossing into chapter 2 plays the film forward toward its hold`, JSON.stringify(r1));
+    await page.waitForFunction(() => document.querySelector('.scrub__film')?.dataset.dir === '0', { timeout: 15000 }).catch(() => undefined);
+    const r2 = await read();
+    check(r2.dir === 0 && Math.abs(r2.pos - holds[1]) < 0.06 && !r2.playing[0] && r2.op > 0.9,
+      `${tag}: the film stops on the chapter hold, chapter 2 text in`, JSON.stringify(r2));
+    // back into chapter 1: the reversed file, shown at the mirrored position
+    await page.evaluate((g) => window.scrollTo(0, g.top + g.runway * 0.05), geo);
+    await sleep(900);
+    const r3 = await read();
+    check(r3.active === '0' && r3.dir === -1 && r3.on[1] && !r3.on[0] && r3.playing[1] && r3.src[1] === 'scene-p-rev.mp4' && r3.pos < holds[1],
+      `${tag}: back up plays the reversed film`, JSON.stringify(r3));
+    await page.waitForFunction(() => document.querySelector('.scrub__film')?.dataset.dir === '0', { timeout: 15000 }).catch(() => undefined);
+    const r4 = await read();
+    check(r4.dir === 0 && Math.abs(r4.pos - holds[0]) < 0.06, `${tag}: back at the first hold`, JSON.stringify(r4));
+    await page.evaluate(() => window.dispatchEvent(new Event('touchend')));
+    await page.screenshot({ path: join(SHOTS, 'm5_scene_film_390.png') });
+    await page.close();
+  }
+
+  // ---- 4c'. frames on a weak phone (deviceMemory 1 GB) → 54 frames; frames held in landscape → the 16:9 light set;
+  // the film held in landscape → the landscape file
   {
     const variants = [
-      ['390 weak', { width: 390, height: 844 }, () => Object.defineProperty(Navigator.prototype, 'deviceMemory', { get: () => 1 })],
-      ['844 landscape', { width: 844, height: 390 }, null],
+      ['390 weak', { width: 390, height: 844 }, '/?lang=ru&s=1', () => Object.defineProperty(Navigator.prototype, 'deviceMemory', { get: () => 1 })],
+      ['844 landscape', { width: 844, height: 390 }, '/?lang=ru&s=1', null],
+      ['844 landscape film', { width: 844, height: 390 }, '/?lang=ru', null],
     ];
     const light = await (await fetch(`${WEB}/media/scrub/m/manifest.json`)).json();
-    for (const [tag, vp, init] of variants) {
+    for (const [tag, vp, path, init] of variants) {
       const page = await browser.newPage();
       await page.setViewport({ ...vp, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
       await page.evaluateOnNewDocument(() => localStorage.setItem('synagogue.cookieConsent', '1'));
       if (init) await page.evaluateOnNewDocument(init);
-      await page.goto(`${WEB}/?lang=ru`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+      await page.goto(`${WEB}${path}`, { waitUntil: 'domcontentloaded', timeout: 90000 });
       await page.waitForFunction(() => document.querySelector('.scrub')?.dataset.loaded === 'all', { timeout: 40000 }).catch(() => undefined);
       await page.evaluate(() => {
         const s = document.querySelector('.scrub');
@@ -655,14 +755,17 @@ try {
       await sleep(1200);
       const st = await page.evaluate(() => {
         const d = document.querySelector('.scrub').dataset;
-        const c = document.querySelector('.scrub__keys');
-        return { set: d.set, media: d.media, cache: d.cache, loaded: d.loaded, frame: c ? +c.dataset.frame : null, frames: c ? +c.dataset.frames : 0 };
+        const c = document.querySelector('.scrub canvas');
+        const v = document.querySelector('.scrub video');
+        return { mode: d.mode, set: d.set, cache: d.cache, loaded: d.loaded, frame: c ? +c.dataset.frame : null, frames: c ? +c.dataset.frames : 0, film: v ? (v.currentSrc || '').split('/').pop() : null };
       });
       const ok =
-        tag === '844 landscape'
-          ? st.set === 'light' && st.media === 'keys' && st.frames === light.frames.length && st.loaded === 'all' && st.frame > 0
-          : st.set === 'touch' && st.media === 'keys' && st.cache === '24/24' && st.loaded === 'all' && st.frame > 0;
-      check(ok, `${tag}: the scene plays (${tag === '844 landscape' ? 'light 16:9 set' : '24 key frames'})`, JSON.stringify(st));
+        tag === '390 weak'
+          ? st.mode === 'frames' && st.set === 'touch' && st.cache === '54/54' && st.loaded === 'all' && st.frame > 0
+          : tag === '844 landscape'
+            ? st.mode === 'frames' && st.set === 'light' && st.frames === light.frames.length && st.loaded === 'all' && st.frame > 0
+            : st.mode === 'film' && st.film === 'scene-l.mp4' && st.loaded === 'all';
+      check(ok, `${tag}: ${tag === '390 weak' ? '54 frames' : tag === '844 landscape' ? 'light 16:9 set' : 'the landscape film'}`, JSON.stringify(st));
       await page.screenshot({ path: join(SHOTS, `m5_scene_${tag.replace(/\W+/g, '_')}.png`) });
       await page.close();
     }

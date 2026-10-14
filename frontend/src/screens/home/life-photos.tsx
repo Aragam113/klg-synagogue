@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { PHOTO_TALL, PHOTOS } from '@/content';
-import { type KeyLayers, keyStep } from '@/scenes/synagogue-scrub';
 
 import { COMMUNITY } from './model';
 
@@ -12,13 +11,12 @@ const AHEAD = '300%';
  * Phone «Community life» (≤ 767px, touch; hidden elsewhere by home.css): the chapter photos full screen. All four
  * are downloaded and decoded (`img.decode()`) once the section comes within AHEAD of the screen — no `src` change at
  * the moment a photo shows, no half-downloaded or undecoded photo on screen (`data-ready` gates it in CSS).
- * The active chapter's photo goes on top (`data-layer="on"`, a CSS opacity fade-in) over the one shown before
- * (`data-layer="under"`); the others are not rendered — two full-screen layers at most (keyStep).
+ * Each photo fades in over the previous one and drifts (Ken Burns) on the scroll timeline of the pinned screen, and
+ * is not rendered outside its own chapter window (home.css): one or two full-screen layers at a time.
  */
 export const LifePhotos = ({ active, alt }: { active: number; alt: string }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState<boolean[]>(() => COMMUNITY.map(() => false));
-  const [layers, setLayers] = useState<KeyLayers>({ on: -1, under: -1 });
 
   useEffect(() => {
     const box = ref.current;
@@ -65,12 +63,8 @@ export const LifePhotos = ({ active, alt }: { active: number; alt: string }) => 
     };
   }, []);
 
-  useEffect(() => {
-    setLayers((s) => keyStep(s, active, ready));
-  }, [active, ready]);
-
   return (
-    <div className="home-life__photos" ref={ref} data-on={layers.on} data-under={layers.under}>
+    <div className="home-life__photos" ref={ref}>
       {COMMUNITY.map((c, i) => (
         <img
           key={c.id}
@@ -80,7 +74,7 @@ export const LifePhotos = ({ active, alt }: { active: number; alt: string }) => 
           decoding="async"
           data-current={i === active}
           data-ready={ready[i] ? '' : undefined}
-          data-layer={i === layers.on ? 'on' : i === layers.under ? 'under' : undefined}
+          style={{ ['--i' as string]: i }}
         />
       ))}
     </div>

@@ -36,6 +36,7 @@ export const Pinned = ({
   const motion = useMotionOn();
   useScrollProgress(ref, {
     mode: 'pin',
+    timeline: true,
     snap: motion && n > 1 ? n : undefined,
     onChange: (p) => {
       if (motion) setActive(Math.min(n - 1, Math.floor(p * n)));

@@ -35,6 +35,13 @@
  *                    Tuning: --touch-quality 72 (drops by 4 until it fits), --touch-budget 5 (MB)
  *   --touch-only     only (re)cut the phone set from the video (needs <video> --from --to)
  *
+ *   --film-chapters <n>  the «chapter film» of the phone scene (?s=2): the segment as H.264, forward and reversed,
+ *                    portrait (centre crop 9:16 at --touch px height) and landscape (720 px wide), a keyframe every
+ *                    half second and on each of the n chapter holds (0, T/(n−1), …, T) → public/media/scrub/v/
+ *                    {scene-p,scene-p-rev,scene-l,scene-l-rev}.mp4; the main manifest gets
+ *                    "film": {p, pr, l, lr, duration, holds}. Default 4 (0 = none). --film-crf 26 (quality)
+ *   --film-only      only (re)cut the chapter film (needs <video> --from --to)
+ *
  *   npm run build:scrub -- --light-only [--light 1024 --light-step 1 --light-quality 74 --light-budget 5.5]
  *                    re-encodes only the light set from the frames already in public/media/scrub/
  */
@@ -54,12 +61,12 @@ const VIDEO = /\.(mp4|webm|mov|mkv|avi|m4v)$/i;
 const IMAGE = /\.(jpe?g|png|webp)$/i;
 
 const parseArgs = (argv) => {
-  const opts = { frames: 110, width: 1600, quality: 72, budget: 12, from: 0, to: null, credit: '', light: 1024, lightStep: 1, lightQuality: 74, lightBudget: 5.5, lightOnly: false, touch: 720, touchFrames: 162, touchAspect: 0.5625, touchQuality: 72, touchBudget: 5, touchOnly: false };
+  const opts = { frames: 110, width: 1600, quality: 72, budget: 12, from: 0, to: null, credit: '', light: 1024, lightStep: 1, lightQuality: 74, lightBudget: 5.5, lightOnly: false, touch: 720, touchFrames: 162, touchAspect: 0.5625, touchQuality: 72, touchBudget: 5, touchOnly: false, filmChapters: 4, filmCrf: 26, filmOnly: false };
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--light-only' || a === '--touch-only') {
-      opts[a === '--light-only' ? 'lightOnly' : 'touchOnly'] = true;
+    if (a === '--light-only' || a === '--touch-only' || a === '--film-only') {
+      opts[{ '--light-only': 'lightOnly', '--touch-only': 'touchOnly', '--film-only': 'filmOnly' }[a]] = true;
       continue;
     }
     if (!a.startsWith('--')) {
@@ -267,8 +274,61 @@ const writeTouch = async (o) => {
   }
 };
 
+const FILM = 'v';
+
+/**
+ * Chapter film of the phone scene (?s=2): the segment [from, to] as H.264 without sound, forward and reversed (the
+ * scene plays the reversed file when scrolling back), portrait (centre crop to touchAspect at `touch` px height) and
+ * landscape (720 px wide). A keyframe every half second and exactly on each chapter hold, so a seek to a hold or
+ * near it is cheap; faststart. Writes scrub/v/*.mp4 and "film" in the main manifest.
+ */
+const writeFilm = (o) => {
+  if (!VIDEO.test(o.source)) return console.log('scrub film: skipped (cut from a video)');
+  const n = Math.max(2, Math.round(o.filmChapters));
+  const from = Math.max(0, o.from);
+  const to = o.to ?? probeDuration(o.source);
+  const T = +(to - from).toFixed(3);
+  const holds = Array.from({ length: n }, (_, k) => +((k * T) / (n - 1)).toFixed(3));
+  const dir = path.join(OUT, FILM);
+  fs.mkdirSync(dir, { recursive: true });
+  const h = Math.round(o.touch / 2) * 2;
+  const w = Math.round((h * o.touchAspect) / 2) * 2;
+  const looks = {
+    p: `crop=ih*${o.touchAspect}:ih,scale=${w}:${h}:flags=lanczos`,
+    l: 'scale=720:-2:flags=lanczos',
+  };
+  const out = {};
+  let bytes = 0;
+  for (const [key, vf] of Object.entries(looks)) {
+    for (const rev of [false, true]) {
+      const name = `scene-${key}${rev ? '-rev' : ''}.mp4`;
+      // the reversed file has its holds mirrored: T − hold
+      const keys = (rev ? holds.map((t) => +(T - t).toFixed(3)) : holds).sort((a, b) => a - b).join(',');
+      run([
+        '-y', '-ss', String(from), '-t', String(T), '-i', o.source, '-an',
+        '-vf', `${vf},fps=25,format=yuv420p${rev ? ',reverse' : ''}`,
+        '-c:v', 'libx264', '-preset', 'slow', '-profile:v', 'high', '-crf', String(o.filmCrf),
+        '-g', '12', '-keyint_min', '12', '-sc_threshold', '0', '-force_key_frames', keys,
+        '-movflags', '+faststart', path.join(dir, name),
+      ]);
+      bytes += fs.statSync(path.join(dir, name)).size;
+      out[key + (rev ? 'r' : '')] = `${FILM}/${name}`;
+    }
+  }
+  const mainPath = path.join(OUT, 'manifest.json');
+  const main = JSON.parse(fs.readFileSync(mainPath, 'utf8'));
+  fs.writeFileSync(mainPath, `${JSON.stringify({ ...main, film: { ...out, duration: T, holds } }, null, 2)}
+`);
+  console.log(`scrub film: ${T}s, holds ${holds.join('/')}, portrait ${w}x${h} + landscape 720w, fwd + rev, ${(bytes / 1048576).toFixed(1)} MB → ${path.relative(ROOT, dir)}`);
+};
+
 const main = async () => {
   const o = parseArgs(process.argv.slice(2));
+  if (o.filmOnly) {
+    if (!fs.existsSync(o.source) || !VIDEO.test(o.source)) throw new Error('--film-only needs a video file');
+    writeFilm(o);
+    return;
+  }
   if (o.touchOnly) {
     if (!fs.existsSync(o.source) || !VIDEO.test(o.source)) throw new Error('--touch-only needs a video file');
     await writeTouch(o);
@@ -307,6 +367,7 @@ const main = async () => {
     writeCredits(credits);
     if (o.light > 0) await writeLight(raw, o.light, o.lightStep, o.lightQuality, o.lightBudget);
     if (o.touch > 0 && !isDir) await writeTouch(o);
+    if (o.filmChapters > 0 && !isDir) writeFilm(o);
     console.log(
       `scrub: ${frames.length} frames ${meta.width}x${meta.height}, webp q${q}, ${(total() / 1048576).toFixed(1)} MB → ${path.relative(ROOT, OUT)}`
     );

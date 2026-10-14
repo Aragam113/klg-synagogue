@@ -17,7 +17,7 @@ const CHAPTER_GHOSTS = [GW.zachor, GW.kehila, GW.emuna, GW.yerushalayim];
 /** Таймлайн: линия рисуется от `--p` (useScrollProgress ставит переменную на <ol>). */
 const Timeline = ({ items }: { items: { date: string; text: string }[] }) => {
   const ref = useRef<HTMLOListElement>(null);
-  useScrollProgress(ref);
+  useScrollProgress(ref, { cssOnly: true });
   return (
     <ol ref={ref} className="sx-timeline">
       {items.map((it, i) => (

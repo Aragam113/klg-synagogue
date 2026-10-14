@@ -1,4 +1,4 @@
-import { Fragment, useRef, type PointerEvent as RPointerEvent } from 'react';
+import { Fragment, type ReactNode, useRef, type PointerEvent as RPointerEvent } from 'react';
 
 import { PHOTO_TALL, PHOTOS } from '@/content';
 import { SynagogueScrub } from '@/scenes/synagogue-scrub';
@@ -37,7 +37,8 @@ export interface HomeViewProps {
   t: T;
   lang: string;
   chapters: SceneChapter[];
-  today: { state: BlockState; block: TodayBlock | null };
+  /** `tiles` — the live «Today» tiles (TodayLive: only they re-render every second, not the whole page). */
+  today: { state: BlockState; tiles: ReactNode };
   events: { state: BlockState; items: EventItem[] };
   funds: { state: BlockState; items: Fundraiser[]; supporters: number | null };
   /** `<Marquee>` items of the dedications ribbon (`dedicationItems` from donate-model). */
@@ -157,6 +158,48 @@ const Slider = ({ children, t }: { children: React.ReactNode; t: T }) => {
   );
 };
 
+/** The four «Today» tiles for one moment (TodayLive feeds a new `tb` every second). */
+export const TodayTilesView = ({ t, tb }: { t: HomeViewProps['t']; tb: TodayBlock }) => {
+  const units = {
+    d: t('calendar:widget.d'),
+    h: t('calendar:widget.h'),
+    m: t('calendar:widget.m'),
+    s: t('calendar:widget.s'),
+  };
+  return (
+    <div className="home-today__grid" data-home="today">
+      <Reveal className="home-tile">
+        <span className="home-tile__k">{tb.gregorian}</span>
+        <span className="home-tile__v home-tile__v--he">{tb.hebrew}</span>
+        <span className="home-tile__k">{t('today.hebrew')}</span>
+      </Reveal>
+      <Reveal className="home-tile" delay={0.08}>
+        <span className="home-tile__k">{t('today.clock')}</span>
+        <span className="home-tile__v home-clock" data-home="clock">
+          {tb.clock}
+        </span>
+      </Reveal>
+      <Reveal className="home-tile" delay={0.16}>
+        <span className="home-tile__k">{t('today.candles')}</span>
+        {tb.candles && tb.left ? (
+          <>
+            <span className="home-tile__v">{tb.candles.time}</span>
+            <span className="home-tile__k" data-home="countdown">
+              {t('today.in')} {countdownText(tb.left, units)}
+            </span>
+          </>
+        ) : (
+          <span className="home-tile__k">{t('today.passed')}</span>
+        )}
+      </Reveal>
+      <Reveal className="home-tile" delay={0.24}>
+        <span className="home-tile__k">{t('today.parasha')}</span>
+        <span className="home-tile__v">{tb.parasha ?? t('today.holidayReading')}</span>
+      </Reveal>
+    </div>
+  );
+};
+
 /** The home page: 12 sections top to bottom; every section «lives» in its own way. */
 export const HomeView = ({
   t,
@@ -168,13 +211,6 @@ export const HomeView = ({
   dedications,
   news,
 }: HomeViewProps) => {
-  const units = {
-    d: t('calendar:widget.d'),
-    h: t('calendar:widget.h'),
-    m: t('calendar:widget.m'),
-    s: t('calendar:widget.s'),
-  };
-  const tb = today.block;
   return (
     <div className="home" data-home="root">
       {/* 2. Hero */}
@@ -239,37 +275,8 @@ export const HomeView = ({
           <Head t={t} ns="today" light />
           {today.state === 'loading' ? (
             <Skeleton n={4} />
-          ) : tb ? (
-            <div className="home-today__grid" data-home="today">
-              <Reveal className="home-tile">
-                <span className="home-tile__k">{tb.gregorian}</span>
-                <span className="home-tile__v home-tile__v--he">{tb.hebrew}</span>
-                <span className="home-tile__k">{t('today.hebrew')}</span>
-              </Reveal>
-              <Reveal className="home-tile" delay={0.08}>
-                <span className="home-tile__k">{t('today.clock')}</span>
-                <span className="home-tile__v home-clock" data-home="clock">
-                  {tb.clock}
-                </span>
-              </Reveal>
-              <Reveal className="home-tile" delay={0.16}>
-                <span className="home-tile__k">{t('today.candles')}</span>
-                {tb.candles && tb.left ? (
-                  <>
-                    <span className="home-tile__v">{tb.candles.time}</span>
-                    <span className="home-tile__k" data-home="countdown">
-                      {t('today.in')} {countdownText(tb.left, units)}
-                    </span>
-                  </>
-                ) : (
-                  <span className="home-tile__k">{t('today.passed')}</span>
-                )}
-              </Reveal>
-              <Reveal className="home-tile" delay={0.24}>
-                <span className="home-tile__k">{t('today.parasha')}</span>
-                <span className="home-tile__v">{tb.parasha ?? t('today.holidayReading')}</span>
-              </Reveal>
-            </div>
+          ) : today.tiles ? (
+            today.tiles
           ) : (
             <Text className="home-note">{t('today.unavailable')}</Text>
           )}
@@ -330,6 +337,22 @@ export const HomeView = ({
                   />
                   <div className="home-life__frame">
                     <LifePhotos active={active} alt={p?.alt[lang as 'ru'] ?? ''} />
+                    <div className="home-life__mask" aria-hidden>
+                      <svg
+                        className="home-life__plate home-life__plate--top"
+                        preserveAspectRatio="none"
+                      >
+                        <path />
+                      </svg>
+                      <svg
+                        className="home-life__plate home-life__plate--bottom"
+                        preserveAspectRatio="none"
+                      >
+                        <path />
+                      </svg>
+                      <i className="home-life__plate home-life__plate--l" />
+                      <i className="home-life__plate home-life__plate--r" />
+                    </div>
                     <span className="home-life__shade" aria-hidden />
                   </div>
                 </>

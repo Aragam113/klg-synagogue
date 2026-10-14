@@ -13,13 +13,30 @@ import {
 } from '@/store/api/content';
 import { useGetDedicationsQuery } from '@/store/api/payments';
 
+import { useLifeMorph } from './life-morph';
 import { blockState, sceneChapters, todayBlock } from './model';
-import { HomeView } from './view';
+import { HomeView, TodayTilesView } from './view';
+
+type TodayInfo = Parameters<typeof todayBlock>[0];
+
+/** The «Today» tiles with a live clock: the only part of the home page that re-renders every second. */
+const TodayLive = ({
+  info,
+  lang,
+  t,
+}: {
+  info: TodayInfo;
+  lang: string;
+  t: (k: string) => string;
+}) => {
+  const now = useNow();
+  return <TodayTilesView t={t} tb={todayBlock(info, now, lang)} />;
+};
 
 /** Home screen: reads calendar / content / dedications, turns answers into section states, renders HomeView. */
 export const HomeScreen = () => {
   const { t, lang } = useLang('home');
-  const now = useNow();
+  useLifeMorph(lang);
 
   const today = useGetTodayQuery(undefined, { pollingInterval: 30 * 60 * 1000 });
   const events = useGetEventsQuery({ lang, page: 1 });
@@ -52,7 +69,7 @@ export const HomeScreen = () => {
       chapters={chapters}
       today={{
         state: today.isLoading ? 'loading' : today.data ? 'ready' : 'empty',
-        block: today.data ? todayBlock(today.data, now, lang) : null,
+        tiles: today.data ? <TodayLive info={today.data} lang={lang} t={t} /> : null,
       }}
       events={{
         state: blockState(

@@ -8,6 +8,12 @@ export interface RegisterOptions {
   onChange?: (p: number) => void;
   /** Touch, 'pin' mode: number of chapters — once the scroll rests inside, the page glides to the nearest stop. */
   snap?: number;
+  /** false: compute `p` and call onChange only, never write `--p` (the CSS of the element runs on a scroll timeline). */
+  css?: boolean;
+  /** The registration exists only to write `--p` for CSS: skipped where scroll timelines drive that CSS. */
+  cssOnly?: boolean;
+  /** The element's own CSS runs on a scroll timeline where supported: `--p` is written only in the fallback. */
+  timeline?: boolean;
 }
 export { progressOf } from './progress';
 export const reducedMotion = (): boolean => true;
@@ -15,10 +21,16 @@ export const motionAllowed = (): boolean => false;
 export const pinAllowed = (): boolean => false;
 /** Touch scroll path (see touch-scroll.ts); false on a fine pointer, reduced motion, native. */
 export const touchMode = (): boolean => false;
+/** CSS scroll-driven animations drive the `--p` choreography (html[data-sda]); false on native. */
+export const scrollTimelines = (): boolean => false;
 export const startEngine = (): void => undefined;
 export const stopEngine = (): void => undefined;
 export const registerProgress =
   (_el: MotionEl, _opts?: RegisterOptions): (() => void) =>
+  () =>
+    undefined;
+export const registerOnscreen =
+  (_el: MotionEl): (() => void) =>
   () =>
     undefined;
 export const registerReveal =
