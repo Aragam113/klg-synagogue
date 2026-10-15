@@ -426,7 +426,8 @@ export const SynagogueScrub = ({
         if (run.current === my) setFilmUrls(urls);
       },
       () => {
-        if (run.current === my) setTouchPick('frames');
+        // the whole-file download failed (a flaky network): the players stream the files themselves instead
+        if (run.current === my) setFilmUrls(filmKey.split('|'));
       }
     );
     return () => fb.cancel();
