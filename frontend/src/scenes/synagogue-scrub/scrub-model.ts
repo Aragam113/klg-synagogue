@@ -250,3 +250,17 @@ export const filmRate = (e: number, v: number): number => {
   const c = Math.max(-FILM_MAX_RATE, Math.min(FILM_MAX_RATE, r));
   return Math.abs(c) < 1e-9 ? 0 : Math.round(c * 1000) / 1000;
 };
+
+/** Film watchdog: the base window (ms) and the film frame (s) — two frames at the commanded rate are added. */
+const STALL_BASE_MS = 300;
+const FILM_FRAME_S = 1 / 25;
+/**
+ * Phone scene, film: how long (ms) the shown film, told to play at `rate` (signed playbackRate), may go without a new
+ * presented frame (or, without requestVideoFrameCallback, a currentTime change) before the scene drops to frames.
+ * Standing or idling at a 16th — no frame is due — is never a stall (Infinity).
+ */
+export const filmStallMs = (rate: number): number => {
+  const r = Math.abs(rate);
+  if (r < 0.25) return Infinity;
+  return STALL_BASE_MS + (2 * FILM_FRAME_S * 1000) / r;
+};

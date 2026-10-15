@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-import { filmChapterOf, filmRate, filmTarget } from './scrub-model';
+import { filmChapterOf, filmRate, filmStallMs, filmTarget } from './scrub-model';
 
 export interface SceneFilmProps {
   /** forward and reversed film (the same segment, object URLs of the downloaded files), `duration` seconds */
@@ -16,8 +16,9 @@ export interface SceneFilmProps {
   progress: () => number;
   /** both films decoded at the scroll's spot, a frame on screen — the frame fallback may go */
   onReady: () => void;
-  /** the browser refused to play (iOS low-power mode, no codec): the scene stays on frames */
-  onFail: () => void;
+  /** the film cannot be trusted to move (play() refused, no new frame ~300 ms after being told to move, a seek or the
+   *  warm-up hanging, a media error): the scene drops to frames; `why` — for the ?debug=scene overlay */
+  onFail: (why: string) => void;
   /** the chapter at the camera (filmChapterOf) changed: its text goes on screen */
   onChapter: (k: number) => void;
 }
@@ -59,6 +60,9 @@ const RATE_JUMP = 0.5;
 const RATE_MS = 150;
 /** The hidden film is kept at the mirrored spot this often, so turning around needs (almost) no seek. */
 const SYNC_MS = 350;
+/** Watchdog: a seek (turn, jump) hanging this long, or the warm-up not done in WARM_MAX_MS → frames. */
+const BUSY_MAX_MS = 1500;
+const WARM_MAX_MS = 8000;
 
 /** While a gesture moves the camera it plays at least at 1× — slower, the next frame (1/25 s of film) would come too
  *  late to answer the finger (at 1/4× — 160 ms); an overshoot is stood out. At rest the closing can be gentle. */
@@ -160,6 +164,41 @@ export const SceneFilm = ({
     /** standing on the hold with the scroll still since… (the loop sleeps then; a scroll wakes it) */
     let stillAt = 0;
     let finger = false;
+    /** watchdog: since when the shown film is told to move with no new frame, its currentTime then, the last
+     *  presented frame of each film (rVFC), since when a seek is busy */
+    let wantAt = 0;
+    let wantCt = -1;
+    const frameAt = { f: 0, r: 0 };
+    let busyAt = 0;
+    let failed = false;
+    const fail = (why: string) => {
+      if (gone || failed) return;
+      failed = true;
+      el.dataset.fail = why;
+      f.pause();
+      r.pause();
+      cb.current.onFail(why);
+    };
+    // autoplay policies read the attributes (React sets only the muted property): muted + inline, set before any play
+    for (const v of [f, r]) {
+      v.muted = true;
+      v.defaultMuted = true;
+      v.setAttribute('muted', '');
+      v.setAttribute('playsinline', '');
+      v.setAttribute('webkit-playsinline', '');
+    }
+    const watchFrames = (w: 'f' | 'r') => {
+      const v = w === 'f' ? f : r;
+      if (!hasRvfc(v)) return;
+      const on = () => {
+        if (gone) return;
+        frameAt[w] = performance.now();
+        v.requestVideoFrameCallback(on);
+      };
+      v.requestVideoFrameCallback(on);
+    };
+    watchFrames('f');
+    watchFrames('r');
     const vid = (w: 'f' | 'r') => (w === 'f' ? f : r);
     const pos = () => (shown === 'f' ? f.currentTime : T - r.currentTime);
     const local = (w: 'f' | 'r', t: number) => Math.max(0, Math.min(T, w === 'f' ? t : T - t));
@@ -170,14 +209,18 @@ export const SceneFilm = ({
     };
     const play = (v: Video) => {
       if (!v.paused) return;
-      v.play().catch(() => {
-        if (!gone) cb.current.onFail();
+      v.play().catch((err: unknown) => {
+        const name = (err as { name?: string } | null)?.name ?? 'Error';
+        v.dataset.playErr = name;
+        // AbortError — our own pause() came before the play started: not a failure
+        if (name !== 'AbortError') fail(`play:${name}`);
       });
     };
 
     /** Turn around: the other film at the mirrored spot, shown on its first frame, then it plays. */
     const turn = async (w: 'f' | 'r', rate: number) => {
       busy = true;
+      busyAt = performance.now();
       const v = vid(w);
       const old = vid(shown);
       const at = local(w, pos());
@@ -198,6 +241,7 @@ export const SceneFilm = ({
     /** A long lag: freeze the current frame on a canvas, jump the film near the target, fade the snapshot out. */
     const jump = async (to: number) => {
       busy = true;
+      busyAt = performance.now();
       const v = vid(shown);
       try {
         const w = el.clientWidth;
@@ -338,12 +382,30 @@ export const SceneFilm = ({
           if (Math.abs(other.currentTime - want) > 0.1) other.currentTime = want;
         }
       }
+      // watchdog: told to move (not standing, not idling at a 16th) and no new frame for filmStallMs → frames
+      if (busy) {
+        if (t - busyAt > BUSY_MAX_MS) fail('seek');
+      } else {
+        const limit = filmStallMs(Number(el.dataset.rate) || 0);
+        if (limit === Infinity) wantAt = 0;
+        else {
+          const cur = vid(shown);
+          const ct = cur.currentTime;
+          const moved = hasRvfc(cur) ? frameAt[shown] > wantAt : ct !== wantCt;
+          if (!wantAt || moved) {
+            wantAt = t;
+            wantCt = ct;
+          } else if (t - wantAt > limit) fail(`stall rs=${cur.readyState}`);
+        }
+      }
+      if (failed) return;
       // asleep when far from the screen, or standing on the hold with the scroll still for half a second
       const asleep = (!near || (stillAt && t - stillAt > 500)) && f.paused && r.paused && !busy;
       if (!asleep) raf = requestAnimationFrame(tick);
     };
     const run = () => {
       stillAt = 0;
+      if (!raf) wantAt = 0;
       if (!raf && ready && !gone) raf = requestAnimationFrame(tick);
     };
     const onScroll = () => {
@@ -404,7 +466,11 @@ export const SceneFilm = ({
         const inside = (t: number) => Math.min(T - 0.2, Math.max(0.05, t));
         await Promise.all([seekTo(f, inside(local('f', at))), seekTo(r, inside(local('r', at)))]);
         for (const v of [f, r]) {
-          await Promise.race([v.play(), new Promise((ok) => setTimeout(ok, 600))]);
+          // a refused warm-up play is not final (the in-use play() decides); an AbortError is our own pause
+          await Promise.race([
+            v.play().catch(() => undefined),
+            new Promise((ok) => setTimeout(ok, 600)),
+          ]);
           v.pause();
         }
         await Promise.all([seekTo(f, local('f', at)), seekTo(r, local('r', at))]);
@@ -415,12 +481,24 @@ export const SceneFilm = ({
         cb.current.onReady();
         run();
       } catch {
-        if (!gone) cb.current.onFail();
+        fail('load');
       }
     })();
+    const warm = setTimeout(() => {
+      if (!ready) fail('warmup');
+    }, WARM_MAX_MS);
+    const onError = (ev: Event) => {
+      const v = ev.target as Video;
+      if (ready) fail(`error:${v.error?.code ?? '?'}`);
+    };
+    f.addEventListener('error', onError);
+    r.addEventListener('error', onError);
 
     return () => {
       gone = true;
+      clearTimeout(warm);
+      f.removeEventListener('error', onError);
+      r.removeEventListener('error', onError);
       cancelAnimationFrame(raf);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('touchstart', onDown, { capture: true });

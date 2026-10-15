@@ -5,6 +5,7 @@ import {
   improvesFrame,
   filmChapterOf,
   filmRate,
+  filmStallMs,
   filmTarget,
   keyFrames,
   loadOrder,
@@ -298,5 +299,20 @@ describe('filmRate — скорость камеры: скорость прок�
   it('не быстрее 6×', () => {
     expect(filmRate(5, 3)).toBe(6);
     expect(filmRate(-5, 0)).toBe(-6);
+  });
+});
+
+describe('filmStallMs — the watchdog: how long a film told to move may go without a new frame', () => {
+  it('a film standing or idling at a 16th (no frame due within the window) is never a stall', () => {
+    expect(filmStallMs(0)).toBe(Infinity);
+    expect(filmStallMs(0.0625)).toBe(Infinity);
+  });
+  it('at 1× and faster — about 300 ms plus two film frames (1/25 s each) at that rate', () => {
+    expect(filmStallMs(1)).toBe(380);
+    expect(filmStallMs(-2)).toBe(340);
+    expect(filmStallMs(6)).toBeCloseTo(313.3, 1);
+  });
+  it('slow closing at a quarter waits for its two frames (0.08 s of film = 320 ms)', () => {
+    expect(filmStallMs(0.25)).toBe(620);
   });
 });

@@ -6,6 +6,7 @@ export {
   keyFrames,
   filmChapterOf,
   filmRate,
+  filmStallMs,
   filmTarget,
   touchFrameCount,
   type SceneFilm,
