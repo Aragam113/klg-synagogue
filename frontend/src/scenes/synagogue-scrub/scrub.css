@@ -105,7 +105,11 @@ html[data-motion='on'][data-touch] .scrub--live .scrub__canvas { will-change: tr
 .scrub__film { position: absolute; inset: 0; background: var(--deeper); }
 .scrub__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; }
 .scrub__video[data-on] { opacity: 1; }
-/* film: the chapter text follows the chapter the film plays into (transitions on data-current, not the scroll) */
+/* a jump over a long lag: the last frame frozen on top, fading out once the film is there */
+.scrub__snap { position: absolute; inset: 0; width: 100%; height: 100%; display: block; opacity: 0; pointer-events: none;
+  transition: opacity 0.18s ease-out; }
+.scrub__snap[data-on] { opacity: 1; transition: none; }
+/* film: the chapter text follows the camera (the chapter at the film position; transitions on data-current) */
 html[data-motion='on'] .scrub.scrub--live[data-mode='film'] .scrub__chapter {
   animation: none; opacity: 0; transform: translateY(1.5rem); transition: opacity 0.25s ease-in, transform 0.25s ease-in; }
 html[data-motion='on'] .scrub.scrub--live[data-mode='film'] .scrub__chapter[data-current='true'] {

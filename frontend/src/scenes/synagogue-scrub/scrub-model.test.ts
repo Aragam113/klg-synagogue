@@ -3,7 +3,9 @@ import {
   coverRect,
   frameIndex,
   improvesFrame,
-  filmMove,
+  filmChapterOf,
+  filmRate,
+  filmTarget,
   keyFrames,
   loadOrder,
   nearestLoaded,
@@ -214,22 +216,6 @@ describe('touchFrameCount — фазы сцены на телефоне (?s=1): 
   });
 });
 
-describe('filmMove — «кино по главам» (?s=2): куда и с какой скоростью играть', () => {
-  // 26 s, 4 chapters: holds 0 / 8.667 / 17.333 / 26
-  it('вперёд на одну главу — обычная скорость 1.75', () => {
-    expect(filmMove(0, 8.667, 26, 4)).toEqual({ dir: 1, rate: 1.75 });
-  });
-  it('назад на две главы — вдвое быстрее (3.5)', () => {
-    expect(filmMove(17.333, 0, 26, 4)).toEqual({ dir: -1, rate: 3.5 });
-  });
-  it('через три главы — не быстрее 3 × 1.75', () => {
-    expect(filmMove(0, 26, 26, 4).rate).toBeCloseTo(5.25, 5);
-  });
-  it('уже на месте (ближе 1/50 с) → стоять', () => {
-    expect(filmMove(8.66, 8.667, 26, 4)).toEqual({ dir: 0, rate: 0 });
-  });
-});
-
 describe('parseManifest — chapter film (?s=2)', () => {
   it('resolves the four files against the folder and keeps duration and holds', () => {
     const m = parseManifest(
@@ -264,5 +250,53 @@ describe('parseManifest — chapter film (?s=2)', () => {
         '/x/'
       )?.film
     ).toBeUndefined();
+  });
+});
+
+describe('filmTarget — «кино» (?s=2): куда показывает прокрутка, секунды фильма', () => {
+  // 26 s, 4 chapters: holds 0 / 8.667 / 17.333 / 26 at the chapter stops 0, 1.22/4, 2.22/4, 3.22/4
+  const holds = [0, 26 / 3, 52 / 3, 26];
+  it('на остановках глав — их стоянки', () => {
+    expect(filmTarget(0, holds)).toBe(0);
+    expect(filmTarget(1.22 / 4, holds)).toBeCloseTo(8.667, 3);
+    expect(filmTarget(2.22 / 4, holds)).toBeCloseTo(17.333, 3);
+    expect(filmTarget(3.22 / 4, holds)).toBeCloseTo(26, 3);
+  });
+  it('между остановками — линейно, с первых пикселей', () => {
+    // 0.18 of 0.305 of the way to the first stop → 8.667 × 0.18 / 0.305 = 5.115
+    expect(filmTarget(0.18, holds)).toBeCloseTo(5.115, 2);
+    expect(filmTarget(0.001, holds)).toBeGreaterThan(0);
+  });
+  it('после последней остановки и за краями — конец / начало', () => {
+    expect(filmTarget(0.95, holds)).toBe(26);
+    expect(filmTarget(-0.2, holds)).toBe(0);
+  });
+});
+
+describe('filmChapterOf — текст главы по фактической позиции камеры', () => {
+  const holds = [0, 26 / 3, 52 / 3, 26];
+  it('ближайшая стоянка', () => {
+    expect(filmChapterOf(4.3, holds)).toBe(0);
+    expect(filmChapterOf(4.4, holds)).toBe(1);
+    expect(filmChapterOf(25, holds)).toBe(3);
+  });
+});
+
+describe('filmRate — скорость камеры: скорость прокрутки + догонка (до ±6×)', () => {
+  it('стоит на месте, прокрутка стоит → 0', () => {
+    expect(filmRate(0, 0)).toBe(0);
+  });
+  it('отстаёт на 1 с → догоняет 4× (постоянная времени 0.25 с)', () => {
+    expect(filmRate(1, 0)).toBe(4);
+  });
+  it('прокрутка ведёт 2 с фильма в секунду → 2×', () => {
+    expect(filmRate(0, 2)).toBe(2);
+  });
+  it('назад: отставание −0.5 с при прокрутке −1 с/с → −3×', () => {
+    expect(filmRate(-0.5, -1)).toBe(-3);
+  });
+  it('не быстрее 6×', () => {
+    expect(filmRate(5, 3)).toBe(6);
+    expect(filmRate(-5, 0)).toBe(-6);
   });
 });

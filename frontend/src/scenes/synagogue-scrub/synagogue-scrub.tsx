@@ -7,12 +7,14 @@ import { motionAllowed, touchMode } from '@/ui/motion/engine';
 import { useScrollProgress } from '@/ui/motion/hooks';
 import { approach } from '@/ui/motion/touch-scroll';
 
+import { loadFilmBlobs } from './film-blobs';
 import { type Drawable, type FrameCache, startFrameCache } from './frame-cache';
 import { SceneFilm } from './scene-film';
 import {
   type Blend,
   blendCached,
   coverRect,
+  filmTarget,
   frameIndex,
   keyFrames,
   loadOrder,
@@ -61,6 +63,10 @@ const ALPHA_STEPS = 32;
 const PORTRAIT_MAX = 0.9;
 /** Touch frames: decoded at this height (540 px: 304×540 portrait, 960×540 landscape). */
 const TOUCH_H = 540;
+/** Film: frames shown on the canvas while the films download (the same camera, by filmTarget). */
+const FILM_FALLBACK_FRAMES = 40;
+/** Film: the preloader's scene share — the fallback frames weigh this much, the downloaded films the rest. */
+const FILM_FRAMES_SHARE = 0.25;
 /** Touch frames: the poster goes once every READY_STEP-th frame of the plan is decoded. */
 const READY_STEP = 8;
 /** Desktop: the preloader waits for this many frames (the start of the scene). */
@@ -132,6 +138,14 @@ export const SynagogueScrub = ({
   const [ready, setReady] = useState(false);
   const readyRef = useRef(false);
   const [all, setAll] = useState(false);
+  /** film: object URLs of the downloaded films, both decoded and on screen (the frame fallback goes), the camera's chapter */
+  const [filmUrls, setFilmUrls] = useState<string[] | null>(null);
+  const [filmReady, setFilmReady] = useState(false);
+  const [filmChapter, setFilmChapter] = useState(0);
+  const filmShare = useRef({ frames: 0, films: 0 });
+  /** film: frame position from the scroll on the fallback canvas follows the film's camera (filmTarget) */
+  const mapX = useRef<((p: number) => number) | null>(null);
+  const run = useRef(0);
   const n = chapters.length;
   const phone = motion && touch;
   const mode: Mode = !phone ? 'desk' : touchPick === 'film' && main?.film ? 'film' : 'frames';
@@ -198,7 +212,8 @@ export const SynagogueScrub = ({
     const fc = cache.current;
     if (!fc || !plan.current.length) return;
     const now = performance.now();
-    const xt = Math.min(1, Math.max(0, progress.current)) * (count.current - 1);
+    const pc = Math.min(1, Math.max(0, progress.current));
+    const xt = mapX.current ? mapX.current(pc) : pc * (count.current - 1);
     const resting = now - movedAt.current > REST_MS;
     let target = xt;
     if (resting) {
@@ -298,12 +313,25 @@ export const SynagogueScrub = ({
       reportLoad('scene', 1);
       return;
     }
-    if (mode === 'film') return;
+    // film: the frames only stand in until the films are in
+    if (mode === 'film' && filmReady) return;
     const N = m.frames.length;
-    const bitmaps = mode === 'frames';
-    const frames = bitmaps
-      ? keyFrames(N, touchFrameCount(deviceMemory()))
-      : Array.from({ length: N }, (_, i) => i);
+    const film = mode === 'film' ? main?.film : undefined;
+    const bitmaps = mode !== 'desk';
+    const frames = film
+      ? keyFrames(N, FILM_FALLBACK_FRAMES)
+      : bitmaps
+        ? keyFrames(N, touchFrameCount(deviceMemory()))
+        : Array.from({ length: N }, (_, i) => i);
+    mapX.current = film ? (p) => (filmTarget(p, film.holds) / film.duration) * (N - 1) : null;
+    const share = (fr: number) => {
+      if (!film) return reportLoad('scene', fr);
+      filmShare.current.frames = fr;
+      reportLoad(
+        'scene',
+        FILM_FRAMES_SHARE * fr + (1 - FILM_FRAMES_SHARE) * filmShare.current.films
+      );
+    };
     const resize = bitmaps
       ? { w: Math.round((TOUCH_H * m.width) / m.height), h: Math.min(TOUCH_H, m.height) }
       : undefined;
@@ -323,7 +351,7 @@ export const SynagogueScrub = ({
       el.dataset.cache = `0/${frames.length}`;
       delete el.dataset.cacheStop;
     }
-    reportLoad('scene', 0);
+    share(0);
     const fc = startFrameCache({
       urls: m.frames,
       plan: frames,
@@ -339,7 +367,7 @@ export const SynagogueScrub = ({
       onFrame: (f) => {
         const done = fc.settled();
         if (el) el.dataset.cache = `${done}/${frames.length}`;
-        reportLoad('scene', done / critical);
+        share(done / critical);
         if (firstPass.has(f)) firstLeft--;
         if (!readyRef.current && (firstLeft <= 0 || !bitmaps)) {
           readyRef.current = true;
@@ -354,10 +382,10 @@ export const SynagogueScrub = ({
         }
         // all in: neighbours only
         if (bitmaps) gap.current = undefined;
-        reportLoad('scene', 1);
+        share(1);
         readyRef.current = true;
         setReady(true);
-        setAll(true);
+        if (!film) setAll(true);
         draw();
       },
     });
@@ -368,23 +396,60 @@ export const SynagogueScrub = ({
       shownX.current = -1;
       if (cache.current === fc) cache.current = null;
     };
-  }, [m, kind, motion, mode, draw]);
+  }, [m, main, kind, motion, mode, filmReady, draw]);
 
-  // Film: the preloader waits only for its first frame.
+  // Film: both films downloaded whole while the preloader runs (with the same ceiling as the frames: the preloader
+  // lets the site in and they go on in the background); until they are in and decoded, the frames stand in.
+  const filmSrc =
+    mode === 'film' && main?.film
+      ? portrait
+        ? [main.film.p, main.film.pr]
+        : [main.film.l, main.film.lr]
+      : null;
+  const filmKey = filmSrc?.join('|') ?? '';
   useEffect(() => {
-    if (mode !== 'film') return;
-    readyRef.current = false;
-    setReady(false);
+    if (!filmKey) return;
+    const my = ++run.current;
+    setFilmUrls(null);
+    setFilmReady(false);
     setAll(false);
-    reportLoad('scene', 0);
-  }, [mode]);
+    filmShare.current = { frames: filmShare.current.frames, films: 0 };
+    const fb = loadFilmBlobs(filmKey.split('|'), (f) => {
+      filmShare.current.films = f;
+      reportLoad(
+        'scene',
+        FILM_FRAMES_SHARE * filmShare.current.frames + (1 - FILM_FRAMES_SHARE) * f
+      );
+    });
+    fb.done.then(
+      (urls) => {
+        if (run.current === my) setFilmUrls(urls);
+      },
+      () => {
+        if (run.current === my) setTouchPick('frames');
+      }
+    );
+    return () => fb.cancel();
+  }, [filmKey]);
   const onFilmReady = useCallback(() => {
     reportLoad('scene', 1);
     readyRef.current = true;
     setReady(true);
+    setFilmReady(true);
     setAll(true);
+    mapX.current = null;
   }, []);
   const onFilmFail = useCallback(() => setTouchPick('frames'), []);
+  /** the raw pinned progress (no lerp): the film follows the finger itself */
+  const rawProgress = useCallback(() => {
+    const el = root.current;
+    if (!el) return 0;
+    const sticky = el.querySelector<HTMLElement>('.scrub__sticky');
+    const r = el.getBoundingClientRect();
+    const runway = r.height - (sticky?.offsetHeight ?? 0);
+    return runway > 0 ? Math.min(1, Math.max(0, -r.top / runway)) : 0;
+  }, []);
+  const shownChapter = mode === 'film' && filmReady ? filmChapter : active;
 
   // Touch / reduced motion: the chapters are a swipe ribbon (scroll-snap) and the dots follow it.
   const ribbon = useRef<HTMLOListElement>(null);
@@ -400,7 +465,7 @@ export const SynagogueScrub = ({
     el.scrollTo({ left: rtl * i * el.clientWidth, behavior: 'smooth' });
   };
 
-  const poster = m ? m.frames[mode === 'film' ? 0 : m.poster] : null;
+  const poster = m ? m.frames[m.poster] : null;
   const film = mode === 'film' ? main?.film : undefined;
   return (
     <div
@@ -426,18 +491,21 @@ export const SynagogueScrub = ({
     >
       <div className="scrub__sticky">
         <div className="scrub__media">
-          {film && m ? (
+          {film && filmUrls ? (
             <SceneFilm
-              src={portrait ? film.p : film.l}
-              rev={portrait ? film.pr : film.lr}
+              src={filmUrls[0]}
+              rev={filmUrls[1]}
+              srcHttp={filmSrc?.[0] ?? ''}
+              revHttp={filmSrc?.[1] ?? ''}
               duration={film.duration}
               holds={film.holds}
-              chapter={active}
-              poster={poster ?? undefined}
+              progress={rawProgress}
               onReady={onFilmReady}
               onFail={onFilmFail}
+              onChapter={setFilmChapter}
             />
-          ) : motion && m ? (
+          ) : null}
+          {motion && m && !(film && filmReady) ? (
             <canvas
               ref={canvas}
               className="scrub__canvas"
@@ -456,7 +524,10 @@ export const SynagogueScrub = ({
         <div className="scrub__progress" aria-hidden />
         <div className="scrub__counter" aria-hidden>
           <span className="drum">
-            <span className="drum__reel" style={{ transform: `translateY(${-1.2 * active}em)` }}>
+            <span
+              className="drum__reel"
+              style={{ transform: `translateY(${-1.2 * shownChapter}em)` }}
+            >
               {chapters.map((c) => (
                 <span key={c.id}>{pad(chapters.indexOf(c) + 1)}</span>
               ))}
@@ -488,7 +559,7 @@ export const SynagogueScrub = ({
             <li
               key={c.id}
               className="scrub__chapter"
-              data-current={i === active}
+              data-current={i === shownChapter}
               style={{ ['--i' as string]: i }}
             >
               <span className="scrub__year">{c.label}</span>

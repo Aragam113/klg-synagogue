@@ -207,23 +207,46 @@ export const touchFrameCount = (deviceMemory: number | undefined): number => {
   return 54;
 };
 
-/** Phone scene, chapter film (?s=2): playback rate for one chapter of travel. */
-export const FILM_RATE = 1.75;
+/** Chapter stop inside a chapter: where the auto-settle lands going down (touch-scroll: local .22). */
+const STOP = 0.22;
 
 /**
- * Phone scene, chapter film (?s=2): from the film position `pos` to the chapter hold `target` (seconds of the forward
- * film, `duration` T, `chapters` holds 0…T): play forward (dir 1, the forward file) or back (dir −1, the reversed
- * file) at FILM_RATE per chapter of travel, faster for a longer jump (up to 3×); within 1/50 s — stay.
+ * Phone scene, film (?s=2): the film time the scroll points to, for the pinned progress `p` and the chapter holds
+ * (seconds, one per chapter, 0 … T). The chapter stops (0 for the first, (k + .22)/n after) map to the holds, the
+ * film runs linearly between them — every pixel of scroll moves the target, a chapter at rest is on its hold.
  */
-export const filmMove = (
-  pos: number,
-  target: number,
-  duration: number,
-  chapters: number
-): { dir: -1 | 0 | 1; rate: number } => {
-  const d = target - pos;
-  if (Math.abs(d) < 0.02) return { dir: 0, rate: 0 };
-  const step = duration / Math.max(1, chapters - 1);
-  const k = Math.min(3, Math.max(1, Math.round((Math.abs(d) / step) * 100) / 100));
-  return { dir: d > 0 ? 1 : -1, rate: Math.round(FILM_RATE * k * 1000) / 1000 };
+export const filmTarget = (p: number, holds: readonly number[]): number => {
+  const n = holds.length;
+  if (!n) return 0;
+  if (!(p > 0)) return holds[0];
+  let prevP = 0;
+  for (let k = 1; k < n; k++) {
+    const stop = (k + STOP) / n;
+    if (p <= stop) return holds[k - 1] + ((p - prevP) / (stop - prevP)) * (holds[k] - holds[k - 1]);
+    prevP = stop;
+  }
+  return holds[n - 1];
+};
+
+/** Phone scene, film: the chapter whose hold is nearest to the camera — its text is on screen. */
+export const filmChapterOf = (pos: number, holds: readonly number[]): number => {
+  let best = 0;
+  for (let k = 1; k < holds.length; k++)
+    if (Math.abs(holds[k] - pos) < Math.abs(holds[best] - pos)) best = k;
+  return best;
+};
+
+/** Phone scene, film: catch-up gain (1/s: a lag of 1 s of film adds 4× — a 0.25 s time constant) and the rate cap. */
+export const FILM_GAIN = 4;
+export const FILM_MAX_RATE = 6;
+
+/**
+ * Phone scene, film: the signed playback rate that keeps the camera on the scroll — the scroll's own pace in film
+ * seconds per second (`v`) plus a catch-up proportional to the lag `e` (target − camera), capped at ±FILM_MAX_RATE.
+ * Positive — the forward file, negative — the reversed one.
+ */
+export const filmRate = (e: number, v: number): number => {
+  const r = v + FILM_GAIN * e;
+  const c = Math.max(-FILM_MAX_RATE, Math.min(FILM_MAX_RATE, r));
+  return Math.abs(c) < 1e-9 ? 0 : Math.round(c * 1000) / 1000;
 };
