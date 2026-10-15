@@ -710,6 +710,14 @@ try {
           playing: v.map((x) => !x.paused),
           srcs: v.map((x) => (x.currentSrc || x.src || '').slice(0, 5)),
           chapter: cur ? +cur.style.getPropertyValue('--i') : -1,
+          // the topmost picture over the middle of the scene: the film itself, nothing (a poster) above it
+          top: (() => {
+            const m = s.querySelector('.scrub__media').getBoundingClientRect();
+            const el = document
+              .elementsFromPoint(m.left + m.width / 2, m.top + m.height * 0.3)
+              .find((e) => e.closest('.scrub__media') && /^(IMG|CANVAS|VIDEO)$/.test(e.tagName) && +getComputedStyle(e).opacity > 0);
+            return el ? `${el.tagName}${el.hasAttribute('data-on') ? ' on' : ''}${el.tagName === 'IMG' ? ` ${el.className}` : ''}` : 'none';
+          })(),
         };
       });
     const holds = main.film.holds;
@@ -719,6 +727,7 @@ try {
     const r0 = await read();
     check(r0.mode === 'film' && r0.media === 'film' && r0.loaded === 'all' && !r0.frames && r0.on[0] && !r0.on[1] && r0.srcs.every((x) => x === 'blob:' || x === 'http'),
       `${tag}: the default touch scene is the film, both files downloaded and decoded, the frames gone`, JSON.stringify(r0));
+    check(r0.top === 'VIDEO on', `${tag}: the film is what is seen — no poster or canvas above the playing video`, r0.top);
     // the first pixels of a gesture move the camera (finger held: no glide)
     await page.evaluate(() => window.dispatchEvent(new Event('touchstart')));
     await page.evaluate((g) => window.scrollTo(0, g.top + 40), geo);
@@ -741,6 +750,7 @@ try {
     await page.waitForFunction(() => { const f = document.querySelector('.scrub__film'); return f && Math.abs(+f.dataset.pos - +f.dataset.target) < 0.08; }, { timeout: 8000 }).catch(() => undefined);
     const r5 = await read();
     check(Math.abs(r5.pos - r5.target) < 0.08 && r5.chapter === nearest(r5.pos), `${tag}: back at rest where the scroll points`, JSON.stringify(r5));
+    check(r5.top === 'VIDEO on', `${tag}: after moving back the reversed film is what is seen`, r5.top);
     await page.evaluate(() => window.dispatchEvent(new Event('touchend')));
     await page.screenshot({ path: join(SHOTS, 'm5_scene_film_390.png') });
     await page.close();

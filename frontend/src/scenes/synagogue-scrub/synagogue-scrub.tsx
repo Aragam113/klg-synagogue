@@ -573,7 +573,9 @@ export const SynagogueScrub = ({
               onChapter={setFilmChapter}
             />
           ) : null}
-          {motion && m && !(film && filmReady) ? (
+          {/* a film on screen: nothing above it — until 2026-10-15 the static poster fell through to this branch
+              and covered the playing film (phones saw a still picture) */}
+          {film && filmReady ? null : motion && m ? (
             <canvas
               ref={canvas}
               className="scrub__canvas"
