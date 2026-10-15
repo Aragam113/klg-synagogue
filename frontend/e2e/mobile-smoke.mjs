@@ -17,8 +17,9 @@
  * background parallaxes — at 390×844 and 360×740; shots e2e/shots/g12_*.
  * Touch path (390×844): no Lenis, sticky in fixed px (the address bar does not move it). Scene as frames (?s=1): 120
  * frames of the portrait set decoded into bitmaps, crossfaded neighbours while moving, one whole frame at rest; a 1 GB
- * phone — 54 frames, landscape → the light 16:9 set. Scene as the chapter film (default): a chapter plays the film to
- * its hold, back up — the reversed file, it stops on the hold; landscape → the landscape file;
+ * phone — 54 frames, landscape → the light 16:9 set. Scene as the film (default): downloaded whole and decoded, the
+ * camera follows the scroll by playing it (the first pixels move it), back up — the reversed file, at rest where the
+ * scroll points, the text follows the camera; films not in yet → frames on the same camera; landscape → the landscape file;
  * auto-settle — only a rest between two chapters glides, along the movement, into the next/previous chapter
  * (m5_scene_snap_before/after), a touch cancels the glide, nothing is pulled at the entry/exit or outside the scene.
  * Desktop keeps the full set.
@@ -252,7 +253,9 @@ try {
     });
     check(before.rev !== 'true' && +before.op < 1, '390: Reveal waits below the fold', JSON.stringify(before));
     await page.evaluate(() => document.querySelector('#visit .reveal').scrollIntoView({ block: 'center' }));
-    await sleep(1400);
+    // IntersectionObserver callbacks come when the main thread is free (the scene films decode in the background)
+    await page.waitForFunction(() => document.querySelector('#visit .reveal')?.dataset.revealed === 'true', { timeout: 5000 }).catch(() => undefined);
+    await sleep(1000);
     const after = await page.evaluate(() => {
       const el = document.querySelector('#visit .reveal');
       return { rev: el.dataset.revealed ?? null, op: getComputedStyle(el).opacity };
@@ -286,12 +289,16 @@ try {
     check(geo.n === 4 && geo.h === h * 5 &&
       !(await page.evaluate(() => !!document.querySelector('#community [data-ribbon], #community .pinned__dot, .home-community--life1, .home-community--life2'))),
       `${tag}: pinned runway in fixed px (--vh-fix × (4+1)), one layout, no swipe ribbon`, JSON.stringify(geo));
-    const runway = geo.h - h;
     /** Scroll to a share of the runway and read the state; `hold` keeps a finger down (a synthetic touchstart) so the
      *  auto-settle leaves a passing state (the morph, the opened chapter 1) where it is. */
     const at = async (frac, { hold = false } = {}) => {
       if (hold) await page.evaluate(() => window.dispatchEvent(new Event('touchstart')));
-      await page.evaluate((y) => window.scrollTo(0, y), Math.round(geo.top + runway * frac));
+      // the section's top read again now: content above it may have changed height since the page opened
+      await page.evaluate((f) => {
+        const el = document.querySelector('#community .pinned');
+        const top = el.getBoundingClientRect().top + scrollY;
+        window.scrollTo(0, Math.round(top + (el.offsetHeight - innerHeight) * f));
+      }, frac);
       await sleep(1300);
       const r = await read();
       if (hold) await page.evaluate(() => window.dispatchEvent(new Event('touchend')));
@@ -531,7 +538,7 @@ try {
       }, p);
       await sleep(1200);
       return page.evaluate(() => {
-        const c = document.querySelector('.scrub canvas, .scrub__film');
+        const c = document.querySelector('canvas.scrub__canvas, .scrub__film');
         const st = document.querySelector('.scrub__sticky').getBoundingClientRect();
         const cur = document.querySelector('.scrub__chapter[data-current="true"]');
         return {
@@ -553,7 +560,7 @@ try {
     check(Math.abs(a.top) <= 1 && Math.abs(a.sh - h) <= 2, `${tag}: scene sticky at 100svh`, JSON.stringify(a));
     check(a.cw === w, `${tag}: scene picture fills the phone width`, String(a.cw));
     check(a.active !== b.active && a.op > 0.9 && b.op > 0.9, `${tag}: scene chapters enter/leave with scroll`, `${a.active}/${a.op} → ${b.active}/${b.op}`);
-    const sceneFrame = () => page.evaluate(() => { const c = document.querySelector('.scrub canvas, .scrub__film'); return c ? +(c.dataset.frame ?? c.dataset.target) : NaN; });
+    const sceneFrame = () => page.evaluate(() => { const c = document.querySelector('canvas.scrub__canvas, .scrub__film'); return c ? +(c.dataset.frame ?? c.dataset.target) : NaN; });
     const t1 = await sceneFrame();
     // c rests where the auto-settle left it: drag down into the scene
     await touchScroll(Math.round(h * 0.8));
@@ -617,7 +624,7 @@ try {
     );
     const read = () =>
       page.evaluate(() => {
-        const c = document.querySelector('.scrub canvas');
+        const c = document.querySelector('canvas.scrub__canvas');
         return {
           p: +document.querySelector('.scrub').style.getPropertyValue('--p'),
           f: +c.dataset.frame,
@@ -636,7 +643,7 @@ try {
     const r1 = await read();
     // while the page moves: a crossfade of neighbouring frames by the fractional position, every rAF
     const moving = await page.evaluate(async (g) => {
-      const c = document.querySelector('.scrub canvas');
+      const c = document.querySelector('canvas.scrub__canvas');
       const out = { alphas: new Set(), far: 0, n: 0 };
       for (let i = 0; i < 60; i++) {
         window.scrollTo(0, g.top + g.runway * 0.3625 + i * 3);
@@ -673,8 +680,9 @@ try {
   }
 
 
-  // ---- 4c-film. the default touch scene (390×844): the chapter film — crossing into a chapter plays the film to its
-  // hold in real time (forward file), back up — the reversed file; it stops on the hold; the text follows the chapter
+  // ---- 4c-film. the default touch scene (390×844): the film — downloaded whole, decoded at the spot, then the camera
+  // follows the scroll by playing it (the first pixels already move it), back up — the reversed file; it comes to rest
+  // where the scroll points; the chapter text follows the camera. Until the films are in, frames stand in (same camera).
   {
     const page = await open('/?lang=ru', 390, { height: 844 });
     const tag = '390 touch film';
@@ -693,42 +701,74 @@ try {
         return {
           mode: s.dataset.mode,
           media: s.dataset.media,
-          active: s.dataset.active,
+          loaded: s.dataset.loaded,
+          frames: !!s.querySelector('canvas.scrub__canvas'),
           pos: f ? +f.dataset.pos : NaN,
           target: f ? +f.dataset.target : NaN,
-          dir: f ? +(f.dataset.dir ?? 0) : NaN,
+          rate: f ? +(f.dataset.rate ?? 0) : NaN,
           on: v.map((x) => x.hasAttribute('data-on')),
           playing: v.map((x) => !x.paused),
-          src: v.map((x) => (x.currentSrc || '').split('/').pop()),
-          op: cur ? +(+getComputedStyle(cur).opacity).toFixed(2) : 0,
+          srcs: v.map((x) => (x.currentSrc || x.src || '').slice(0, 5)),
+          chapter: cur ? +cur.style.getPropertyValue('--i') : -1,
         };
       });
-    const r0 = await read();
-    check(r0.mode === 'film' && r0.media === 'film' && r0.src[0] === 'scene-p.mp4' && r0.on[0] && !r0.on[1],
-      `${tag}: the default touch scene is the chapter film (portrait file shown)`, JSON.stringify(r0));
     const holds = main.film.holds;
-    // into chapter 2 (finger held: no glide), the film plays forward
+    const nearest = (t) => holds.reduce((b, h, k) => (Math.abs(h - t) < Math.abs(holds[b] - t) ? k : b), 0);
+    await page.evaluate((g) => window.scrollTo(0, g.top), geo);
+    await sleep(800);
+    const r0 = await read();
+    check(r0.mode === 'film' && r0.media === 'film' && r0.loaded === 'all' && !r0.frames && r0.on[0] && !r0.on[1] && r0.srcs.every((x) => x === 'blob:' || x === 'http'),
+      `${tag}: the default touch scene is the film, both files downloaded and decoded, the frames gone`, JSON.stringify(r0));
+    // the first pixels of a gesture move the camera (finger held: no glide)
     await page.evaluate(() => window.dispatchEvent(new Event('touchstart')));
-    await page.evaluate((g) => window.scrollTo(0, g.top + g.runway * 0.3), geo);
-    await sleep(700);
+    await page.evaluate((g) => window.scrollTo(0, g.top + 40), geo);
+    await sleep(250);
     const r1 = await read();
-    check(r1.active === '1' && r1.target === +holds[1].toFixed(2) && r1.dir === 1 && r1.playing[0] && r1.pos > 0,
-      `${tag}: crossing into chapter 2 plays the film forward toward its hold`, JSON.stringify(r1));
-    await page.waitForFunction(() => document.querySelector('.scrub__film')?.dataset.dir === '0', { timeout: 15000 }).catch(() => undefined);
+    check(r1.target > 0 && r1.pos > 0 && r1.on[0], `${tag}: 40 px of scroll already move the camera`, JSON.stringify(r1));
+    // into chapter 2: the camera plays forward and comes to rest where the scroll points
+    await page.evaluate((g) => window.scrollTo(0, g.top + g.runway * 0.3), geo);
+    await sleep(120);
     const r2 = await read();
-    check(r2.dir === 0 && Math.abs(r2.pos - holds[1]) < 0.06 && !r2.playing[0] && r2.op > 0.9,
-      `${tag}: the film stops on the chapter hold, chapter 2 text in`, JSON.stringify(r2));
-    // back into chapter 1: the reversed file, shown at the mirrored position
-    await page.evaluate((g) => window.scrollTo(0, g.top + g.runway * 0.05), geo);
-    await sleep(900);
+    check((r2.rate > 0 || r2.pos > r1.pos + 0.5) && r2.on[0], `${tag}: scrolling down moves the camera forward (plays it, or a short jump for a far scroll)`, JSON.stringify(r2));
+    await page.waitForFunction(() => { const f = document.querySelector('.scrub__film'); return f && Math.abs(+f.dataset.pos - +f.dataset.target) < 0.08; }, { timeout: 8000 }).catch(() => undefined);
     const r3 = await read();
-    check(r3.active === '0' && r3.dir === -1 && r3.on[1] && !r3.on[0] && r3.playing[1] && r3.src[1] === 'scene-p-rev.mp4' && r3.pos < holds[1],
-      `${tag}: back up plays the reversed film`, JSON.stringify(r3));
-    await page.waitForFunction(() => document.querySelector('.scrub__film')?.dataset.dir === '0', { timeout: 15000 }).catch(() => undefined);
+    check(Math.abs(r3.pos - r3.target) < 0.08 && r3.chapter === nearest(r3.pos), `${tag}: the camera comes to rest where the scroll points, the chapter text follows the camera`, JSON.stringify(r3));
+    // back up: the reversed file
+    await page.evaluate((g) => window.scrollTo(0, g.top + g.runway * 0.05), geo);
+    await sleep(500);
     const r4 = await read();
-    check(r4.dir === 0 && Math.abs(r4.pos - holds[0]) < 0.06, `${tag}: back at the first hold`, JSON.stringify(r4));
+    check(r4.on[1] && !r4.on[0] && r4.pos < r3.pos, `${tag}: back up plays the reversed film`, JSON.stringify(r4));
+    await page.waitForFunction(() => { const f = document.querySelector('.scrub__film'); return f && Math.abs(+f.dataset.pos - +f.dataset.target) < 0.08; }, { timeout: 8000 }).catch(() => undefined);
+    const r5 = await read();
+    check(Math.abs(r5.pos - r5.target) < 0.08 && r5.chapter === nearest(r5.pos), `${tag}: back at rest where the scroll points`, JSON.stringify(r5));
     await page.evaluate(() => window.dispatchEvent(new Event('touchend')));
     await page.screenshot({ path: join(SHOTS, 'm5_scene_film_390.png') });
+    await page.close();
+  }
+  // the films not in yet (download blocked): frames stand in and follow the same camera
+  {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+    await page.evaluateOnNewDocument(() => localStorage.setItem('synagogue.cookieConsent', '1'));
+    await page.setRequestInterception(true);
+    page.on('request', (r) => (/\/scrub\/v\/.*\.mp4/.test(r.url()) ? undefined : r.continue().catch(() => undefined)));
+    await page.goto(`${WEB}/?lang=ru`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+    await page.waitForFunction(() => document.querySelector('.scrub')?.dataset.pass === 'coarse', { timeout: 40000 }).catch(() => undefined);
+    const at = async (f) => {
+      await page.evaluate((v) => {
+        const s = document.querySelector('.scrub');
+        window.scrollTo(0, s.getBoundingClientRect().top + scrollY + v * (s.offsetHeight - innerHeight));
+      }, f);
+      await sleep(900);
+      return page.evaluate(() => {
+        const s = document.querySelector('.scrub');
+        const c = s.querySelector('canvas.scrub__canvas');
+        return { mode: s.dataset.mode, video: !!s.querySelector('video'), frame: c ? +c.dataset.frame : null, frames: c ? +c.dataset.frames : 0 };
+      });
+    };
+    const a = await at(0.1);
+    const b2 = await at(0.6);
+    check(a.mode === 'film' && !a.video && a.frame !== null && b2.frame > a.frame, '390 film, films not in: frames stand in and follow the scroll', JSON.stringify([a, b2]));
     await page.close();
   }
 
@@ -755,9 +795,9 @@ try {
       await sleep(1200);
       const st = await page.evaluate(() => {
         const d = document.querySelector('.scrub').dataset;
-        const c = document.querySelector('.scrub canvas');
+        const c = document.querySelector('canvas.scrub__canvas');
         const v = document.querySelector('.scrub video');
-        return { mode: d.mode, set: d.set, cache: d.cache, loaded: d.loaded, frame: c ? +c.dataset.frame : null, frames: c ? +c.dataset.frames : 0, film: v ? (v.currentSrc || '').split('/').pop() : null };
+        return { mode: d.mode, set: d.set, cache: d.cache, loaded: d.loaded, frame: c ? +c.dataset.frame : null, frames: c ? +c.dataset.frames : 0, film: v ? v.dataset.file ?? null : null };
       });
       const ok =
         tag === '390 weak'

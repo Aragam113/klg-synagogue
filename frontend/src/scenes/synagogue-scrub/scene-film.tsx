@@ -1,209 +1,445 @@
 import { useEffect, useRef } from 'react';
 
-import { filmMove } from './scrub-model';
+import { filmChapterOf, filmRate, filmTarget } from './scrub-model';
 
 export interface SceneFilmProps {
-  /** forward and reversed film (the same segment), seconds `duration` */
+  /** forward and reversed film (the same segment, object URLs of the downloaded files), `duration` seconds */
   src: string;
   rev: string;
+  /** the same films by their http URLs: a player that cannot open an object URL plays these (from the HTTP cache) */
+  srcHttp: string;
+  revHttp: string;
   duration: number;
   /** chapter holds, seconds of the forward film */
   holds: number[];
-  /** the chapter the scroll is in: the film plays to its hold */
-  chapter: number;
-  /** first frame while the film loads */
-  poster?: string;
-  /** the first frame of the film is on screen */
+  /** the pinned progress where the scroll is now (raw, not eased) */
+  progress: () => number;
+  /** both films decoded at the scroll's spot, a frame on screen — the frame fallback may go */
   onReady: () => void;
-  /** the browser refused to play (iOS low-power mode, no codec): the scene falls back to frames */
+  /** the browser refused to play (iOS low-power mode, no codec): the scene stays on frames */
   onFail: () => void;
+  /** the chapter at the camera (filmChapterOf) changed: its text goes on screen */
+  onChapter: (k: number) => void;
 }
 
-type Video = HTMLVideoElement & {
-  requestVideoFrameCallback?: (cb: (now: number, meta: { mediaTime: number }) => void) => number;
-  cancelVideoFrameCallback?: (id: number) => void;
-};
+type Video = HTMLVideoElement;
+/** requestVideoFrameCallback where the browser has it (Chrome, Safari 15.4+). */
+const hasRvfc = (v: Video) =>
+  typeof (v as { requestVideoFrameCallback?: unknown }).requestVideoFrameCallback === 'function';
 
-/** Seconds from a hold at which the film counts as arrived (half a 25 fps frame). */
-const ARRIVED = 0.02;
+/** The scroll stands still this long → its pace counts as 0 (the camera just closes the lag). */
+const REST_MS = 120;
+/** Scroll pace (film s/s) is an average over about this long. */
+const PACE_MS = 120;
+/** A lag past this (film seconds) is closed by a jump with a short crossfade instead of a long chase. */
+const JUMP_S = 1.5;
+/** …landing this far behind the target, so the camera still moves into it. */
+const JUMP_LEAD_S = 0.3;
+const JUMP_GAP_MS = 400;
+/** Closer than this (film s) with the scroll still → stand. */
+const AT_S = 0.03;
+/** Turn the other way only when the scroll itself goes back (pace past TURN_PACE film s/s) or the camera overshot by
+ *  more than TURN_LAG s; a smaller overshoot just stands during a gesture (a turn for a few frames reads as jitter)
+ *  and is corrected once the scroll rests. */
+const TURN_PACE = 0.2;
+const TURN_LAG = 0.25;
+/** playbackRate in steps of 1/4 (a rate change per frame stutters in some players), at least 1/4. */
+const RATE_STEP = 0.25;
+/** A finger down: the shown film already plays this slowly (a 16th — the camera does not visibly move), so the first
+ *  pixels of the gesture only change the rate of a running player instead of starting one (~80 ms on a phone). */
+const PRIMED_RATE = 0.0625;
+/** playbackRate changes: at least this big, at most this often. */
+const RATE_JUMP = 0.5;
+const RATE_MS = 150;
+/** The hidden film is kept at the mirrored spot this often, so turning around needs (almost) no seek. */
+const SYNC_MS = 350;
+
+/** While a gesture moves the camera it plays at least at 1× — slower, the next frame (1/25 s of film) would come too
+ *  late to answer the finger (at 1/4× — 160 ms); an overshoot is stood out. At rest the closing can be gentle. */
+const MOVE_MIN_RATE = 1;
+const quant = (r: number, min = RATE_STEP) =>
+  Math.max(min, Math.round(Math.abs(r) / RATE_STEP) * RATE_STEP);
+const seekTo = (v: Video, t: number) =>
+  new Promise<void>((done) => {
+    if (Math.abs(v.currentTime - t) < 0.02 && !v.seeking) return done();
+    v.addEventListener('seeked', () => done(), { once: true });
+    v.currentTime = t;
+  });
+/** First frame decodable; an object URL the player refuses is swapped for the http one once. */
+const loaded = (v: Video, http: string) =>
+  new Promise<void>((done, fail) => {
+    if (v.readyState >= 2) return done();
+    const ok = () => {
+      v.removeEventListener('error', bad);
+      done();
+    };
+    const bad = () => {
+      if (v.src.startsWith('blob:') && http) {
+        v.src = http;
+        v.load();
+        return;
+      }
+      v.removeEventListener('loadeddata', ok);
+      v.removeEventListener('error', bad);
+      fail(new Error('film'));
+    };
+    v.addEventListener('loadeddata', ok, { once: true });
+    v.addEventListener('error', bad);
+  });
+/** The next presented frame (rVFC), or a short timer (no rVFC, or a paused film that presents nothing new). */
+const nextFrame = (v: Video, maxMs = 150) =>
+  new Promise<void>((done) => {
+    const t = setTimeout(done, hasRvfc(v) ? maxMs : 40);
+    if (hasRvfc(v))
+      v.requestVideoFrameCallback(() => {
+        clearTimeout(t);
+        done();
+      });
+  });
 
 /**
- * Phone scene, «chapter film» (?s=2): the scroll does not scrub the film — crossing into a chapter plays the film in
- * real time (hardware decoder, the browser's own frame pacing) from where it is to that chapter's hold, at
- * FILM_RATE per chapter (filmMove); back up — the reversed file plays the same way (no backward decoding). Two stacked
- * `<video>` (forward, reversed), one shown (`data-on`); a switch of direction seeks the other one to the mirrored
- * position first and shows it only once that frame is ready — never a blank frame. The first sync jumps straight to
- * the hold. Containers: `data-pos` (seconds of the forward film), `data-dir` (1 | -1 | 0), `data-target`.
+ * Phone scene, film (?s=2): the camera follows the scroll by PLAYING the film, never by seeking it frame by frame.
+ * Every rAF the target is where the scroll points (filmTarget of the raw progress — the first pixels of a gesture
+ * already move it); the playback rate is the scroll's pace plus a catch-up on the lag (filmRate, ±6×, quarter steps):
+ * the hardware decoder and the browser's own frame pacing keep the motion smooth. Scrolling back plays the reversed
+ * file from the mirrored spot (the hidden film is kept there every SYNC_MS, so the turn needs almost no seek; it is
+ * shown on its first presented frame — never a blank one). A lag past JUMP_S (a fling) jumps near the target under a
+ * short crossfade from a snapshot. At rest the camera stands where the scroll points — on the chapter hold once the
+ * page settles on a chapter stop; the chapter text follows the camera (onChapter). Both films come as object URLs (downloaded whole) and are warmed up (decoded at the spot) before
+ * onReady. Container: `data-pos`, `data-target` (film seconds), `data-rate` (signed playbackRate, 0 — standing).
  */
 export const SceneFilm = ({
   src,
   rev,
+  srcHttp,
+  revHttp,
   duration,
   holds,
-  chapter,
-  poster,
+  progress,
   onReady,
   onFail,
+  onChapter,
 }: SceneFilmProps) => {
   const box = useRef<HTMLDivElement>(null);
   const fwd = useRef<Video>(null);
   const bwd = useRef<Video>(null);
-  const shown = useRef<'f' | 'r'>('f');
-  const gen = useRef(0);
-  const synced = useRef(false);
-  /** a chapter run is playing (the first-frame nudge must not pause it) */
-  const running = useRef(false);
-  const cb = useRef({ onReady, onFail });
-  cb.current = { onReady, onFail };
-
-  useEffect(() => {
-    const f = fwd.current;
-    const r = bwd.current;
-    if (!f || !r) return undefined;
-    let ready = false;
-    const first = () => {
-      if (ready) return;
-      ready = true;
-      cb.current.onReady();
-      // the reversed film only once the forward one plays
-      if (!r.getAttribute('src')) {
-        r.src = rev;
-        r.load();
-      }
-    };
-    const fail = () => cb.current.onFail();
-    // iOS may load only the metadata (preload is a hint): any sign of a frame counts
-    const EVENTS = ['loadeddata', 'canplay', 'playing', 'seeked'];
-    EVENTS.forEach((e) => f.addEventListener(e, first));
-    f.addEventListener('error', fail);
-    if (f.readyState >= 2) first();
-    // still no frame after a while: a muted play + pause decodes the first one — and tells early when the browser
-    // refuses to play at all (iOS low-power mode), so the scene falls back to frames before anyone scrolls to it
-    const nudge = window.setTimeout(() => {
-      if (ready || f.readyState >= 2) return;
-      f.play().then(() => {
-        if (!running.current) f.pause();
-      }, fail);
-    }, 1500);
-    return () => {
-      window.clearTimeout(nudge);
-      EVENTS.forEach((e) => f.removeEventListener(e, first));
-      f.removeEventListener('error', fail);
-    };
-  }, [rev]);
+  const snap = useRef<HTMLCanvasElement>(null);
+  const cb = useRef({ onReady, onFail, onChapter, progress, http: [srcHttp, revHttp] });
+  cb.current = { onReady, onFail, onChapter, progress, http: [srcHttp, revHttp] };
 
   useEffect(() => {
     const f = fwd.current;
     const r = bwd.current;
     const el = box.current;
-    if (!f || !r || !el) return;
-    const target = holds[Math.max(0, Math.min(holds.length - 1, chapter))] ?? 0;
-    const my = ++gen.current;
-    const alive = () => my === gen.current;
-    const pos = () => (shown.current === 'f' ? f.currentTime : duration - r.currentTime);
-    const show = (which: 'f' | 'r') => {
-      shown.current = which;
-      f.toggleAttribute('data-on', which === 'f');
-      r.toggleAttribute('data-on', which === 'r');
+    const shot = snap.current;
+    if (!f || !r || !el || !shot) return undefined;
+    const T = duration;
+    let gone = false;
+    let raf = 0;
+    let ready = false;
+    let shown: 'f' | 'r' = 'f';
+    let busy = false;
+    let lastT = 0;
+    let lastRaw = -1;
+    let pace = 0;
+    /** the scroll's direction over the last two frames (±1; 0 — not moving): a turn needs no averaging */
+    let dirNow = 0;
+    let lastDir = 0;
+    let movedAt = 0;
+    let lastJump = -1e9;
+    let rateAt = 0;
+    let syncAt = 0;
+    let chapter = -1;
+    let near = true;
+    /** standing on the hold with the scroll still since… (the loop sleeps then; a scroll wakes it) */
+    let stillAt = 0;
+    let finger = false;
+    const vid = (w: 'f' | 'r') => (w === 'f' ? f : r);
+    const pos = () => (shown === 'f' ? f.currentTime : T - r.currentTime);
+    const local = (w: 'f' | 'r', t: number) => Math.max(0, Math.min(T, w === 'f' ? t : T - t));
+    const show = (w: 'f' | 'r') => {
+      shown = w;
+      f.toggleAttribute('data-on', w === 'f');
+      r.toggleAttribute('data-on', w === 'r');
     };
-    const seekTo = (v: Video, t: number) =>
-      new Promise<void>((done) => {
-        const go = () => {
-          if (Math.abs(v.currentTime - t) < 0.001) return done();
-          v.addEventListener('seeked', () => done(), { once: true });
-          v.currentTime = t;
-        };
-        if (v.readyState >= 1) go();
-        else v.addEventListener('loadedmetadata', go, { once: true });
+    const play = (v: Video) => {
+      if (!v.paused) return;
+      v.play().catch(() => {
+        if (!gone) cb.current.onFail();
       });
-    el.dataset.target = target.toFixed(2);
-    if (!synced.current) {
-      // the first sync (load, reload mid-scene): straight to the hold, no playback
-      synced.current = true;
-      void seekTo(f, target).then(() => {
-        if (alive()) el.dataset.pos = target.toFixed(2);
-      });
-      return;
-    }
-    const run = async () => {
-      const { dir, rate } = filmMove(pos(), target, duration, holds.length);
-      el.dataset.dir = String(dir);
-      if (dir === 0) {
-        f.pause();
-        r.pause();
-        return;
-      }
-      const want: 'f' | 'r' = dir > 0 ? 'f' : 'r';
-      const v = want === 'f' ? f : r;
-      const other = want === 'f' ? r : f;
-      if (shown.current !== want) {
-        // turn around: the other file at the mirrored position, shown once its frame is there
-        const at = duration - (shown.current === 'f' ? f.currentTime : r.currentTime);
-        other.pause();
-        await seekTo(v, Math.max(0, Math.min(duration, at)));
-        if (!alive()) return;
-        show(want);
-      }
-      const end = want === 'f' ? target : duration - target;
-      v.playbackRate = rate;
-      running.current = true;
+    };
+
+    /** Turn around: the other film at the mirrored spot, shown on its first frame, then it plays. */
+    const turn = async (w: 'f' | 'r', rate: number) => {
+      busy = true;
+      const v = vid(w);
+      const old = vid(shown);
+      const at = local(w, pos());
+      // the old film stands on its frame while the other one gets there; one already running near the spot (primed
+      // by the finger) is not seeked at all — it is shown on its next frame
+      old.pause();
+      if (v.paused || Math.abs(v.currentTime - at) > 0.15) await seekTo(v, at);
+      if (gone) return;
+      v.playbackRate = quant(rate, MOVE_MIN_RATE);
+      play(v);
+      await nextFrame(v);
+      if (gone) return;
+      show(w);
+      old.pause();
+      busy = false;
+    };
+
+    /** A long lag: freeze the current frame on a canvas, jump the film near the target, fade the snapshot out. */
+    const jump = async (to: number) => {
+      busy = true;
+      const v = vid(shown);
       try {
-        await v.play();
+        const w = el.clientWidth;
+        const h = el.clientHeight;
+        if (shot.width !== w || shot.height !== h) {
+          shot.width = w;
+          shot.height = h;
+        }
+        const ctx = shot.getContext('2d');
+        if (ctx && v.videoWidth) {
+          const k = Math.max(w / v.videoWidth, h / v.videoHeight);
+          ctx.drawImage(
+            v,
+            (w - v.videoWidth * k) / 2,
+            (h - v.videoHeight * k) / 2,
+            v.videoWidth * k,
+            v.videoHeight * k
+          );
+          shot.dataset.on = '';
+        }
       } catch {
-        running.current = false;
-        if (alive()) cb.current.onFail();
-        return;
+        // a snapshot is only cosmetics
       }
-      let stopAt = 0;
-      const stop = () => {
-        if (!alive()) return;
-        running.current = false;
-        v.pause();
-        // a frame callback can come late (Safari): never stand past the hold
-        if (Math.abs(v.currentTime - end) > 0.04) v.currentTime = end;
-        el.dataset.pos = target.toFixed(2);
-        el.dataset.dir = '0';
-      };
-      const tick = (t: number) => {
-        if (!alive()) return;
-        el.dataset.pos = (want === 'f' ? t : duration - t).toFixed(2);
-        if (t >= end - ARRIVED || v.ended) return stop();
-        // the last stretch: pause on a timer at the very moment the hold comes up
-        const leftMs = ((end - t) / rate) * 1000;
-        if (leftMs < 150 && !stopAt) stopAt = window.setTimeout(stop, Math.max(0, leftMs - 8));
-        watch();
-      };
-      const watch = () => {
-        if (v.requestVideoFrameCallback)
-          v.requestVideoFrameCallback((_, meta) => tick(meta.mediaTime));
-        else requestAnimationFrame(() => tick(v.currentTime));
-      };
-      watch();
+      await seekTo(v, local(shown, to));
+      await nextFrame(v);
+      if (gone) return;
+      delete shot.dataset.on;
+      busy = false;
     };
-    void run();
-  }, [chapter, duration, holds]);
+
+    const tick = (t: number) => {
+      raf = 0;
+      if (gone) return;
+      const dt = lastT ? Math.min(100, t - lastT) : 16.7;
+      lastT = t;
+      const raw = filmTarget(cb.current.progress(), holds);
+      if (lastRaw < 0) lastRaw = raw;
+      if (raw !== lastRaw) movedAt = t;
+      const dRaw = Math.sign(raw - lastRaw);
+      dirNow = dRaw === 0 ? 0 : dRaw === lastDir ? dRaw : dirNow;
+      lastDir = dRaw;
+      pace += ((raw - lastRaw) / (dt / 1000) - pace) * Math.min(1, dt / PACE_MS);
+      lastRaw = raw;
+      // the camera goes where the scroll points; at rest that is a chapter hold whenever the page rests on a chapter
+      // stop (the engine's auto-settle glides there between chapters)
+      const resting = t - movedAt > REST_MS;
+      const target = raw;
+      const v = resting ? 0 : pace;
+      const at = pos();
+      const e = target - at;
+      const k = filmChapterOf(at, holds);
+      if (k !== chapter) {
+        chapter = k;
+        cb.current.onChapter(k);
+      }
+      el.dataset.pos = at.toFixed(2);
+      el.dataset.target = target.toFixed(2);
+      if (!busy) {
+        const cur = vid(shown);
+        const rate = filmRate(e, v);
+        /** stand: while a gesture is on (finger or scroll moving) idle-play at a 16th — a pause / play cycle would
+         *  restart the player (a ~80 ms gap) on every small overshoot; at rest really pause */
+        const stand = () => {
+          el.dataset.rate = '0';
+          if ((finger || !resting) && cur.currentTime < T - 0.05) {
+            if (cur.playbackRate !== PRIMED_RATE) cur.playbackRate = PRIMED_RATE;
+            play(cur);
+          } else {
+            cur.pause();
+            if (!stillAt) stillAt = t;
+          }
+        };
+        if (Math.abs(e) > JUMP_S && t - lastJump > JUMP_GAP_MS) {
+          lastJump = t;
+          void jump(target - Math.sign(e) * JUMP_LEAD_S);
+        } else if (
+          Math.abs(e) < AT_S &&
+          Math.abs(v) < 0.05 &&
+          // a finger turning the scroll back does not wait for a whole frame of lag: the turn starts at once
+          !(
+            finger &&
+            dirNow !== 0 &&
+            dirNow !== (shown === 'f' ? 1 : -1) &&
+            Math.sign(e) === dirNow
+          )
+        ) {
+          stand();
+        } else {
+          stillAt = 0;
+          const w: 'f' | 'r' = rate > 0 ? 'f' : 'r';
+          if (w !== shown) {
+            if (
+              dirNow === Math.sign(rate) ||
+              (Math.sign(v) === Math.sign(rate)
+                ? Math.abs(v) > TURN_PACE
+                : Math.abs(e) > (resting && !finger ? 2 * AT_S : TURN_LAG))
+            ) {
+              el.dataset.rate = String(rate);
+              void turn(w, rate);
+            } else stand();
+          } else if (cur.currentTime >= T - 0.05) {
+            // the end of this file (the film's end forward, its start backward): stand — a play() here would restart it
+            cur.pause();
+            el.dataset.rate = '0';
+          } else if (rate !== 0) {
+            const q = quant(rate, finger || !resting ? MOVE_MIN_RATE : RATE_STEP);
+            // a rate change costs the player a hiccup: only a clear one, at most every RATE_MS
+            const primed = cur.playbackRate === PRIMED_RATE;
+            // slowing down is held back less (it is what stops an overshoot)
+            const slower = q <= cur.playbackRate - RATE_STEP && t - rateAt > 60;
+            if (
+              primed ||
+              slower ||
+              (Math.abs(q - cur.playbackRate) >= RATE_JUMP && t - rateAt > RATE_MS)
+            ) {
+              cur.playbackRate = q;
+              rateAt = t;
+            }
+            play(cur);
+            el.dataset.rate = String(Math.sign(rate) * q);
+          }
+        }
+        // keep the hidden film at the mirrored spot: a turn then starts at once
+        const other = vid(shown === 'f' ? 'r' : 'f');
+        // only while the shown one stands: a seek next to a playing film costs it frames (decoder contention)
+        if (!busy && cur.paused && t - syncAt > SYNC_MS && !other.seeking && other.paused) {
+          syncAt = t;
+          const want = local(shown === 'f' ? 'r' : 'f', at);
+          if (Math.abs(other.currentTime - want) > 0.1) other.currentTime = want;
+        }
+      }
+      // asleep when far from the screen, or standing on the hold with the scroll still for half a second
+      const asleep = (!near || (stillAt && t - stillAt > 500)) && f.paused && r.paused && !busy;
+      if (!asleep) raf = requestAnimationFrame(tick);
+    };
+    const run = () => {
+      stillAt = 0;
+      if (!raf && ready && !gone) raf = requestAnimationFrame(tick);
+    };
+    const onScroll = () => {
+      if (near) run();
+    };
+    const onDown = (ev: Event) => {
+      finger = true;
+      onScroll();
+      // prime the players at once (not on the next frame): whichever way the gesture goes, the film for it is already
+      // running at a 16th — the first pixels only change its rate (a film at its own end is left alone: it can only
+      // be needed the other way)
+      if (!ready || !near || busy || (ev as TouchEvent).touches?.length === 2) return;
+      const at = pos();
+      for (const w of ['f', 'r'] as const) {
+        const v = vid(w);
+        const want = local(w, at);
+        if (!v.paused || v.seeking || want >= T - 0.05) continue;
+        if (w !== shown && Math.abs(v.currentTime - want) > 0.05) v.currentTime = want;
+        v.playbackRate = PRIMED_RATE;
+        play(v);
+      }
+    };
+    const onUp = (ev: Event) => {
+      if ((ev as TouchEvent).touches?.length) return;
+      finger = false;
+      // the hidden one stops idling (it is kept at the mirrored spot again once the camera stands)
+      if (!busy) vid(shown === 'f' ? 'r' : 'f').pause();
+      onScroll();
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('touchstart', onDown, { passive: true, capture: true });
+    window.addEventListener('touchend', onUp, { passive: true, capture: true });
+    window.addEventListener('touchcancel', onUp, { passive: true, capture: true });
+
+    // the film plays only while the scene is near the screen
+    const io =
+      typeof IntersectionObserver === 'function'
+        ? new IntersectionObserver(
+            (list) => {
+              near = list.some((x) => x.isIntersecting);
+              if (near) run();
+              else {
+                f.pause();
+                r.pause();
+              }
+            },
+            { rootMargin: '50% 0px 50% 0px' }
+          )
+        : null;
+    io?.observe(el);
+
+    // warm-up: both films decoded at the scroll's spot (a muted play + pause), then ready
+    (async () => {
+      try {
+        await Promise.all([loaded(f, cb.current.http[0]), loaded(r, cb.current.http[1])]);
+        const at = filmTarget(cb.current.progress(), holds);
+        // warm each decoder away from the file's very end (a play there just ends — or restarts it at 0)
+        const inside = (t: number) => Math.min(T - 0.2, Math.max(0.05, t));
+        await Promise.all([seekTo(f, inside(local('f', at))), seekTo(r, inside(local('r', at)))]);
+        for (const v of [f, r]) {
+          await Promise.race([v.play(), new Promise((ok) => setTimeout(ok, 600))]);
+          v.pause();
+        }
+        await Promise.all([seekTo(f, local('f', at)), seekTo(r, local('r', at))]);
+        await nextFrame(f).catch(() => undefined);
+        if (gone) return;
+        show('f');
+        ready = true;
+        cb.current.onReady();
+        run();
+      } catch {
+        if (!gone) cb.current.onFail();
+      }
+    })();
+
+    return () => {
+      gone = true;
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('touchstart', onDown, { capture: true });
+      window.removeEventListener('touchend', onUp, { capture: true });
+      window.removeEventListener('touchcancel', onUp, { capture: true });
+      io?.disconnect();
+      f.pause();
+      r.pause();
+    };
+  }, [src, rev, duration, holds]);
 
   return (
     <div className="scrub__film" ref={box} data-pos="0">
       <video
         ref={fwd}
+        data-file={srcHttp.split('/').pop()}
         className="scrub__video"
         src={src}
-        poster={poster}
         muted
         playsInline
         preload="auto"
         disableRemotePlayback
-        data-on=""
       />
       <video
         ref={bwd}
+        data-file={revHttp.split('/').pop()}
         className="scrub__video"
+        src={rev}
         muted
         playsInline
         preload="auto"
         disableRemotePlayback
       />
+      <canvas ref={snap} className="scrub__snap" aria-hidden />
     </div>
   );
 };
