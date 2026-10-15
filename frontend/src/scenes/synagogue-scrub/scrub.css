@@ -114,3 +114,6 @@ html[data-motion='on'] .scrub.scrub--live[data-mode='film'] .scrub__chapter {
   animation: none; opacity: 0; transform: translateY(1.5rem); transition: opacity 0.25s ease-in, transform 0.25s ease-in; }
 html[data-motion='on'] .scrub.scrub--live[data-mode='film'] .scrub__chapter[data-current='true'] {
   opacity: 1; transform: none; transition: opacity 0.6s ease-out 0.2s, transform 0.6s ease-out 0.2s; }
+/* ?debug=scene: the diagnostic overlay (synagogue-scrub.tsx) */
+.scrub__debug { position: fixed; top: 4.5rem; inset-inline: 4px; z-index: 60; margin: 0; padding: 6px 8px; pointer-events: none;
+  font: 11px/1.35 ui-monospace, monospace; color: #7dff8a; background: #000000d0; white-space: pre-wrap; word-break: break-all; }
