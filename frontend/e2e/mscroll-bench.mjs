@@ -69,7 +69,7 @@ const OPEN = { offline: false, latency: 0, downloadThroughput: -1, uploadThrough
 const browser = await puppeteer.launch({
   executablePath: CHROME,
   headless: true,
-  args: ['--no-sandbox', '--hide-scrollbars', '--enable-gpu-rasterization', '--autoplay-policy=no-user-gesture-required'],
+  args: ['--no-sandbox', '--hide-scrollbars', '--enable-gpu-rasterization'],
 });
 
 const sampler = () => {

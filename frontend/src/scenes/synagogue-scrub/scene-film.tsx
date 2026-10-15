@@ -63,6 +63,8 @@ const SYNC_MS = 350;
 /** Watchdog: a seek (turn, jump) hanging this long, or the warm-up not done in WARM_MAX_MS → frames. */
 const BUSY_MAX_MS = 1500;
 const WARM_MAX_MS = 8000;
+/** Watchdog: the clock (currentTime) runs but rVFC presents no frame this long → frames. */
+const FROZEN_MS = 1000;
 
 /** While a gesture moves the camera it plays at least at 1× — slower, the next frame (1/25 s of film) would come too
  *  late to answer the finger (at 1/4× — 160 ms); an overshoot is stood out. At rest the closing can be gentle. */
@@ -168,6 +170,7 @@ export const SceneFilm = ({
      *  presented frame of each film (rVFC), since when a seek is busy */
     let wantAt = 0;
     let wantCt = -1;
+    let clockAt = 0;
     const frameAt = { f: 0, r: 0 };
     let busyAt = 0;
     let failed = false;
@@ -391,11 +394,22 @@ export const SceneFilm = ({
         else {
           const cur = vid(shown);
           const ct = cur.currentTime;
-          const moved = hasRvfc(cur) ? frameAt[shown] > wantAt : ct !== wantCt;
-          if (!wantAt || moved) {
+          const rvfc = hasRvfc(cur);
+          const framed = rvfc && frameAt[shown] > wantAt;
+          const ticked = ct !== wantCt;
+          if (!wantAt || framed || (!rvfc && ticked)) {
             wantAt = t;
+            clockAt = t;
             wantCt = ct;
-          } else if (t - wantAt > limit) fail(`stall rs=${cur.readyState}`);
+          } else {
+            // the clock runs but no frame reaches the screen: a frozen picture, given a little longer
+            if (ticked) {
+              clockAt = t;
+              wantCt = ct;
+            }
+            if (t - clockAt > limit) fail(`stall rs=${cur.readyState}`);
+            else if (t - wantAt > FROZEN_MS) fail(`frozen rs=${cur.readyState}`);
+          }
         }
       }
       if (failed) return;
