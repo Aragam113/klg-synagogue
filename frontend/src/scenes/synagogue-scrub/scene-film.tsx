@@ -28,9 +28,15 @@ const hasRvfc = (v: Video) =>
   typeof (v as { requestVideoFrameCallback?: unknown }).requestVideoFrameCallback === 'function';
 
 /** The scroll stands still this long → its pace counts as 0 (the camera just closes the lag). */
-const REST_MS = 120;
+const REST_MS = 80;
+/** The last stretch of a lag is closed in about this long (s): the rate brakes to |lag| / BRAKE_S + the scroll's pace,
+ *  so a fast catch-up lands on the target instead of overshooting it and turning back (ping-pong). */
+const BRAKE_S = 0.15;
 /** Scroll pace (film s/s) is an average over about this long. */
 const PACE_MS = 120;
+/** Pace: per-frame film travel counted at most (s), and the faster fall-off when the scroll stands (ms). */
+const PACE_STEP_S = 0.4;
+const PACE_STILL_MS = 120;
 /** A lag past this (film seconds) is closed by a jump with a short crossfade instead of a long chase. */
 const JUMP_S = 1.5;
 /** …landing this far behind the target, so the camera still moves into it. */
@@ -233,7 +239,11 @@ export const SceneFilm = ({
       const dRaw = Math.sign(raw - lastRaw);
       dirNow = dRaw === 0 ? 0 : dRaw === lastDir ? dRaw : dirNow;
       lastDir = dRaw;
-      pace += ((raw - lastRaw) / (dt / 1000) - pace) * Math.min(1, dt / PACE_MS);
+      // the scroll's pace in film s/s: a jump of the page (a link, scrollTo) is not a pace — at most PACE_STEP_S per
+      // frame counts; a still frame lets it fall fast (no stale pace pushing the camera past the target)
+      const step = Math.max(-PACE_STEP_S, Math.min(PACE_STEP_S, raw - lastRaw));
+      pace +=
+        (step / (dt / 1000) - pace) * Math.min(1, dt / (step === 0 ? PACE_STILL_MS : PACE_MS));
       lastRaw = raw;
       // the camera goes where the scroll points; at rest that is a chapter hold whenever the page rests on a chapter
       // stop (the engine's auto-settle glides there between chapters)
@@ -251,7 +261,12 @@ export const SceneFilm = ({
       el.dataset.target = target.toFixed(2);
       if (!busy) {
         const cur = vid(shown);
-        const rate = filmRate(e, v);
+        const free = filmRate(e, v);
+        // braking once the scroll stands: never faster than closing the lag in BRAKE_S
+        const rate =
+          resting && Math.sign(free) === Math.sign(e)
+            ? Math.sign(free) * Math.min(Math.abs(free), Math.abs(e) / BRAKE_S + Math.abs(v))
+            : free;
         /** stand: while a gesture is on (finger or scroll moving) idle-play at a 16th — a pause / play cycle would
          *  restart the player (a ~80 ms gap) on every small overshoot; at rest really pause */
         const stand = () => {
