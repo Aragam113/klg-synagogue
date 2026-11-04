@@ -14,7 +14,7 @@ export const ExcursionsView = ({ content: e, prices, priceSrcs, phone }: Excursi
     <SectionPage titleKey="excursions">
       <PageHero
         hero={e.hero}
-        photo="domeDarafsh"
+        photo="hallRosette2025"
         ghost={[GW.beitKnesset, GW.bruchim, GW.zachor, GW.yerushalayim, GW.kehila, GW.torah]}
       >
         <div className="btns">

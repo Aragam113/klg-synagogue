@@ -21,7 +21,27 @@ describe('schedule model: шаблон и исключения', () => {
     const body = templateBody(form);
     expect(body.weekday).toEqual({ shacharit: '08:00', mincha: '19:30', maariv: '20:00' });
     expect(body.shabbat.shacharit).toBeNull();
+    expect(body.days).toBeNull();
     expect(body).not.toHaveProperty('id');
+  });
+
+  it('отдельные будние дни: строка дня с временем уходит в days, пустая — нет', () => {
+    const minyan = { shacharit: '09:00', mincha: null, maariv: null };
+    const form = templateForm({
+      id: 1,
+      weekday: { shacharit: null, mincha: null, maariv: null },
+      friday: { shacharit: null, mincha: null, maariv: '19:00' },
+      shabbat: { shacharit: '10:00', mincha: null, maariv: null },
+      days: { mon: minyan, thu: minyan },
+    });
+    expect(form.mon).toEqual({ shacharit: '09:00', mincha: '', maariv: '' });
+    expect(form.tue).toEqual({ shacharit: '', mincha: '', maariv: '' });
+    form.thu.shacharit = '';
+    form.wed.mincha = '15:00';
+    expect(templateBody(form).days).toEqual({
+      mon: minyan,
+      wed: { shacharit: null, mincha: '15:00', maariv: null },
+    });
   });
 
   it('время вне HH:MM — ошибка поля', () => {

@@ -25,3 +25,6 @@ Thumbs.db
 
 # coverage
 /coverage
+
+# runtime cache (Chabad.org zmanim и т.п.)
+/.cache

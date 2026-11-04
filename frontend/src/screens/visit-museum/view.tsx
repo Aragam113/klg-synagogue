@@ -24,7 +24,7 @@ export const MuseumView = (p: MuseumViewProps) => {
     <SectionPage titleKey="museum">
       <PageHero
         hero={m.hero}
-        photo="k1925"
+        photo="museum2025"
         ghost={[GW.zachor, GW.beitKnesset, GW.kehila, GW.yerushalayim, GW.emuna, GW.torah]}
       />
       <Band tone="cream" title={m.about.title}>

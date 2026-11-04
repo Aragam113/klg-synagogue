@@ -60,13 +60,19 @@ export function titleOf(text: string): string {
   return cut(trimDecor(sentences(first)[0] ?? first), TITLE_MAX);
 }
 
+/** Ссылки текста поста приходят как «текст (https://…)»: в анонсе адрес лишний — остаётся только текст. */
+export const dropInlineUrls = (text: string): string =>
+  text.replace(/\s*\(https?:\/\/[^\s()]+\)/gu, '');
+
 function leadOf(text: string, channel: string): string | null {
   const lines = text.split('\n').map(trimDecor);
   const firstIdx = lines.findIndex(Boolean);
-  const rest = lines
-    .slice(firstIdx + 1)
-    .filter((l) => l && !isSignature(l, channel))
-    .join(' ');
+  const rest = dropInlineUrls(
+    lines
+      .slice(firstIdx + 1)
+      .filter((l) => l && !isSignature(l, channel))
+      .join(' ')
+  );
   const lead = sentences(rest).slice(0, 2).join(' ').trim();
   return lead ? cut(lead, LEAD_MAX) : null;
 }

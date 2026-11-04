@@ -4,6 +4,7 @@ export {
   penKeyframes,
   Preloader,
   PRELOADER_KEY,
+  QUICK_MS,
   starLinePath,
 } from './preloader';
 export { reportLoad } from './load-gate';

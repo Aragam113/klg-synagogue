@@ -42,10 +42,22 @@
     "title": "Together week after week",
     "italic": "Together",
     "more": "Learn more",
-    "prayer": { "title": "Prayer and Shabbat", "text": "Morning, afternoon and evening prayers, welcoming Shabbat on Friday evening and seeing it off — times for every day are in the schedule." },
-    "holidays": { "title": "Holidays", "text": "Rosh Hashanah and Yom Kippur, Sukkot, Hanukkah, Purim, Passover and Shavuot — the year the community lives by." },
-    "programs": { "title": "Programs and classes", "text": "Torah study, activities for children and youth, meetings for everyone who wants to learn more about the tradition." },
-    "help": { "title": "Help and charity", "text": "Tzedakah is one of the foundations of Jewish life: the community supports those in need and welcomes volunteers." }
+    "prayer": {
+      "title": "Prayer and Shabbat",
+      "text": "Morning, afternoon and evening prayers, welcoming Shabbat on Friday evening and seeing it off — times for every day are in the schedule."
+    },
+    "holidays": {
+      "title": "Holidays",
+      "text": "Rosh Hashanah and Yom Kippur, Sukkot, Hanukkah, Purim, Passover and Shavuot — the year the community lives by."
+    },
+    "programs": {
+      "title": "Programs and classes",
+      "text": "Torah study, activities for children and youth, meetings for everyone who wants to learn more about the tradition."
+    },
+    "help": {
+      "title": "Help and charity",
+      "text": "Tzedakah is one of the foundations of Jewish life: the community supports those in need and welcomes volunteers."
+    }
   },
   "ledger": {
     "eyebrow": "History in numbers",
@@ -62,10 +74,22 @@
     "title": "Come and visit",
     "italic": "visit",
     "all": "Everything for visitors",
-    "hours": { "title": "Opening hours", "text": "When the synagogue and the museum are open and when they are closed to visitors." },
-    "howTo": { "title": "How to get here", "text": "Address, landmarks, transport and map." },
-    "excursions": { "title": "Tours", "text": "Kinds of tours, rules and online booking." },
-    "museum": { "title": "“New Synagogue” museum", "text": "History of the Jewish community of Königsberg and Kaliningrad." }
+    "hours": {
+      "title": "Opening hours",
+      "text": "When the synagogue and the museum are open and when they are closed to visitors."
+    },
+    "howTo": {
+      "title": "How to get here",
+      "text": "Address, landmarks, transport and map."
+    },
+    "excursions": {
+      "title": "Tours",
+      "text": "Kinds of tours, rules and online booking."
+    },
+    "museum": {
+      "title": "“New Synagogue” museum",
+      "text": "History of the Jewish community of Königsberg and Kaliningrad."
+    }
   },
   "events": {
     "eyebrow": "Events",
@@ -92,7 +116,8 @@
     "title": "What’s new in the community",
     "italic": "new",
     "all": "All news",
-    "empty": "No news yet — check back later."
+    "empty": "No news yet — check back later.",
+    "telegram": "Our Telegram channel"
   },
   "dawn": {
     "eyebrow": "Tzedakah",

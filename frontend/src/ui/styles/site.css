@@ -95,7 +95,7 @@ html.lenis, html.lenis body { height: auto; }
 *, *::before, *::after { box-sizing: border-box; }
 img { max-width: 100%; display: block; }
 a { color: inherit; }
-a[href^='tel:'] { direction: ltr; unicode-bidi: isolate; }
+a[href^='tel:'] { direction: ltr; unicode-bidi: isolate; white-space: nowrap; }
 ::selection { background: var(--gold); color: #fff; }
 :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 0.286rem; }
 .skip { position: absolute; inset-inline-start: -999px; top: 0; }
@@ -738,6 +738,8 @@ a.social:hover { background: var(--light); color: var(--deep); }
 .social--ph { border-style: dashed; border-color: #f2c94c99; color: #f2c94c; }
 .ftr__legal { display: flex; flex-wrap: wrap; gap: 0.714rem 1.714rem; color: var(--light-50); font-size: 0.857rem; }
 .ftr__legal .ftr__link { font-size: 0.857rem; }
+.ftr__credit { margin: 1.143rem 0 0; color: var(--light-50); font-size: 0.786rem; }
+.ftr__credit .ftr__link { font-size: inherit; text-decoration: underline; text-underline-offset: 0.2em; }
 
 /* ---------- cookie ---------- */
 .cookie {

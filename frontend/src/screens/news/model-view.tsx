@@ -6,7 +6,7 @@ import { usePageCursor, useFeedItems } from '@/screens/events/use-feed';
 import { asApiError } from '@/store';
 import { useGetNewsQuery } from '@/store/api/content';
 
-import { NEWS_PAGES_KEY, pagesParam } from './model';
+import { NEWS_PAGE_SIZE, NEWS_PAGES_KEY, pagesParam } from './model';
 import { NewsView } from './view';
 
 /**
@@ -19,7 +19,8 @@ export const NewsScreen = () => {
   const target = pagesParam(params.pages);
   const from = typeof params.from === 'string' ? params.from : null;
   const { page, next } = usePageCursor(lang);
-  const q = useGetNewsQuery({ lang, page });
+  // 12 на страницу: ровные ряды сетки на 4, 3 и 2 колонки (по умолчанию API — 9, на 4 колонках остаётся «сирота»)
+  const q = useGetNewsQuery({ lang, page, limit: NEWS_PAGE_SIZE });
   const items = useFeedItems(q.data);
   const scrolled = useRef(false);
 

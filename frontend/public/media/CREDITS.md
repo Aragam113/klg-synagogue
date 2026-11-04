@@ -29,3 +29,21 @@
 - `public/media/sections/winter-2025.jpg` — Синагога и бывший сиротский приют зимой (2025). Автор: Рина Мороз; лицензия: CC BY-SA 4.0; источник: https://commons.wikimedia.org/wiki/File:%D0%97%D0%B4%D0%B0%D0%BD%D0%B8%D0%B5_%D1%81%D0%B8%D1%80%D0%BE%D1%82%D1%81%D0%BA%D0%BE%D0%B3%D0%BE_%D0%B5%D0%B2%D1%80%D0%B5%D0%B9%D1%81%D0%BA%D0%BE%D0%B3%D0%BE_%D0%BF%D1%80%D0%B8%D1%8E%D1%82%D0%B0_%D0%B8_%D0%B5%D0%B2%D1%80%D0%B5%D0%B9%D1%81%D0%BA%D0%B0%D1%8F_%D1%81%D0%B8%D0%BD%D0%B0%D0%B3%D0%BE%D0%B3%D0%B0_-_%D0%9A%D0%B0%D0%BB%D0%B8%D0%BD%D0%B8%D0%BD%D0%B3%D1%80%D0%B0%D0%B4_-_2025%D0%B3.jpg
 - `public/media/sections/orphanage-2025.jpg` — Бывший еврейский сиротский приют (ул. Октябрьская, 3) и синагога (2025). Автор: Masha.Kondrasheva; лицензия: CC BY-SA 4.0; источник: https://commons.wikimedia.org/wiki/File:%D0%97%D0%B4%D0%B0%D0%BD%D0%B8%D0%B5_%D1%81%D0%B8%D1%80%D0%BE%D1%82%D1%81%D0%BA%D0%BE%D0%B3%D0%BE_%D0%B5%D0%B2%D1%80%D0%B5%D0%B9%D1%81%D0%BA%D0%BE%D0%B3%D0%BE_%D0%BF%D1%80%D0%B8%D1%8E%D1%82%D0%B0_%D0%B8_%D0%A1%D0%B8%D0%BD%D0%B0%D0%B3%D0%BE%D0%B3%D0%B0_2025.jpg
 - `public/media/sections/evening-2024.jpg` — Синагога вечером, вид сверху (2024). Автор: Александр Сигачёв; лицензия: CC BY-SA 4.0; источник: https://commons.wikimedia.org/wiki/File:IMG_Kaliningrad_-_New_Synagogue_in_K%C3%B6nigsberg_-_2024-06-11_-_p2.jpg
+
+## Фото архива общины
+
+Фотографии, которые община передала для сайта (папка «для сайта» на Яндекс Диске:
+https://disk.yandex.ru/d/IO_DPE3W5m10FA). Автор — «Архив общины»; уменьшены и обрезаны для сайта, EXIF удалён.
+Авторство — община; община разрешила использовать эти фото на сайте и в материалах о ней. Фото детей на видных местах (главная) не ставим — это личные моменты общины; в альбомах галереи они остаются.
+
+- `public/media/community/prayer.jpg`, `prayer-tall.jpg` — Утренняя молитва в синагоге (2026); исходник «молитва/17 (2).jpg»
+- `public/media/community/chanukah.jpg`, `chanukah-tall.jpg` — Зажигание ханукальных свечей у витража-розы (2025); «праздники/13 (5).jpg»
+- `public/media/community/concert.jpg`, `concert-tall.jpg` — Концерт ансамбля под руководством Фельдмана (2024); «концерт ансамбля под руководством Фельдмана/Jpeg-99.jpg»
+- `public/media/community/holiday-table.jpg`, `holiday-table-tall.jpg` — Праздничная трапеза для старшего поколения (2025); «праздники/23 (3).jpg»
+- `public/media/community/hall-aron.jpg` — Молельный зал: арон а-кодеш и витраж-роза (2025); «молельный зал/88 (2).jpg»
+- `public/media/community/hall-rosette.jpg` — Витраж-роза со звездой Давида (2025); «молельный зал/76.jpg»
+- `public/media/community/museum-hall.jpg` — Экспозиция Еврейского музея в синагоге (2025); «музей/69.jpg»
+- `public/media/community/torah-dancing.jpg` — Праздник с новым свитком Торы (2026); «праздники/36.jpg»
+
+Альбомы галереи из этого же архива (Молельный зал, Молитва, Праздники, Концерты, Музей, Миквы, Кладбище)
+загружает `npm run seed` из `backend/seed-assets/photos/community_*` (список — `_sources.txt`).

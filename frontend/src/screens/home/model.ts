@@ -48,10 +48,10 @@ export const LEDGER = [
 
 /** «Community life» pinned chapters: texts in `home:community.<id>`, photos from PHOTOS. */
 export const COMMUNITY = [
-  { id: 'prayer', href: '/schedule', photo: 'facade2019' },
-  { id: 'holidays', href: '/schedule', photo: 'evening2024' },
-  { id: 'programs', href: '/programs', photo: 'winter2025' },
-  { id: 'help', href: '/help', photo: 'orphanage2025' },
+  { id: 'prayer', href: '/schedule', photo: 'prayer2026' },
+  { id: 'holidays', href: '/schedule', photo: 'chanukah2025' },
+  { id: 'programs', href: '/programs', photo: 'concert2024' },
+  { id: 'help', href: '/help', photo: 'table2025' },
 ] as const;
 
 /** Lift of the chapter text at the entry of the phone «Community life» (px; home.css `--life-lift`): it rides
@@ -129,6 +129,6 @@ export const lifeMask = ({
 export const VISIT = [
   { id: 'hours', href: '/visit/hours', photo: 'facade2019b' },
   { id: 'howTo', href: '/visit/how-to-get', photo: 'eve2018' },
-  { id: 'excursions', href: '/visit/excursions', photo: 'interior1896' },
-  { id: 'museum', href: '/visit/museum', photo: 'k1900' },
+  { id: 'excursions', href: '/visit/excursions', photo: 'hallAron2025' },
+  { id: 'museum', href: '/visit/museum', photo: 'museum2025' },
 ] as const;

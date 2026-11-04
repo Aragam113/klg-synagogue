@@ -134,16 +134,22 @@ html[data-motion='on'] .sx-hero__media {
 .sx-facts__row {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   gap: 1rem;
   padding-block: 0.55rem;
   border-bottom: 1px solid var(--line, rgba(0, 0, 0, 0.12));
 }
 .sx-facts__row dt {
   color: var(--fg-mute, inherit);
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .sx-facts__row dd {
   margin: 0;
   text-align: end;
+  /* значение не рвётся («700 ₽»): ширина по содержимому, длинное (заглушка) переносится в пределах 55% */
+  flex: 0 0 auto;
+  max-width: 55%;
 }
 .sx-num {
   font-family: var(--font-display, serif);
@@ -527,8 +533,10 @@ html[data-motion='on'] .sx-timeline::before {
     grid-template-columns: minmax(0, 1fr);
     gap: 0.2rem;
   }
+  /* на узком экране значение остаётся справа от подписи (раньше flex-wrap уводил
+     «200 ₽», «−10%» на отдельную строку влево); длинная подпись переносится сама */
   .sx-facts__row {
-    flex-wrap: wrap;
+    gap: 0.75rem;
   }
 }
 

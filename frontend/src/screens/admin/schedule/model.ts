@@ -1,9 +1,24 @@
 import { fromLoc, type Loc, toLoc } from '@/screens/admin/entity/entity-model';
-import type { ScheduleOverride, ScheduleTemplate, ServiceTimes } from '@/store/api/calendar';
+import type {
+  ScheduleOverride,
+  ScheduleTemplate,
+  ServiceTimes,
+  WeekdayKey,
+} from '@/store/api/calendar';
 
-/** Недельный шаблон (будни / пятница / Шаббат) + исключения на даты. */
+/**
+ * Недельный шаблон (будни / пятница / Шаббат) + исключения на даты. Будни (вс–чт) — время по умолчанию;
+ * строка отдельного дня (вс…чт) с хоть одним временем заменяет его в этот день (миньян пн и чт).
+ */
 export const SERVICES = ['shacharit', 'mincha', 'maariv'] as const;
-export const DAY_KINDS = ['weekday', 'friday', 'shabbat'] as const;
+export const WEEKDAYS = [
+  'sun',
+  'mon',
+  'tue',
+  'wed',
+  'thu',
+] as const satisfies readonly WeekdayKey[];
+export const DAY_KINDS = ['weekday', ...WEEKDAYS, 'friday', 'shabbat'] as const;
 export type Service = (typeof SERVICES)[number];
 export type DayKind = (typeof DAY_KINDS)[number];
 
@@ -29,15 +44,29 @@ const timesBody = (t: TimesForm): ServiceTimes => ({
 
 export const templateForm = (t: ScheduleTemplate | undefined): TemplateForm => ({
   weekday: timesForm(t?.weekday),
+  ...(Object.fromEntries(WEEKDAYS.map((d) => [d, timesForm(t?.days?.[d])])) as Record<
+    WeekdayKey,
+    TimesForm
+  >),
   friday: timesForm(t?.friday),
   shabbat: timesForm(t?.shabbat),
 });
 
-export const templateBody = (f: TemplateForm): Omit<ScheduleTemplate, 'id'> => ({
-  weekday: timesBody(f.weekday),
-  friday: timesBody(f.friday),
-  shabbat: timesBody(f.shabbat),
-});
+const hasTimes = (t: ServiceTimes) => !!(t.shacharit || t.mincha || t.maariv);
+
+export const templateBody = (f: TemplateForm): Omit<ScheduleTemplate, 'id'> => {
+  const days: Partial<Record<WeekdayKey, ServiceTimes>> = {};
+  for (const d of WEEKDAYS) {
+    const t = timesBody(f[d]);
+    if (hasTimes(t)) days[d] = t;
+  }
+  return {
+    weekday: timesBody(f.weekday),
+    days: Object.keys(days).length ? days : null,
+    friday: timesBody(f.friday),
+    shabbat: timesBody(f.shabbat),
+  };
+};
 
 const timesErrors = (prefix: string, t: TimesForm): Record<string, string> => {
   const out: Record<string, string> = {};

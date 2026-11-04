@@ -1,7 +1,10 @@
 /**
- * Фото разделов — только Wikimedia Commons со свободной лицензией (автор, лицензия и страница файла — у каждого фото ниже).
- * Файлы — `public/media/sections/*` (уменьшены до 1600px), атрибуция — подпись под фото + `public/media/CREDITS.md`.
- * Фото с официального сайта (без лицензии) на сайт не ставятся.
+ * Фото разделов. Два источника:
+ * 1) Wikimedia Commons со свободной лицензией (автор, лицензия и страница файла — у каждого фото ниже),
+ *    файлы `public/media/sections/*` (уменьшены до 1600px);
+ * 2) архив общины — фото, которые община передала для сайта (Яндекс Диск «для сайта»), файлы
+ *    `public/media/community/*` (уменьшены и обрезаны, EXIF удалён), автор — «Архив общины».
+ * Атрибуция — подпись под фото + `public/media/CREDITS.md`. Другие фото без лицензии на сайт не ставятся.
  */
 import { assetUrl } from '@/config/demo';
 
@@ -11,6 +14,8 @@ export interface Photo {
   license: string;
   year: string;
   page: string;
+  /** Где опубликовано: «Wikimedia Commons» или null (архив общины — ссылка на папку, переданную для сайта). */
+  source: string | null;
   alt: { ru: string; en: string; he: string };
 }
 
@@ -31,6 +36,21 @@ const photo = (
   license,
   year,
   page: C + page,
+  source: 'Wikimedia Commons',
+  alt: { ru, en, he },
+});
+
+/** Папка «для сайта», которую община передала с фотографиями (Яндекс Диск). */
+export const COMMUNITY_ARCHIVE = 'https://disk.yandex.ru/d/IO_DPE3W5m10FA';
+
+/** Фото из архива общины: `public/media/community/<file>`. */
+const community = (file: string, year: string, ru: string, en: string, he: string): Photo => ({
+  src: assetUrl(`/media/community/${file}`),
+  author: 'Архив общины',
+  license: 'предоставлено общиной для сайта',
+  year,
+  page: COMMUNITY_ARCHIVE,
+  source: null,
   alt: { ru, en, he },
 });
 
@@ -225,14 +245,76 @@ export const PHOTOS: Record<string, Photo> = {
     'The synagogue in the evening, from above',
     'בית הכנסת בערב, מבט מלמעלה'
   ),
+
+  // ---- архив общины (Яндекс Диск «для сайта») ----
+  prayer2026: community(
+    'prayer.jpg',
+    '2026',
+    'Утренняя молитва в синагоге',
+    'Morning prayer in the synagogue',
+    'תפילת שחרית בבית הכנסת'
+  ),
+  chanukah2025: community(
+    'chanukah.jpg',
+    '2025',
+    'Зажигание ханукальных свечей у витража-розы',
+    'Lighting the Chanukah candles by the rose window',
+    'הדלקת נרות חנוכה ליד חלון הוורד'
+  ),
+  concert2024: community(
+    'concert.jpg',
+    '2024',
+    'Концерт ансамбля под руководством Фельдмана в синагоге',
+    'A concert by Feldman’s ensemble in the synagogue',
+    'קונצרט של ההרכב בניצוחו של פלדמן בבית הכנסת'
+  ),
+  table2025: community(
+    'holiday-table.jpg',
+    '2025',
+    'Праздничная трапеза для старшего поколения',
+    'A holiday meal for the older generation',
+    'סעודת חג לבני הגיל השלישי'
+  ),
+  hallAron2025: community(
+    'hall-aron.jpg',
+    '2025',
+    'Молельный зал: арон а-кодеш и витраж-роза',
+    'The prayer hall: the Holy Ark and the rose window',
+    'אולם התפילה: ארון הקודש וחלון הוורד'
+  ),
+  hallRosette2025: community(
+    'hall-rosette.jpg',
+    '2025',
+    'Витраж-роза со звездой Давида в молельном зале',
+    'The rose window with the Star of David in the prayer hall',
+    'חלון הוורד עם מגן דוד באולם התפילה'
+  ),
+  museum2025: community(
+    'museum-hall.jpg',
+    '2025',
+    'Экспозиция Еврейского музея в синагоге',
+    'The Jewish Museum exhibition in the synagogue',
+    'התערוכה של המוזיאון היהודי בבית הכנסת'
+  ),
+  torah2026: community(
+    'torah-dancing.jpg',
+    '2026',
+    'Праздник с новым свитком Торы',
+    'Celebrating with a new Torah scroll',
+    'חגיגה עם ספר תורה חדש'
+  ),
 };
 
 /**
- * Portrait crops for full-height phone frames («Community life» on the home page): 1200×2000, cut from the Commons
- * originals (3840px wide — no upscaling) around the building; same files, same credit.
+ * Portrait crops for full-height phone frames («Community life» on the home page): 1200×2000, cut from the
+ * originals (Commons 3840px wide / community archive — no upscaling) around the subject; same files, same credit.
  */
 const tall = (file: string) => assetUrl(`/media/sections/${file}`);
 export const PHOTO_TALL: Partial<Record<keyof typeof PHOTOS, string>> = {
+  prayer2026: assetUrl('/media/community/prayer-tall.jpg'),
+  chanukah2025: assetUrl('/media/community/chanukah-tall.jpg'),
+  concert2024: assetUrl('/media/community/concert-tall.jpg'),
+  table2025: assetUrl('/media/community/holiday-table-tall.jpg'),
   facade2019: tall('facade-2019-tall.jpg'),
   evening2024: tall('evening-2024-tall.jpg'),
   winter2025: tall('winter-2025-tall.jpg'),

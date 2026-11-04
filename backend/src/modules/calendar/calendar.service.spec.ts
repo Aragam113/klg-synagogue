@@ -13,7 +13,12 @@ const EMPTY: ServiceTimes = { shacharit: null, mincha: null, maariv: null };
 
 /** Сервис на фейковых репозиториях: шаблон и исключения задаются в тесте. */
 function makeService(
-  template = { id: 1, weekday: EMPTY, friday: EMPTY, shabbat: EMPTY },
+  template: Record<string, unknown> = {
+    id: 1,
+    weekday: EMPTY,
+    friday: EMPTY,
+    shabbat: EMPTY,
+  },
   overrides: Record<string, unknown>[] = []
 ): CalendarService {
   const templateRepo = { findOneBy: async () => template };
@@ -132,6 +137,40 @@ describe('CalendarService — Калининград', () => {
     });
     expect(fri.note).toBe('Пост');
     expect(sat.services).toEqual(shabbat);
+  });
+
+  it('отдельные будние дни (days): миньян пн и чт поверх пустых будней; день без времени — будни', async () => {
+    const minyan = { shacharit: '09:00', mincha: null, maariv: null };
+    const svc = makeService({
+      id: 1,
+      weekday: EMPTY,
+      friday: EMPTY,
+      shabbat: EMPTY,
+      days: { mon: minyan, thu: minyan, tue: EMPTY },
+    });
+    // 15.11.2026 — воскресенье … 19.11 — четверг
+    const week = await svc.getDays('2026-11-15', '2026-11-19', 'ru');
+    expect(week.map((d) => [d.weekday, d.services?.shacharit ?? null])).toEqual(
+      [
+        [0, null],
+        [1, '09:00'],
+        [2, null],
+        [3, null],
+        [4, '09:00'],
+      ]
+    );
+
+    const daily = { shacharit: '08:00', mincha: null, maariv: '19:00' };
+    const svc2 = makeService({
+      id: 1,
+      weekday: daily,
+      friday: EMPTY,
+      shabbat: EMPTY,
+      days: { mon: minyan },
+    });
+    const [sun, mon] = await svc2.getDays('2026-11-15', '2026-11-16', 'ru');
+    expect(sun.services).toEqual(daily);
+    expect(mon.services).toEqual(minyan);
   });
 
   /*

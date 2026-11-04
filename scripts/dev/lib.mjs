@@ -397,7 +397,10 @@ export function openBrowser(url) {
         ? ['open', [url]]
         : ['xdg-open', [url]];
   try {
-    spawn(cmd, args, { stdio: 'ignore', detached: true, windowsHide: true }).unref();
+    const child = spawn(cmd, args, { stdio: 'ignore', detached: true, windowsHide: true });
+    // нет xdg-open (сервер, WSL без GUI): ошибка приходит событием, а не исключением — не роняем запуск
+    child.on('error', () => {});
+    child.unref();
   } catch {
     /* браузер откроют руками */
   }

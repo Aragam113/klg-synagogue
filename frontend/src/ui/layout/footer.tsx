@@ -1,3 +1,4 @@
+import { SRC } from '@/config/site';
 import { useLang } from '@/i18n/use-lang';
 import { HexPattern } from '@/ui/judaica/hex-pattern';
 import { Placeholder } from '@/ui/kit/blocks';
@@ -109,6 +110,15 @@ export const SiteFooter = () => {
             <span>{t('footer.rights', { year: new Date().getFullYear() })}</span>
           </div>
         </div>
+        <p className="ftr__credit">
+          {t('footer.chabad')}{' '}
+          <Link
+            href={lang === 'ru' ? SRC.chabadCandlesRu : SRC.chabadCandles}
+            className="ftr__link"
+          >
+            Chabad.org
+          </Link>
+        </p>
       </div>
     </footer>
   );

@@ -30,6 +30,39 @@ export class ServiceTimesDto implements ServiceTimes {
   maariv: string | null;
 }
 
+/** Своё время отдельных будних дней (вс–чт); пустой день — действует «будни». */
+export class WeekdayTimesDto {
+  @ApiPropertyOptional({ type: ServiceTimesDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ServiceTimesDto)
+  sun?: ServiceTimesDto;
+
+  @ApiPropertyOptional({ type: ServiceTimesDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ServiceTimesDto)
+  mon?: ServiceTimesDto;
+
+  @ApiPropertyOptional({ type: ServiceTimesDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ServiceTimesDto)
+  tue?: ServiceTimesDto;
+
+  @ApiPropertyOptional({ type: ServiceTimesDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ServiceTimesDto)
+  wed?: ServiceTimesDto;
+
+  @ApiPropertyOptional({ type: ServiceTimesDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ServiceTimesDto)
+  thu?: ServiceTimesDto;
+}
+
 export class ScheduleTemplateDto {
   @ApiProperty({ type: ServiceTimesDto, description: 'Воскресенье–четверг' })
   @IsDefined()
@@ -48,6 +81,17 @@ export class ScheduleTemplateDto {
   @ValidateNested()
   @Type(() => ServiceTimesDto)
   shabbat: ServiceTimesDto;
+
+  @ApiPropertyOptional({
+    type: WeekdayTimesDto,
+    nullable: true,
+    description:
+      'Отдельные будние дни поверх weekday (например, миньян пн и чт); нет/null — weekday на все вс–чт',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => WeekdayTimesDto)
+  days?: WeekdayTimesDto | null;
 }
 
 /** Исключение на дату: свои времена (null — службы нет) и примечание. */

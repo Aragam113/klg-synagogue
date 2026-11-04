@@ -18,13 +18,13 @@ export interface DayHoliday {
 export interface Zmanim {
   /** null — рассвет (алот) не наступает: белые ночи лета */
   alot: string | null;
-  talit: string;
-  sunrise: string;
-  shma: string;
-  tfila: string;
-  chatzot: string;
-  shkia: string;
-  tzet: string;
+  talit: string | null;
+  sunrise: string | null;
+  shma: string | null;
+  tfila: string | null;
+  chatzot: string | null;
+  shkia: string | null;
+  tzet: string | null;
 }
 
 /** День расписания (GET /calendar/days). Времена — 'HH:MM' по Калининграду. */
@@ -35,12 +35,19 @@ export interface Day {
   weekday: number;
   services: ServiceTimes | null;
   candleLighting: string | null;
+  /** Свечи «после HH:MM» — от готового огня (второй день праздника, исход Шаббата перед праздником). */
+  candleAfter?: boolean;
   havdalah: string | null;
+  /** Начало и конец поста, 'HH:MM'. */
+  fastBegins?: string | null;
+  fastEnds?: string | null;
   parasha: string | null;
   holidays: DayHoliday[];
   zmanim: Zmanim;
   note: string | null;
   closed: boolean;
+  /** Откуда времена: Chabad.org или запасной локальный расчёт (hebcal). */
+  source?: 'chabad' | 'hebcal';
 }
 
 export interface Moment {
@@ -64,11 +71,16 @@ export interface HolidayPage {
   dates: { date: string; name: string }[];
 }
 
+/** Будние дни, которым можно задать своё время поверх «будней» (вс–чт). */
+export type WeekdayKey = 'sun' | 'mon' | 'tue' | 'wed' | 'thu';
+
 export interface ScheduleTemplate {
   id: number;
   weekday: ServiceTimes;
   friday: ServiceTimes;
   shabbat: ServiceTimes;
+  /** Своё время отдельных будних дней (например, миньян пн и чт); нет дня — действует `weekday`. */
+  days?: Partial<Record<WeekdayKey, ServiceTimes>> | null;
 }
 
 export interface ScheduleOverride extends ServiceTimes {

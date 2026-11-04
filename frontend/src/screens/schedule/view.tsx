@@ -1,5 +1,6 @@
 import type { TFunction } from 'i18next';
 
+import { SRC } from '@/config/site';
 import { useLang } from '@/i18n/use-lang';
 import type { Day, Zmanim } from '@/store/api/calendar';
 import {
@@ -19,6 +20,7 @@ import { CONTACTS } from '@/ui/layout/slots/contacts';
 import { Reveal } from '@/ui/motion';
 import { formatDate, monthOfDay } from '@/utils/kld-time';
 
+import { CandlesWidget } from './candles-widget';
 import { type ScheduleMode, type ScheduleViewProps, serviceLabelKey } from './model';
 import './styles';
 
@@ -51,10 +53,30 @@ export const ServicesUnknown = ({ t }: { t: TFunction }) => (
 const extraNote = (d: Day) =>
   d.note && d.note !== d.parasha && !d.holidays.some((h) => h.name === d.note) ? d.note : null;
 
-const dayClass = (d: Day, today: string) =>
-  ['sch-day', d.date === today && 'is-today', d.weekday === 6 && 'is-shabbat']
+/** Classes of a day: `base` is `sch-day` (card) or `sch-row` (table row — never the card grid). */
+const dayClass = (d: Day, today: string, base: 'sch-day' | 'sch-row' = 'sch-day') =>
+  [base, d.date === today && 'is-today', d.weekday === 6 && 'is-shabbat'].filter(Boolean).join(' ');
+
+/** «16:34» или «после 20:56» (свечи от готового огня); `*` — запасной локальный расчёт. */
+const candleText = (d: Day, t: TFunction) =>
+  d.candleLighting
+    ? `${d.candleAfter ? `${t('col.after')} ` : ''}${d.candleLighting}${d.source === 'hebcal' ? '*' : ''}`
+    : '';
+
+const havdalahText = (d: Day) =>
+  d.havdalah ? `${d.havdalah}${d.source === 'hebcal' ? '*' : ''}` : '';
+
+/** «Исход Шаббата» в субботу, «Исход праздника» в остальные дни. */
+const havdalahLabel = (d: Day) => (d.weekday === 6 ? 'col.havdalah' : 'col.havdalahHoliday');
+
+/** Начало/конец поста одной строкой. */
+const fastText = (d: Day, t: TFunction) =>
+  [
+    d.fastBegins ? `${t('col.fastBegins')} ${d.fastBegins}` : '',
+    d.fastEnds ? `${t('col.fastEnds')} ${d.fastEnds}` : '',
+  ]
     .filter(Boolean)
-    .join(' ');
+    .join(' · ');
 
 const Holidays = ({ d }: { d: Day }) =>
   d.holidays.length ? (
@@ -115,28 +137,38 @@ const DayCard = ({
       ) : null}
     </div>
     <dl className="sch-day__times">
-      {d.services ? (
-        SERVICES.filter((s) => d.services?.[s]).map((s) => (
-          <div key={s}>
-            <dt>{t(serviceLabelKey(s, d.weekday))}</dt>
-            <dd>{d.services?.[s]}</dd>
-          </div>
-        ))
-      ) : (
-        <div className="sch-day__ask">
-          <dd>{t('page.servicesUnknown')}</dd>
-        </div>
-      )}
+      {
+        d.services
+          ? SERVICES.filter((s) => d.services?.[s]).map((s) => (
+              <div key={s}>
+                <dt>{t(serviceLabelKey(s, d.weekday))}</dt>
+                <dd>{d.services?.[s]}</dd>
+              </div>
+            ))
+          : null /* «уточняйте по телефону» — один раз над списком (ServicesUnknown), не в каждом дне */
+      }
       {d.candleLighting ? (
         <div className="sch-gold">
           <dt>{t('col.candles')}</dt>
-          <dd>{d.candleLighting}</dd>
+          <dd>{candleText(d, t)}</dd>
         </div>
       ) : null}
       {d.havdalah ? (
         <div className="sch-gold">
-          <dt>{t('col.havdalah')}</dt>
-          <dd>{d.havdalah}</dd>
+          <dt>{t(havdalahLabel(d))}</dt>
+          <dd>{havdalahText(d)}</dd>
+        </div>
+      ) : null}
+      {d.fastBegins ? (
+        <div>
+          <dt>{t('col.fastBegins')}</dt>
+          <dd>{d.fastBegins}</dd>
+        </div>
+      ) : null}
+      {d.fastEnds ? (
+        <div>
+          <dt>{t('col.fastEnds')}</dt>
+          <dd>{d.fastEnds}</dd>
         </div>
       ) : null}
     </dl>
@@ -166,18 +198,18 @@ const DayTable = ({
             <th key={s}>{t(`col.${s}`)}</th>
           ))}
           <th>{t('col.candles')}</th>
-          <th>{t('col.havdalah')}</th>
+          <th>{t('col.havdalahShort')}</th>
           <th>{t('col.note')}</th>
           {zmanim ? ZMANIM.map((k) => <th key={k}>{t(`zmanim.${k}`)}</th>) : null}
         </tr>
       </thead>
       <tbody>
         {days.map((d) => (
-          <tr key={d.date} className={dayClass(d, today)} data-date={d.date}>
+          <tr key={d.date} className={dayClass(d, today, 'sch-row')} data-date={d.date}>
             <td className="sch-table__date">
               {formatDate(d.date, lang, { weekday: 'short', day: 'numeric', month: 'short' })}
             </td>
-            <td>{d.hebrewDate}</td>
+            <td className="sch-table__heb">{d.hebrewDate}</td>
             {SERVICES.map((s) => (
               <td key={s} title={d.services ? undefined : t('page.servicesUnknown')}>
                 {d.services?.[s] ?? '—'}
@@ -186,12 +218,13 @@ const DayTable = ({
                 ) : null}
               </td>
             ))}
-            <td className="sch-gold">{d.candleLighting ?? ''}</td>
-            <td className="sch-gold">{d.havdalah ?? ''}</td>
-            <td>
+            <td className="sch-gold">{candleText(d, t)}</td>
+            <td className="sch-gold">{havdalahText(d)}</td>
+            <td className="sch-table__note">
               {d.parasha ? <span className="sch-day__parasha">{d.parasha} </span> : null}
               <Holidays d={d} />
               {extraNote(d) ? <span> {extraNote(d)}</span> : null}
+              {fastText(d, t) ? <span className="sch-table__fast">{fastText(d, t)}</span> : null}
             </td>
             {zmanim ? ZMANIM.map((k) => <td key={k}>{d.zmanim[k] ?? '—'}</td>) : null}
           </tr>
@@ -205,6 +238,7 @@ const DayTable = ({
 export const ScheduleView = (m: ScheduleViewProps) => {
   const { t, lang } = useLang('calendar');
   const anyUnknown = m.days.some((d) => !d.services);
+  const anyFallback = m.days.some((d) => d.source === 'hebcal' && (d.candleLighting || d.havdalah));
   const views: ScheduleMode[] = ['list', 'table'];
 
   return (
@@ -227,6 +261,7 @@ export const ScheduleView = (m: ScheduleViewProps) => {
 
       <Section tone="canvas" className="sch">
         <Container>
+          <CandlesWidget className="sch-candles" />
           <div className="sch-controls">
             <div className="sch-controls__period">
               <Select
@@ -284,7 +319,11 @@ export const ScheduleView = (m: ScheduleViewProps) => {
               ))}
             </div>
           )}
-          <p className="sch-footnote">{t('page.computedNote')}</p>
+          <p className="sch-footnote">
+            {t('page.computedNote')}{' '}
+            <Link href={lang === 'ru' ? SRC.chabadCandlesRu : SRC.chabadCandles}>Chabad.org</Link>.
+            {anyFallback ? <> {t('page.fallbackNote')}</> : null}
+          </p>
         </Container>
       </Section>
     </Page>

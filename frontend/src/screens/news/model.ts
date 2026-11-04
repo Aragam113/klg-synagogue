@@ -17,6 +17,9 @@ export interface NewsViewProps {
 /** sessionStorage: сколько страниц ленты открыто — «Все новости» на странице новости возвращает туда же. */
 export const NEWS_PAGES_KEY = 'synagogue.newsPages';
 
+/** Новостей на страницу ленты /news. */
+export const NEWS_PAGE_SIZE = 12;
+
 /** Параметр `?pages=` → число страниц для догрузки (1…30). */
 export const pagesParam = (v: unknown): number => {
   const n = Number(Array.isArray(v) ? v[0] : v);

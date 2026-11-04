@@ -41,7 +41,7 @@ const PREFIX = process.env.SHOT_PREFIX ?? 'm3';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 mkdirSync(SHOTS, { recursive: true });
 
-const SECTIONS = ['#hero', '.scrub', '#welcome', '#today', '#community', '#ledger', '.home-marquee', '#visit', '#events', '#funds', '#news', '#dawn'];
+const SECTIONS = ['#hero', '#news', '.scrub', '#welcome', '#today', '#community', '#ledger', '.home-marquee', '#visit', '#events', '#funds', '#dawn'];
 
 const ONLY = process.env.G12_ONLY === '1'; // touch-scene checks only (4b, 5)
 const failures = [];

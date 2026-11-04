@@ -20,8 +20,16 @@
   },
   "lang": {
     "label": "Language",
-    "short": { "ru": "RU", "en": "EN", "he": "HE" },
-    "name": { "ru": "Русский", "en": "English", "he": "עברית" }
+    "short": {
+      "ru": "RU",
+      "en": "EN",
+      "he": "HE"
+    },
+    "name": {
+      "ru": "Русский",
+      "en": "English",
+      "he": "עברית"
+    }
   },
   "links": {
     "community": "Community life",
@@ -59,7 +67,8 @@
     "social": "Follow us",
     "privacy": "Personal data policy",
     "consent": "Consent to data processing",
-    "rights": "© {{year}} New Synagogue, Kaliningrad"
+    "rights": "© {{year}} New Synagogue, Kaliningrad",
+    "chabad": "Candle lighting, Shabbat end and zmanim are provided by"
   },
   "cookie": {
     "text": "This site uses cookies and local storage to remember your language and settings.",

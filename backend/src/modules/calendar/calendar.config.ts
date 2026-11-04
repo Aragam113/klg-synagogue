@@ -41,3 +41,31 @@ export const DEFAULT_RANGE_DAYS = 14;
  * поэтому взят консервативный вариант — 72. Уточнить у раввина общины.
  */
 export const HAVDALAH_FALLBACK_MINUTES = 72;
+
+/**
+ * Chabad.org — источник зманим, зажигания свечей и исхода Шаббата/праздников.
+ * 908 — «Kaliningrad, Russia» в справочнике городов Chabad.org: тот же id стоит в
+ * официальном виджете https://ru.chabad.org/tools/shared/candlelighting/candlelighting.js.asp?city=908
+ * и в ссылке https://www.chabad.org/calendar/candlelighting.asp?locationId=908&locationType=1.
+ */
+export const CHABAD_LOCATION_ID = 908;
+
+/** Страницы Chabad.org для ссылки «источник» (виджет и подвал сайта). */
+export const CHABAD_CANDLES_URL =
+  'https://www.chabad.org/calendar/candlelighting.asp?locationId=908&locationType=1';
+
+/** Сколько запрос календаря ждёт Chabad.org, прежде чем отдать локальный расчёт. */
+export const CHABAD_BUDGET_MS = 3_500;
+
+/** Срок жизни кэша дня (зманим на дату не меняются). */
+export const CHABAD_CACHE_DAYS = 7;
+
+/** Прогрев кэша: сегодня + столько дней вперёд. */
+export const CHABAD_WARM_DAYS = 35;
+
+/**
+ * «Nightfall (Tzeit Hakochavim)» в ленте Chabad.org для Калининграда совпадает с солнцем
+ * на 6° под горизонтом (±1 мин; сверено 06.11.2026, 20.12.2026, 23.03.2027, 21.06.2027),
+ * а «Shabbat Ends» — с 8.5° (HAVDALAH_DEGREES). Нужен, когда в ленте на день нет выхода звёзд.
+ */
+export const CHABAD_NIGHTFALL_DEGREES = 6;

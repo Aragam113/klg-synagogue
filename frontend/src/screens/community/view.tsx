@@ -25,7 +25,7 @@ export const CommunityView = (p: CommunityViewProps) => {
     <SectionPage titleKey="community">
       <PageHero
         hero={m.hero}
-        photo="facade2019"
+        photo="torah2026"
         ghost={[GW.kehila, GW.torah, GW.chesed, GW.tzedaka, GW.limud, GW.shabbat]}
       />
       <Band tone="cream">

@@ -32,6 +32,18 @@ describe('postsToNews', () => {
     expect(n.body).toBe(text);
   });
 
+  it('в лиде нет адресов ссылок «(https://…)» — только их текст; body дословно', () => {
+    const text = `Воскресник\n\nПришли «Хранители руин (https://t.me/ruin_keepers)» и соседи. Спасибо!\n\n${SIGN}`;
+    const {
+      drafts: [n],
+    } = postsToNews(
+      [post(2, '2026-11-02T10:00:00+00:00', text, [])],
+      'B_C_Kaliningrad'
+    );
+    expect(n.lead).toBe('Пришли «Хранители руин» и соседи. Спасибо!');
+    expect(n.body).toBe(text);
+  });
+
   it('пост только с картинками приклеивается к предыдущему посту того же дня, без соседа — в orphans', () => {
     const { drafts: news, orphans } = postsToNews(
       [

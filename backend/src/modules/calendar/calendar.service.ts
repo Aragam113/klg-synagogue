@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Repository } from 'typeorm';
@@ -19,9 +20,11 @@ import {
   ScheduleOverrideEntity,
   ScheduleTemplateEntity,
   ServiceTimes,
+  WEEKDAY_KEYS,
 } from './entities';
 import {
   CANDLE_LIGHTING_MINUTES,
+  CHABAD_NIGHTFALL_DEGREES,
   DEFAULT_RANGE_DAYS,
   HAVDALAH_DEGREES,
   HAVDALAH_FALLBACK_MINUTES,
@@ -36,7 +39,13 @@ import {
   holidayKey,
   holidayNameRu,
 } from './hebrew-names';
-import { kaliningradDate, kaliningradTime as hhmm } from './kaliningrad-time';
+import {
+  kaliningradDate,
+  kaliningradDayStart,
+  kaliningradTime as hhmm,
+} from './kaliningrad-time';
+import { ChabadZmanimService } from './chabad/chabad-zmanim.service';
+import type { ChabadDay } from './chabad/chabad-zmanim.parser';
 
 export interface DayHoliday {
   /** Ключ страницы /holidays/:key */
@@ -60,6 +69,9 @@ export interface Zmanim8 {
   tzet: string | null;
 }
 
+/** Откуда времена дня: Chabad.org или локальный расчёт @hebcal/core (запасной). */
+export type TimesSource = 'chabad' | 'hebcal';
+
 export interface Day {
   /** YYYY-MM-DD */
   date: string;
@@ -71,13 +83,20 @@ export interface Day {
   services: ServiceTimes | null;
   /** 'HH:MM' по Калининграду */
   candleLighting: string | null;
+  /** Свечи зажигают «не раньше» (от готового огня: второй день праздника, исход Шаббата). */
+  candleAfter: boolean;
   havdalah: string | null;
+  /** Начало и конец поста, 'HH:MM'. */
+  fastBegins: string | null;
+  fastEnds: string | null;
   parasha: string | null;
   holidays: DayHoliday[];
   zmanim: Zmanim8;
   note: string | null;
   /** Шаббат или йом-тов — синагога закрыта для экскурсий. */
   closed: boolean;
+  /** Источник времён свечей, исхода и зманим. */
+  source: TimesSource;
 }
 
 export interface Moment {
@@ -112,6 +131,34 @@ interface RawDay {
 }
 
 const EMPTY: ServiceTimes = { shacharit: null, mincha: null, maariv: null };
+const hasTimes = (t: ServiceTimes | null | undefined): t is ServiceTimes =>
+  !!t && !!(t.shacharit || t.mincha || t.maariv);
+
+/** Вс–чт: своё время дня (`days.mon` и т. п.), если в нём есть хоть одна служба, иначе — «будни». */
+const weekdayTimes = (
+  t: Pick<ScheduleTemplateEntity, 'weekday' | 'days'>,
+  weekday: number
+): ServiceTimes => {
+  const own = t.days?.[WEEKDAY_KEYS[weekday]];
+  return hasTimes(own) ? own : t.weekday;
+};
+
+/** Храним только дни, где задано хоть одно время; ничего — null. */
+const cleanDays = (
+  days: ScheduleTemplateEntity['days'] | undefined
+): ScheduleTemplateEntity['days'] => {
+  const out: NonNullable<ScheduleTemplateEntity['days']> = {};
+  for (const k of WEEKDAY_KEYS) {
+    const d = days?.[k];
+    if (hasTimes(d))
+      out[k] = {
+        shacharit: d.shacharit ?? null,
+        mincha: d.mincha ?? null,
+        maariv: d.maariv ?? null,
+      };
+  }
+  return Object.keys(out).length ? out : null;
+};
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const DAY_MS = 86_400_000;
 
@@ -232,6 +279,12 @@ export function nightfall(z: Zmanim): Date | null {
     : null;
 }
 
+/** Момент 'HH:MM' по Калининграду в день 'YYYY-MM-DD'. */
+function kldAt(date: string, time: string): Date {
+  const [h, m] = time.split(':').map(Number);
+  return new Date(kaliningradDayStart(date).getTime() + (h * 60 + m) * 60_000);
+}
+
 function moment(at: Date | null): Moment | null {
   if (!at) return null;
   return { date: kaliningradDate(at), time: hhmm(at), at: at.toISOString() };
@@ -260,7 +313,8 @@ export class CalendarService {
     @InjectRepository(ScheduleTemplateEntity)
     private readonly templates: Repository<ScheduleTemplateEntity>,
     @InjectRepository(ScheduleOverrideEntity)
-    private readonly overrides: Repository<ScheduleOverrideEntity>
+    private readonly overrides: Repository<ScheduleOverrideEntity>,
+    @Optional() private readonly chabad?: ChabadZmanimService
   ) {}
 
   /** Диапазон по умолчанию — 14 дней от сегодня; > 62 дней или кривые даты → 400 с `fields`. */
@@ -362,18 +416,22 @@ export class CalendarService {
         weekday: EMPTY,
         friday: EMPTY,
         shabbat: EMPTY,
+        days: null,
       }
     );
   }
 
   async putTemplate(
-    t: Omit<ScheduleTemplateEntity, 'id'>
+    t: Omit<ScheduleTemplateEntity, 'id' | 'days'> & {
+      days?: ScheduleTemplateEntity['days'];
+    }
   ): Promise<ScheduleTemplateEntity> {
     const row = {
       id: 1,
       weekday: t.weekday,
       friday: t.friday,
       shabbat: t.shabbat,
+      days: cleanDays(t.days),
     };
     await this.templates.save(row);
     return row;
@@ -423,19 +481,29 @@ export class CalendarService {
       byDate.set(key, [...(byDate.get(key) ?? []), ev]);
     }
 
+    const dates: string[] = [];
+    for (let date = from; date <= to; date = addDays(date, 1)) dates.push(date);
+    const chabadDays: Map<string, ChabadDay> = this.chabad
+      ? await this.chabad.getDays(dates)
+      : new Map();
+
     const out: RawDay[] = [];
-    for (let date = from; date <= to; date = addDays(date, 1)) {
+    for (const date of dates) {
       const local = toLocal(date);
       const weekday = local.getDay();
       const events = byDate.get(date) ?? [];
       let candleAt: Date | null = null;
       let havdalahAt: Date | null = null;
+      let fastBegins: string | null = null;
+      let fastEnds: string | null = null;
       let parasha: string | null = null;
       const holidays: DayHoliday[] = [];
       for (const ev of events) {
         const desc = ev.getDesc();
         if (desc === 'Candle lighting') candleAt = eventTime(ev);
         else if (desc === 'Havdalah') havdalahAt = eventTime(ev);
+        else if (desc === 'Fast begins') fastBegins = hhmmOrNull(eventTime(ev));
+        else if (desc === 'Fast ends') fastEnds = hhmmOrNull(eventTime(ev));
         else if (ev instanceof ParshaEvent) parasha = parashaName(ev, lang);
         else if (isHolidayEvent(ev)) {
           const key = holidayKey(ev.basename());
@@ -459,7 +527,7 @@ export class CalendarService {
           ? template.shabbat
           : weekday === 5
             ? template.friday
-            : template.weekday;
+            : weekdayTimes(template, weekday);
       const services =
         base && (base.shacharit || base.mincha || base.maariv)
           ? { ...EMPTY, ...base }
@@ -483,6 +551,44 @@ export class CalendarService {
         if (nextClosed) candleAt = nightfall(z);
         else havdalahAt = nightfall(z);
       }
+      let candleAfter = !!candleAt && closed;
+      let zmanim: Zmanim8 = {
+        alot: hhmmOrNull(z.alotHaShachar()),
+        talit: hhmmOrNull(z.misheyakir()),
+        sunrise: hhmmOrNull(z.sunrise()),
+        shma: hhmmOrNull(z.sofZmanShma()),
+        tfila: hhmmOrNull(z.sofZmanTfilla()),
+        chatzot: hhmmOrNull(z.chatzot()),
+        shkia: hhmmOrNull(z.shkiah()),
+        tzet: hhmmOrNull(nightfall(z)),
+      };
+
+      // Chabad.org — основной источник времён; hebcal остаётся для дат, которые
+      // Chabad.org не отдал, и для зманим, которых нет в его ленте на этот день
+      // (на Шаббат вместо «выхода звёзд» там «исход Шаббата»).
+      const cd = chabadDays.get(date);
+      if (cd) {
+        candleAt = cd.candleLighting ? kldAt(date, cd.candleLighting) : null;
+        candleAfter = !!cd.candleLighting && cd.candleAfter;
+        havdalahAt = cd.havdalah ? kldAt(date, cd.havdalah) : null;
+        fastBegins = cd.fastBegins;
+        fastEnds = cd.fastEnds;
+        zmanim = {
+          alot: cd.zmanim.alot ?? zmanim.alot,
+          talit: cd.zmanim.talit ?? zmanim.talit,
+          sunrise: cd.zmanim.sunrise ?? zmanim.sunrise,
+          shma: cd.zmanim.shma ?? zmanim.shma,
+          tfila: cd.zmanim.tfila ?? zmanim.tfila,
+          chatzot: cd.zmanim.chatzot ?? zmanim.chatzot,
+          shkia: cd.zmanim.shkia ?? zmanim.shkia,
+          // На Шаббат/праздник в ленте вместо выхода звёзд — исход; считаем тем же
+          // углом, что у Chabad.org в будни (6°), чтобы строка зманим не прыгала.
+          tzet:
+            cd.zmanim.tzet ??
+            hhmmOrNull(z.tzeit(CHABAD_NIGHTFALL_DEGREES)) ??
+            zmanim.tzet,
+        };
+      }
       out.push({
         candleAt,
         havdalahAt,
@@ -492,21 +598,16 @@ export class CalendarService {
           weekday,
           services,
           candleLighting: candleAt ? hhmm(candleAt) : null,
+          candleAfter,
           havdalah: havdalahAt ? hhmm(havdalahAt) : null,
+          fastBegins,
+          fastEnds,
           parasha,
           holidays,
-          zmanim: {
-            alot: hhmmOrNull(z.alotHaShachar()),
-            talit: hhmmOrNull(z.misheyakir()),
-            sunrise: hhmmOrNull(z.sunrise()),
-            shma: hhmmOrNull(z.sofZmanShma()),
-            tfila: hhmmOrNull(z.sofZmanTfilla()),
-            chatzot: hhmmOrNull(z.chatzot()),
-            shkia: hhmmOrNull(z.shkiah()),
-            tzet: hhmmOrNull(nightfall(z)),
-          },
+          zmanim,
           note: overrideNote || autoNote || null,
           closed,
+          source: cd ? 'chabad' : 'hebcal',
         },
       });
     }

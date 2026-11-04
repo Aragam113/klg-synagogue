@@ -85,7 +85,7 @@ export const PageHero = ({
   );
 };
 
-/** Фото из `PHOTOS` в арке с подписью: что на фото · автор, лицензия, Wikimedia Commons. */
+/** Фото из `PHOTOS` в арке с подписью: что на фото · автор, лицензия, Wikimedia Commons (или «архив общины»). */
 export const Figure = ({
   id,
   glow,
@@ -108,7 +108,10 @@ export const Figure = ({
       <figcaption className="sx-figure__cap">
         <span>{p.alt[lang]}</span>{' '}
         <Link href={p.page} className="sx-credit">
-          {t('photo')}: {p.author === 'unknown' ? '—' : p.author}, {p.license}, Wikimedia Commons
+          {t('photo')}:{' '}
+          {p.source
+            ? `${p.author === 'unknown' ? '—' : p.author}, ${p.license}, ${p.source}`
+            : t('photoArchive')}
         </Link>
       </figcaption>
     </figure>

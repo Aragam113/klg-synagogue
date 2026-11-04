@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { getContent } from '@/content';
 import { useLang } from '@/i18n/use-lang';
 import { dedicationItems } from '@/screens/donate/donate-model';
+import { CandlesWidget } from '@/screens/schedule/candles-widget';
 import { useNow } from '@/screens/schedule/model';
 import { useGetTodayQuery } from '@/store/api/calendar';
 import {
@@ -70,6 +71,7 @@ export const HomeScreen = () => {
       today={{
         state: today.isLoading ? 'loading' : today.data ? 'ready' : 'empty',
         tiles: today.data ? <TodayLive info={today.data} lang={lang} t={t} /> : null,
+        candles: <CandlesWidget />,
       }}
       events={{
         state: blockState(

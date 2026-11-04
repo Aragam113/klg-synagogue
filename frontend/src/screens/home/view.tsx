@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode, useRef, type PointerEvent as RPointerEvent } from 'react';
 
+import { SITE } from '@/config/site';
 import { PHOTO_TALL, PHOTOS } from '@/content';
 import { SynagogueScrub } from '@/scenes/synagogue-scrub';
 import { EventCard, FundraiserCard } from '@/screens/events/cards';
@@ -37,8 +38,9 @@ export interface HomeViewProps {
   t: T;
   lang: string;
   chapters: SceneChapter[];
-  /** `tiles` — the live «Today» tiles (TodayLive: only they re-render every second, not the whole page). */
-  today: { state: BlockState; tiles: ReactNode };
+  /** `tiles` — the live «Today» tiles (TodayLive: only they re-render every second, not the whole page);
+      `candles` — the «Зажигание свечей» widget (CandlesWidget, Chabad.org times) under the tiles. */
+  today: { state: BlockState; tiles: ReactNode; candles?: ReactNode };
   events: { state: BlockState; items: EventItem[] };
   funds: { state: BlockState; items: Fundraiser[]; supporters: number | null };
   /** `<Marquee>` items of the dedications ribbon (`dedicationItems` from donate-model). */
@@ -241,6 +243,32 @@ export const HomeView = ({
         </div>
       </Section>
 
+      {/* 2a. News — right after the hero: the freshest community news (Telegram channel import) first */}
+      <Section tone="cream" className="home-news" id="news">
+        <Container>
+          <Head t={t} ns="news" />
+          {news.state === 'loading' ? (
+            <Skeleton />
+          ) : news.state === 'ready' ? (
+            <NewsRail
+              items={news.items.slice(0, 3)}
+              className="grid grid--3"
+              testId="home-news-rail"
+            />
+          ) : (
+            <Text className="home-note">{t('news.empty')}</Text>
+          )}
+          <div className="home-actions">
+            <Button href="/news" variant="ghost" arrow>
+              {t('news.all')}
+            </Button>
+            <Button href={SITE.sites.telegram.value} variant="ghost">
+              {t('news.telegram')}
+            </Button>
+          </div>
+        </Container>
+      </Section>
+
       <SynagogueScrub
         chapters={chapters}
         creditsLabel={t('scene.credits')}
@@ -280,6 +308,7 @@ export const HomeView = ({
           ) : (
             <Text className="home-note">{t('today.unavailable')}</Text>
           )}
+          {today.candles}
           <div className="home-actions">
             <Button href="/schedule" variant="light" arrow>
               {t('today.all')}
@@ -488,30 +517,7 @@ export const HomeView = ({
         </Container>
       </Section>
 
-      {/* 11. News */}
-      <Section tone="cream" className="home-news" id="news">
-        <Container>
-          <Head t={t} ns="news" />
-          {news.state === 'loading' ? (
-            <Skeleton />
-          ) : news.state === 'ready' ? (
-            <NewsRail
-              items={news.items.slice(0, 3)}
-              className="grid grid--3"
-              testId="home-news-rail"
-            />
-          ) : (
-            <Text className="home-note">{t('news.empty')}</Text>
-          )}
-          <div className="home-actions">
-            <Button href="/news" variant="ghost" arrow>
-              {t('news.all')}
-            </Button>
-          </div>
-        </Container>
-      </Section>
-
-      {/* 12. Dawn */}
+      {/* 11. Dawn */}
       <Section tone="canvas" className="home-dawn" id="dawn">
         <div className="home-dawn__rosette" aria-hidden>
           {/* The wrapper turns slowly by itself (every device), the rosette inside adds the scroll turn */}

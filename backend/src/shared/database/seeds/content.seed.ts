@@ -31,13 +31,32 @@ export interface SeedSummary {
 const DEFAULT_IMG_DIR = resolve(__dirname, '../../../../seed-assets/photos');
 const CREDIT_MAX = 300;
 
-/** `_sources.txt`: «файл | лицензия | автор | дата | страница | описание» → атрибуция. */
+/** Архив общины: фото, которые община передала для сайта (папка на Яндекс Диске). */
+const COMMUNITY_LICENSE = 'предоставлено общиной для сайта';
+
+/**
+ * `_sources.txt`: «файл | лицензия | автор | дата | страница | описание» → атрибуция.
+ * `commons_*` — только свободные лицензии Wikimedia Commons (атрибуция у каждого фото своя);
+ * `community_*` — архив общины: одна атрибуция на все фото (страница — папка на Яндекс Диске).
+ */
 export async function readCredits(
   imgDir: string = DEFAULT_IMG_DIR
 ): Promise<Map<string, string>> {
   const text = await readFile(resolve(imgDir, '_sources.txt'), 'utf8');
   const credits = new Map<string, string>();
   for (const line of text.split(/\r?\n/)) {
+    if (line.startsWith('community_')) {
+      const [file, license, author, , page] = line
+        .split(' | ')
+        .map((s) => s.trim());
+      if (license !== COMMUNITY_LICENSE) continue;
+      if (!page?.startsWith('https://disk.yandex.ru/')) continue;
+      credits.set(
+        file,
+        `${author} / ${license} / Яндекс Диск: ${page}`.slice(0, CREDIT_MAX)
+      );
+      continue;
+    }
     if (!line.startsWith('commons_')) continue;
     const [file, license, author, , page] = line
       .split(' | ')
@@ -126,8 +145,9 @@ export async function seedContent(
       const credit = credits.get(p.file);
       if (!credit)
         throw new Error(`Нет свободной лицензии в _sources.txt для ${p.file}`);
-      if (await photos.findOne({ where: { albumId: album.id, credit } }))
-        continue;
+      // Уже залито: у Commons атрибуция уникальна; у архива общины она общая — считаем, сколько их уже в альбоме.
+      const same = await photos.count({ where: { albumId: album.id, credit } });
+      if (p.file.startsWith('community_') ? same > j : same > 0) continue;
       const { url: file } = await saveImageAsWebp(
         await readFile(resolve(imgDir, p.file)),
         opts.uploadDir

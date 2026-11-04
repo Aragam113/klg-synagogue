@@ -11,6 +11,10 @@
 .cnt-badge small { font-family: var(--f-ui-md); font-size: 0.714rem; text-transform: uppercase; letter-spacing: 0.12em; margin-block-start: 0.25rem; }
 .cnt-price { font-family: var(--f-ui-md); color: var(--gold); }
 .cnt-more { font-family: var(--f-ui-md); font-size: 0.857rem; opacity: 0.7; }
+/* Карточка афиши: «Вход свободный» / цена слева, «Подробнее» справа — раньше два inline-span слипались
+   («Вход свободныйПодробнее»); на узкой карточке «Подробнее» переносится вниз, а не на цену. */
+.cnt-event .card__footer { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.5rem 1rem; }
+.cnt-event .cnt-more { margin-inline-start: auto; }
 .cnt-lead { margin-block-start: 0.5rem; }
 .cnt-progress { height: 0.5rem; border-radius: var(--r-pill); background: var(--line); overflow: hidden; margin-block: 1rem; }
 .cnt-progress span { display: block; height: 100%; width: var(--fill); background: var(--gold); border-radius: inherit; transform-origin: left center; }

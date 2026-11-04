@@ -6,7 +6,7 @@
  * Needs the backend on :3000 for live data (the page must survive without it too).
  * Checks: preloader — the star is drawn no faster than MIN_DRAW_MS, the line waits for the scene's frame cache when
  * it can make it (frames slowed down), lets the site in without it when it cannot (frames far too slow; the cache goes
- * on in the background), shown again on reload; the scene frame follows the scroll (p≈0.1 ≠ p≈0.9 and back again); all 12 sections;
+ * on in the background), a reload in the same session goes the quick way (short fade, no star); the scene frame follows the scroll (p≈0.1 ≠ p≈0.9 and back again); all 12 sections;
  * scroll to the bottom without console errors; 390px (touch: live scene) without horizontal scroll; reduced motion → static scene;
  * ?lang=he → dir=rtl and the scene still renders. Screenshots 1440/390 → e2e/shots/ (SMOKE_SHOTS overrides).
  */
@@ -26,7 +26,7 @@ const SHOTS = process.env.SMOKE_SHOTS ?? join(ROOT, 'e2e', 'shots');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 mkdirSync(SHOTS, { recursive: true });
 
-const SECTIONS = ['#hero', '.scrub', '#welcome', '#today', '#community', '#ledger', '.home-marquee', '#visit', '#events', '#funds', '#news', '#dawn'];
+const SECTIONS = ['#hero', '#news', '.scrub', '#welcome', '#today', '#community', '#ledger', '.home-marquee', '#visit', '#events', '#funds', '#dawn'];
 
 const failures = [];
 const check = (ok, what, extra = '') => {
@@ -160,13 +160,14 @@ try {
     const own = await page.evaluate(() => +document.documentElement.dataset.preloadMs);
     check(own >= 1800 && own < 7000 + 1800, 'preloader: the star forms at full speed at least, leaves by the ceiling', `${own} ms`);
     check(await page.evaluate(() => document.documentElement.dataset.appReady === 'true'), 'preloader: html[data-app-ready]');
-    // The preloader shows on every load — a reload in the same tab (same session) shows it again.
+    // A reload in the same tab (same session, warm cache) goes the quick way: no star, a short fade once fonts, API
+    // and the first images are in (the star alone takes MIN_DRAW_MS = 1.8 s).
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
-    check(
-      await page.waitForSelector('[data-preloader] path', { timeout: 30000 }).then(() => true, () => false),
-      'preloader: shown again after reload in the same session'
-    );
-    await page.waitForFunction(() => !document.querySelector('[data-preloader]'), { timeout: 6000 }).catch(() => undefined);
+    await page
+      .waitForFunction(() => document.documentElement.dataset.appReady === 'true' && !document.querySelector('[data-preloader]'), { timeout: 12000 })
+      .catch(() => undefined);
+    const again = await page.evaluate(() => +document.documentElement.dataset.preloadMs);
+    check(again > 0 && again < 1800, 'preloader: reload in the same session goes the quick way (no star)', `${again} ms`);
     // Brand «Новая синагога» + «Калининград» in the logo, full name in <title>.
     check((await page.title()) === 'Новая синагога, Калининград', 'home <title> = full site name', await page.title());
     const logo = await page.$eval('.hdr .logo', (a) => [a.querySelector('.logo__name')?.textContent, a.querySelector('.logo__city')?.textContent]).catch(() => []);

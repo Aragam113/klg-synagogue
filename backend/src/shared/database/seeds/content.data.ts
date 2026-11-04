@@ -235,7 +235,10 @@ export interface SeedAlbum {
   photos: SeedPhoto[];
 }
 
-/** Только `commons_*` со свободной лицензией; подписи — по описаниям в `_sources.txt`. */
+/**
+ * `commons_*` — Wikimedia Commons со свободной лицензией; `community_*` — архив общины (фото, переданные общиной
+ * для сайта, Яндекс Диск «для сайта»). Подписи — по описаниям в `_sources.txt`.
+ */
 export const ALBUMS: SeedAlbum[] = [
   {
     title: {
@@ -398,6 +401,533 @@ export const ALBUMS: SeedAlbum[] = [
       },
     ],
   },
+  {
+    title: {
+      ru: 'Молельный зал',
+      en: 'The prayer hall',
+      he: 'אולם התפילה',
+    },
+    photos: [
+      {
+        file: 'community_hall_01.jpg',
+        caption: {
+          ru: 'Витраж-роза со звездой Давида',
+          en: 'The rose window with the Star of David',
+          he: 'חלון הוורד עם מגן דוד',
+        },
+      },
+      {
+        file: 'community_hall_02.jpg',
+        caption: {
+          ru: 'Молельный зал и витраж-роза',
+          en: 'The prayer hall and the rose window',
+          he: 'אולם התפילה וחלון הוורד',
+        },
+      },
+      {
+        file: 'community_hall_03.jpg',
+        caption: {
+          ru: 'Арон а-кодеш и витраж-роза',
+          en: 'The Holy Ark and the rose window',
+          he: 'ארון הקודש וחלון הוורד',
+        },
+      },
+      {
+        file: 'community_hall_04.jpg',
+        caption: {
+          ru: 'Арон а-кодеш с парохетом',
+          en: 'The Holy Ark with the parochet',
+          he: 'ארון הקודש והפרוכת',
+        },
+      },
+      {
+        file: 'community_hall_05.jpg',
+        caption: {
+          ru: 'Вид на зал с галереи',
+          en: 'The hall seen from the gallery',
+          he: 'האולם מהעזרה',
+        },
+      },
+      {
+        file: 'community_hall_06.jpg',
+        caption: {
+          ru: 'Тора с переводом на русский',
+          en: 'A Chumash with Russian translation',
+          he: 'חומש עם תרגום לרוסית',
+        },
+      },
+      {
+        file: 'community_hall_07.jpg',
+        caption: {
+          ru: 'Светильник в молельном зале',
+          en: 'A lamp in the prayer hall',
+          he: 'מנורה באולם התפילה',
+        },
+      },
+      {
+        file: 'community_hall_08.jpg',
+        caption: {
+          ru: 'Витраж-роза вечером',
+          en: 'The rose window in the evening',
+          he: 'חלון הוורד בערב',
+        },
+      },
+    ],
+  },
+  {
+    title: {
+      ru: 'Молитва',
+      en: 'Prayer',
+      he: 'תפילה',
+    },
+    photos: [
+      {
+        file: 'community_prayer_01.jpg',
+        caption: {
+          ru: 'Молитва в талите и тфилине',
+          en: 'Praying in tallit and tefillin',
+          he: 'תפילה בטלית ותפילין',
+        },
+      },
+      {
+        file: 'community_prayer_02.jpg',
+        caption: {
+          ru: 'Утренняя молитва',
+          en: 'Morning prayer',
+          he: 'תפילת שחרית',
+        },
+      },
+      {
+        file: 'community_prayer_03.jpg',
+        caption: {
+          ru: 'Чтение молитвенника',
+          en: 'Reading the siddur',
+          he: 'קריאה בסידור',
+        },
+      },
+      {
+        file: 'community_prayer_04.jpg',
+        caption: {
+          ru: 'Молитва в зале',
+          en: 'Prayer in the hall',
+          he: 'תפילה באולם',
+        },
+      },
+      {
+        file: 'community_prayer_05.jpg',
+        caption: {
+          ru: 'Молитва стоя',
+          en: 'Standing in prayer',
+          he: 'תפילה בעמידה',
+        },
+      },
+      {
+        file: 'community_prayer_06.jpg',
+        caption: {
+          ru: 'Молитва у витража',
+          en: 'Prayer by the window',
+          he: 'תפילה ליד החלון',
+        },
+      },
+      {
+        file: 'community_prayer_07.jpg',
+        caption: {
+          ru: 'Сосредоточенная молитва',
+          en: 'Deep in prayer',
+          he: 'שקוע בתפילה',
+        },
+      },
+      {
+        file: 'community_prayer_08.jpg',
+        caption: {
+          ru: 'Талит и тфилин',
+          en: 'Tallit and tefillin',
+          he: 'טלית ותפילין',
+        },
+      },
+    ],
+  },
+  {
+    title: {
+      ru: 'Праздники в общине',
+      en: 'Holidays in the community',
+      he: 'חגים בקהילה',
+    },
+    photos: [
+      {
+        file: 'community_holidays_01.jpg',
+        caption: {
+          ru: 'Праздник с новым свитком Торы',
+          en: 'Celebrating a new Torah scroll',
+          he: 'חגיגה עם ספר תורה חדש',
+        },
+      },
+      {
+        file: 'community_holidays_02.jpg',
+        caption: {
+          ru: 'Танцы со свитком Торы',
+          en: 'Dancing with the Torah',
+          he: 'ריקודים עם ספר התורה',
+        },
+      },
+      {
+        file: 'community_holidays_03.jpg',
+        caption: {
+          ru: 'Написание свитка Торы',
+          en: 'Writing a Torah scroll',
+          he: 'כתיבת ספר תורה',
+        },
+      },
+      {
+        file: 'community_holidays_04.jpg',
+        caption: {
+          ru: 'Поднятие свитка Торы',
+          en: 'Raising the Torah scroll',
+          he: 'הגבהת ספר התורה',
+        },
+      },
+      {
+        file: 'community_holidays_05.jpg',
+        caption: {
+          ru: 'Ханука у синагоги',
+          en: 'Chanukah outside the synagogue',
+          he: 'חנוכה ליד בית הכנסת',
+        },
+      },
+      {
+        file: 'community_holidays_06.jpg',
+        caption: {
+          ru: 'Зажигание ханукальных свечей',
+          en: 'Lighting the Chanukah candles',
+          he: 'הדלקת נרות חנוכה',
+        },
+      },
+      {
+        file: 'community_holidays_07.jpg',
+        caption: {
+          ru: 'Ханукальный вечер',
+          en: 'A Chanukah evening',
+          he: 'ערב חנוכה',
+        },
+      },
+      {
+        file: 'community_holidays_08.jpg',
+        caption: {
+          ru: '«С праздником Хануки!»',
+          en: '“Happy Chanukah!”',
+          he: '„חנוכה שמח!”',
+        },
+      },
+      {
+        file: 'community_holidays_09.jpg',
+        caption: {
+          ru: 'Праздничный вечер в зале',
+          en: 'A festive evening in the hall',
+          he: 'ערב חגיגי באולם',
+        },
+      },
+      {
+        file: 'community_holidays_10.jpg',
+        caption: {
+          ru: 'Праздничная трапеза',
+          en: 'A festive meal',
+          he: 'סעודה חגיגית',
+        },
+      },
+      {
+        file: 'community_holidays_11.jpg',
+        caption: {
+          ru: 'Трапеза для старшего поколения',
+          en: 'A meal for the older generation',
+          he: 'סעודה לבני הגיל השלישי',
+        },
+      },
+      {
+        file: 'community_holidays_12.jpg',
+        caption: {
+          ru: 'Пурим: костюмы и веселье',
+          en: 'Purim costumes and fun',
+          he: 'פורים: תחפושות ושמחה',
+        },
+      },
+      {
+        file: 'community_holidays_13.jpg',
+        caption: {
+          ru: 'Праздник детей',
+          en: 'A children’s celebration',
+          he: 'חגיגת ילדים',
+        },
+      },
+      {
+        file: 'community_holidays_14.jpg',
+        caption: {
+          ru: 'Праздник в синагоге',
+          en: 'A celebration in the synagogue',
+          he: 'חגיגה בבית הכנסת',
+        },
+      },
+      {
+        file: 'community_holidays_15.jpg',
+        caption: {
+          ru: 'Детский клуб «Код лета»',
+          en: 'The “Code of Summer” kids’ club',
+          he: 'מועדון הילדים „קוד הקיץ”',
+        },
+      },
+      {
+        file: 'community_holidays_16.jpg',
+        caption: {
+          ru: 'Торжественное открытие',
+          en: 'A ribbon-cutting ceremony',
+          he: 'טקס גזירת סרט',
+        },
+      },
+    ],
+  },
+  {
+    title: {
+      ru: 'Концерты в синагоге',
+      en: 'Concerts in the synagogue',
+      he: 'קונצרטים בבית הכנסת',
+    },
+    photos: [
+      {
+        file: 'community_concerts_01.jpg',
+        caption: {
+          ru: 'Концерт в молельном зале',
+          en: 'A concert in the prayer hall',
+          he: 'קונצרט באולם התפילה',
+        },
+      },
+      {
+        file: 'community_concerts_02.jpg',
+        caption: {
+          ru: 'Зрители концерта',
+          en: 'The audience',
+          he: 'הקהל',
+        },
+      },
+      {
+        file: 'community_concerts_03.jpg',
+        caption: {
+          ru: 'Ансамбль под руководством Фельдмана',
+          en: 'The ensemble led by Feldman',
+          he: 'ההרכב בניהולו של פלדמן',
+        },
+      },
+      {
+        file: 'community_concerts_04.jpg',
+        caption: {
+          ru: 'Скрипки ансамбля',
+          en: 'The ensemble’s violins',
+          he: 'כינורות ההרכב',
+        },
+      },
+      {
+        file: 'community_concerts_05.jpg',
+        caption: {
+          ru: 'Концерт с кантором',
+          en: 'A concert with a cantor',
+          he: 'קונצרט עם חזן',
+        },
+      },
+      {
+        file: 'community_concerts_06.jpg',
+        caption: {
+          ru: 'Публика концерта с кантором',
+          en: 'The audience at the cantor’s concert',
+          he: 'הקהל בקונצרט החזן',
+        },
+      },
+      {
+        file: 'community_concerts_07.jpg',
+        caption: {
+          ru: 'Оркестр и кантор',
+          en: 'The orchestra and the cantor',
+          he: 'התזמורת והחזן',
+        },
+      },
+      {
+        file: 'community_concerts_08.jpg',
+        caption: {
+          ru: 'Поёт кантор',
+          en: 'The cantor sings',
+          he: 'החזן שר',
+        },
+      },
+    ],
+  },
+  {
+    title: {
+      ru: 'Еврейский музей',
+      en: 'The Jewish Museum',
+      he: 'המוזיאון היהודי',
+    },
+    photos: [
+      {
+        file: 'community_museum_01.jpg',
+        caption: {
+          ru: 'Экспозиция Еврейского музея',
+          en: 'The Jewish Museum exhibition',
+          he: 'תערוכת המוזיאון היהודי',
+        },
+      },
+      {
+        file: 'community_museum_02.jpg',
+        caption: {
+          ru: 'Стенды об истории общины',
+          en: 'Panels on the history of the community',
+          he: 'לוחות על תולדות הקהילה',
+        },
+      },
+      {
+        file: 'community_museum_03.jpg',
+        caption: {
+          ru: 'Выставочный зал',
+          en: 'The exhibition room',
+          he: 'חדר התצוגה',
+        },
+      },
+      {
+        file: 'community_museum_04.jpg',
+        caption: {
+          ru: 'Выставка живописи',
+          en: 'A painting exhibition',
+          he: 'תערוכת ציורים',
+        },
+      },
+      {
+        file: 'community_museum_05.jpg',
+        caption: {
+          ru: 'Галерея музея',
+          en: 'The museum gallery',
+          he: 'גלריית המוזיאון',
+        },
+      },
+    ],
+  },
+  {
+    title: {
+      ru: 'Миквы',
+      en: 'The mikvahs',
+      he: 'המקוואות',
+    },
+    photos: [
+      {
+        file: 'community_mikvah_01.jpg',
+        caption: {
+          ru: 'Женская миква',
+          en: 'The women’s mikvah',
+          he: 'מקווה הנשים',
+        },
+      },
+      {
+        file: 'community_mikvah_02.jpg',
+        caption: {
+          ru: 'Женская миква: комната подготовки',
+          en: 'The women’s mikvah: preparation room',
+          he: 'מקווה הנשים: חדר ההכנה',
+        },
+      },
+      {
+        file: 'community_mikvah_03.jpg',
+        caption: {
+          ru: 'Женская миква: комната ожидания',
+          en: 'The women’s mikvah: waiting room',
+          he: 'מקווה הנשים: חדר ההמתנה',
+        },
+      },
+      {
+        file: 'community_mikvah_04.jpg',
+        caption: {
+          ru: 'Мужская миква',
+          en: 'The men’s mikvah',
+          he: 'מקווה הגברים',
+        },
+      },
+      {
+        file: 'community_mikvah_05.jpg',
+        caption: {
+          ru: 'Бассейн мужской миквы',
+          en: 'The men’s mikvah pool',
+          he: 'בריכת מקווה הגברים',
+        },
+      },
+      {
+        file: 'community_mikvah_06.jpg',
+        caption: {
+          ru: 'Комната отдыха',
+          en: 'The lounge',
+          he: 'חדר המנוחה',
+        },
+      },
+    ],
+  },
+  {
+    title: {
+      ru: 'Еврейское кладбище',
+      en: 'The Jewish cemetery',
+      he: 'בית הקברות היהודי',
+    },
+    photos: [
+      {
+        file: 'community_cemetery_01.jpg',
+        caption: {
+          ru: 'Еврейское кладбище',
+          en: 'The Jewish cemetery',
+          he: 'בית הקברות היהודי',
+        },
+      },
+      {
+        file: 'community_cemetery_02.jpg',
+        caption: {
+          ru: 'Памятный камень к 150-летию освящения кладбища',
+          en: 'Memorial stone for the cemetery’s 150th anniversary',
+          he: 'אבן זיכרון במלאת 150 שנה לבית הקברות',
+        },
+      },
+      {
+        file: 'community_cemetery_03.jpg',
+        caption: {
+          ru: 'Открытие памятного камня',
+          en: 'Unveiling the memorial stone',
+          he: 'חשיפת אבן הזיכרון',
+        },
+      },
+      {
+        file: 'community_cemetery_04.jpg',
+        caption: {
+          ru: 'Старые надгробия',
+          en: 'Old gravestones',
+          he: 'מצבות עתיקות',
+        },
+      },
+      {
+        file: 'community_cemetery_05.jpg',
+        caption: {
+          ru: 'День памяти на кладбище',
+          en: 'A day of remembrance at the cemetery',
+          he: 'יום זיכרון בבית הקברות',
+        },
+      },
+      {
+        file: 'community_cemetery_06.jpg',
+        caption: {
+          ru: 'Мемориальная стена',
+          en: 'The memorial wall',
+          he: 'קיר הזיכרון',
+        },
+      },
+      {
+        file: 'community_cemetery_07.jpg',
+        caption: {
+          ru: 'Траурное собрание',
+          en: 'A memorial gathering',
+          he: 'עצרת זיכרון',
+        },
+      },
+    ],
+  },
 ];
 
 /** Значения настроек, если ключа ещё нет (правки редактора не затираются). */
@@ -408,6 +938,9 @@ export const SETTINGS: Record<string, unknown> = {
   operator: {
     ru: '[ВПИШИ: оператор персональных данных — наименование, ИНН, адрес]',
   },
-  socials: [{ name: 'VK', url: 'https://vk.com/jewish39' }], // src: FEOR
+  socials: [
+    { name: 'Telegram', url: 'https://t.me/B_C_Kaliningrad' }, // src: TG — канал «Бейт Хабад Калининград»
+    { name: 'VK', url: 'https://vk.com/jewish39' }, // src: FEOR
+  ],
   header_phones: ['+7 (4012) 46-43-45'], // src: OF-home, OF-cont, FEOR
 };

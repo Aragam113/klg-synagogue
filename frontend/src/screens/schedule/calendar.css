@@ -16,6 +16,7 @@
 
 .sch-unknown { font-family: var(--f-ui-md); margin: 0 0 1.714rem; padding: 1rem 1.286rem; border-inline-start: 2px solid var(--gold); background: var(--gold-pill); border-radius: 0.571rem; }
 .sch-footnote { margin-top: 2.286rem; font-size: 0.857rem; color: var(--fg-mute); max-width: 48rem; }
+.sch-footnote a { color: inherit; text-decoration: underline; text-underline-offset: 0.2em; }
 .sch-loading { height: 20rem; border-radius: var(--r-card); background: linear-gradient(90deg, #0f0f0d08, #0f0f0d12, #0f0f0d08); }
 
 /* ---------- list ---------- */
@@ -50,8 +51,6 @@
 .sch-day__times { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); gap: 0.714rem 1.143rem; margin: 0; }
 .sch-day__times dt, .sch-zmanim dt { font-size: 0.714rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-mute); }
 .sch-day__times dd { margin: 0; font-family: var(--f-display); font-size: 1.429rem; font-variant-numeric: tabular-nums; }
-.sch-day__ask { grid-column: 1 / -1; }
-.sch-day__ask dd { font-family: var(--f-ui); font-size: 0.929rem; color: var(--fg-mute); }
 .sch-gold dd, td.sch-gold { color: var(--gold); }
 .sch-day.is-shabbat .sch-gold dd { color: #d8c29d; }
 .sch-zmanim { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: 0.571rem 1.143rem; margin: 0.714rem 0 0; padding-top: 0.714rem; border-top: 1px solid var(--line); }
@@ -59,7 +58,7 @@
 
 /* ---------- table ---------- */
 .sch-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--cream); }
-.sch-table { width: 100%; border-collapse: collapse; font-size: 0.929rem; }
+.sch-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.929rem; } /* separate: sticky date cells keep their borders */
 .sch-table th { font-family: var(--f-ui-md); font-size: 0.714rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-mute); text-align: start; padding: 0.857rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .sch-table td { padding: 0.714rem 0.857rem; border-bottom: 1px solid var(--line); vertical-align: top; font-variant-numeric: tabular-nums; }
 .sch-table tr:last-child td { border-bottom: 0; }
@@ -68,6 +67,15 @@
 .sch-table tr.is-shabbat td.sch-gold { color: #d8c29d; }
 .sch-table tr.is-today td { box-shadow: inset 0 2px 0 var(--gold), inset 0 -2px 0 var(--gold); }
 .sch-table tr.is-today .sch-table__date { color: var(--gold); }
+.sch-table tr.is-shabbat .sch-hol--link { color: #d8c29d; border-color: #d8c29d; }
+/* the date column stays in view while the wide table (zmanim) scrolls sideways */
+.sch-table th:first-child, .sch-table__date { position: sticky; inset-inline-start: 0; z-index: 1; background: var(--cream); }
+.sch-table tr.is-shabbat .sch-table__date { background: var(--deep); }
+.sch-table__heb { white-space: nowrap; }
+.sch-table td.sch-gold { white-space: nowrap; }
+.sch-table__note { min-width: 12rem; }
+.sch-table__note .sch-hols { margin-block: 0.143rem; }
+.sch-table__fast { display: block; font-size: 0.786rem; color: var(--fg-mute); white-space: nowrap; }
 
 /* ---------- holiday ---------- */
 .hol-back { display: inline-block; margin-bottom: 1.714rem; color: var(--fg-mute); text-decoration: none; font-family: var(--f-ui-md); }
@@ -107,3 +115,39 @@
 .tw--bar .tw__dates { flex-direction: row; flex-wrap: wrap; gap: 0 0.571rem; }
 .tw--bar .tw__candles { flex-direction: row; flex-wrap: wrap; gap: 0 0.571rem; }
 @media (min-width: 1280px) { .tw--bar { display: none; } }
+
+/* ---------- CandlesWidget: «Зажигание свечей в Калининграде» (данные Chabad.org) ---------- */
+.cdl { --cdl-card: var(--cream); --cdl-accent: var(--gold); display: flex; flex-direction: column; gap: 1.143rem; }
+.tone-deep .cdl, .tone-deeper .cdl, .tone-ink .cdl { --cdl-card: #f5f4ef0a; --cdl-accent: #d8c29d; }
+.cdl--loading { min-height: 12rem; border-radius: var(--r-card); background: var(--cdl-card); }
+.cdl__head { display: flex; flex-direction: column; gap: 0.286rem; }
+.cdl__eyebrow { font-family: var(--f-ui-md); font-size: 0.714rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-mute); }
+.cdl__title { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: clamp(1.429rem, 2.2vw, 1.857rem); line-height: 1.15; color: var(--fg); }
+.cdl__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 0.857rem; }
+.cdl-card { display: flex; flex-direction: column; gap: 0.857rem; padding: 1.286rem 1.429rem; background: var(--cdl-card); border: 1px solid var(--line); border-radius: var(--r-card); color: var(--fg); }
+.cdl-card.is-holiday { border-color: var(--cdl-accent); }
+.cdl-card__name { margin: 0; font-family: var(--f-display); font-size: 1.214rem; line-height: 1.2; }
+.cdl-card__lines { margin: 0; display: flex; flex-direction: column; gap: 0.714rem; }
+.cdl-line { display: flex; align-items: flex-end; justify-content: space-between; gap: 0.857rem; padding-top: 0.714rem; border-top: 1px solid var(--line); }
+.cdl-line dt { display: flex; flex-direction: column; gap: 0.143rem; min-width: 0; }
+.cdl-line__label { font-family: var(--f-ui-md); font-size: 0.857rem; }
+.cdl-line__date { font-size: 0.786rem; color: var(--fg-mute); }
+.cdl-line dd { margin: 0; font-family: var(--f-display); font-size: 1.714rem; line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--cdl-accent); }
+.cdl-line dd small { font-family: var(--f-ui); font-size: 0.786rem; color: var(--fg-mute); }
+.cdl-line--havdalah dd { color: var(--fg); }
+.cdl__empty, .cdl__credit { margin: 0; font-size: 0.857rem; color: var(--fg-mute); }
+.cdl__credit a { color: inherit; text-decoration: underline; text-underline-offset: 0.2em; }
+.cdl__credit a:hover { color: var(--fg); }
+/* /schedule: виджет над переключателями периода */
+.sch-candles { margin-bottom: 2.857rem; }
+/* главная, «Сегодня»: под плитками */
+.home-today .cdl { margin-top: 2.286rem; }
+/* телефон: карточки — горизонтальная лента со снапом (4 карточки столбиком — слишком длинно) */
+@media (max-width: 599px) {
+  .cdl__list {
+    display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
+    margin-inline: calc(var(--gutter) * -1); padding-inline: var(--gutter); scroll-padding-inline: var(--gutter);
+  }
+  .cdl__list::-webkit-scrollbar { display: none; }
+  .cdl-card { flex: 0 0 82%; scroll-snap-align: start; }
+}

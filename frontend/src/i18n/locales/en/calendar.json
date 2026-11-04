@@ -3,7 +3,7 @@
     "title": "Prayer schedule",
     "italic": "schedule",
     "eyebrow": "Kaliningrad · local time",
-    "lead": "Prayer times, candle lighting and Shabbat end, the weekly Torah portion and holidays. The Jewish calendar and zmanim are calculated for the synagogue's coordinates.",
+    "lead": "Prayer times, candle lighting and Shabbat end, the weekly Torah portion and holidays. Candle lighting, Shabbat end and zmanim for Kaliningrad are provided by Chabad.org.",
     "upcoming": "Next 14 days",
     "month": "Month",
     "year": "Year",
@@ -18,7 +18,8 @@
     "empty": "No schedule for these dates",
     "servicesUnknown": "Please call to check prayer times",
     "phonePlaceholder": "synagogue phone",
-    "computedNote": "Candle lighting, Shabbat end and zmanim are calculated with hebcal (candles 18 minutes before sunset, Shabbat ends at nightfall)."
+    "computedNote": "Candle lighting, Shabbat and holiday end times and zmanim for Kaliningrad are provided by",
+    "fallbackNote": "* — calculated on the site (hebcal): Chabad.org is temporarily unavailable."
   },
   "col": {
     "date": "Date",
@@ -30,7 +31,12 @@
     "candles": "Candles",
     "havdalah": "Havdalah",
     "parasha": "Portion",
-    "note": "Note"
+    "note": "Note",
+    "after": "after",
+    "havdalahHoliday": "Holiday ends",
+    "havdalahShort": "Ends",
+    "fastBegins": "Fast begins",
+    "fastEnds": "Fast ends"
   },
   "zmanim": {
     "alot": "Dawn (alot hashachar)",
@@ -54,6 +60,17 @@
     "h": "h",
     "m": "m",
     "s": "s"
+  },
+  "candles": {
+    "eyebrow": "Upcoming Shabbat and holidays",
+    "title": "Candle lighting in Kaliningrad",
+    "light": "Candle lighting",
+    "ends": "Shabbat ends",
+    "endsHoliday": "Holiday ends",
+    "shabbat": "Shabbat",
+    "parasha": "Portion",
+    "powered": "Times provided by",
+    "unavailable": "Candle lighting times are unavailable right now"
   },
   "holiday": {
     "back": "Back to schedule",

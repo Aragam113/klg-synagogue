@@ -30,11 +30,11 @@ export const CONTACTS: Contacts = {
   mapUrl: MAPS.yandex,
 };
 
-/** Fallback from site.ts; url null = placeholder (Telegram общины в источниках не найден). */
+/** Fallback from site.ts; url null = placeholder. */
 export const SOCIALS: Social[] = [
+  { kind: 'telegram', url: SITE.sites.telegram.value },
   { kind: 'vk', url: SITE.sites.vk.value },
   { kind: 'site', url: SITE.sites.gotov.value },
-  { kind: 'telegram', url: SITE.unknown.telegram },
 ];
 
 /** Value really filled in by the editor (not empty, not a seed placeholder). */

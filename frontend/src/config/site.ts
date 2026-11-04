@@ -41,6 +41,12 @@ export const SRC = {
   bus: 'https://ru.busti.me/kaliningrad/stop/rybnaya-derevnya/',
   mn24: 'https://muzeinayanoch39.ru/kaliningradskaya-sinagoga',
   russpass: 'https://russpass.ru/event/65fad468b3baa9b1629f7791',
+  /** Telegram-канал общины «Бейт Хабад Калининград» (указан общиной, 04.11.2026). */
+  tg: 'https://t.me/s/B_C_Kaliningrad',
+  /** Зманим, свечи и исход Шаббата — Chabad.org, город 908 «Kaliningrad, Russia». */
+  chabadCandles: 'https://www.chabad.org/calendar/candlelighting.asp?locationId=908&locationType=1',
+  chabadCandlesRu:
+    'https://ru.chabad.org/calendar/candlelighting.asp?locationId=908&locationType=1',
   kgdFood:
     'https://kgd.ru/news/society/item/82033-v-sinagoge-na-ostrove-v-kaliningrade-otkrylas-koshernaya-stolovaya',
 } as const;
@@ -97,6 +103,7 @@ export const SITE = {
     museum: { value: 'https://jmkaliningrad.org', src: SRC.jmCont },
     gotov: { value: SRC.gotov, src: SRC.gotov },
     vk: { value: 'https://vk.com/jewish39', src: SRC.feor }, // закрытое сообщество на 01.10.2026
+    telegram: { value: 'https://t.me/B_C_Kaliningrad', src: SRC.tg }, // src: TG — канал «Бейт Хабад Калининград»
   },
 
   hours: {
@@ -195,7 +202,6 @@ export const SITE = {
     excursionDuration: null,
     /** Часы приёма раввина / синагоги. */
     receptionHours: null,
-    telegram: null,
     operator: null,
   },
 } as const;
