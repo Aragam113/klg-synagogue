@@ -253,6 +253,7 @@ export const SynagogueScrub = ({
     mode: 'pin',
     timeline: true,
     snap: phone ? n : undefined,
+    assist: phone,
     onChange: (p) => {
       progress.current = p;
       movedAt.current = performance.now();

@@ -853,13 +853,13 @@ try {
       await page.evaluate((v) => window.scrollTo(0, v), to);
       await sleep(900);
     };
-    // inside a readable chapter: left alone
+    // a short swipe inside a readable chapter: gently finish at its reading hold
     await goTo(at(1.3 / 4));
-    await drag(127);
+    await drag(90);
     const lifted = await y();
     await sleep(900);
     const stay = await y();
-    check(Math.abs(stay - lifted) <= 1 && Math.abs(stay - at(1.45 / 4)) < 30, `${tag}: resting on a readable chapter → no glide`, `${lifted} → ${stay}`);
+    check(stay >= lifted && Math.abs(stay - at(1.46 / 4)) <= 3, `${tag}: a short swipe finishes softly at the reading hold`, `${lifted} → ${stay}`);
     // between chapters 03 and 04 (local .85 of 03), moving down → on to 04, just fully in (local .22)
     await goTo(at(2.45 / 4));
     await drag(338, false);

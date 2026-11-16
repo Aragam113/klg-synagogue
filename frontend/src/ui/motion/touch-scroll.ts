@@ -2,6 +2,7 @@
  * Pure maths of the touch scroll path (html[data-touch]): native scroll, scrollY polled every rAF, `--p` eases to it;
  * after the finger and the inertia stop between two chapters of a snapping scene the page glides into the next or the
  * previous one along the movement (snapProgress).
+ * The synagogue scene also assists short swipes toward nearby reading holds (assistProgress).
  * The desktop (fine pointer) never uses it.
  */
 
@@ -47,6 +48,24 @@ export const snapProgress = (p: number, n: number, dir: -1 | 0 | 1): number | nu
   return null;
 };
 
+/** Scene assistance: settle onto a nearby reading hold along an intentional swipe. Keep a small deadband,
+ * never travel farther than half a chapter, and leave the outer entry/exit free. If the central hold is too far,
+ * a transition may still finish just inside the next readable chapter. */
+export const assistProgress = (p: number, n: number, dir: -1 | 0 | 1): number | null => {
+  if (n < 2 || !Number.isFinite(p) || !dir || p * n <= IN_END || p * n >= n - 1 + 0.78) return null;
+  const max = 0.5 / n;
+  const deadband = 0.025 / n;
+  let nearest: number | null = null;
+  for (let chapter = 0; chapter < n; chapter++) {
+    const hold = (chapter + 0.46) / n;
+    const delta = (hold - p) * dir;
+    if (delta <= 0 || delta > max) continue;
+    if (delta < deadband) return null;
+    if (nearest === null || Math.abs(hold - p) < Math.abs(nearest - p)) nearest = hold;
+  }
+  return nearest ?? snapProgress(p, n, dir);
+};
+
 /** cubic-bezier(x1, y1, x2, y2) as a function of time 0..1 (Newton + bisection on x). */
 const bezier = (x1: number, y1: number, x2: number, y2: number) => {
   const cx = 3 * x1;
@@ -77,6 +96,10 @@ const bezier = (x1: number, y1: number, x2: number, y2: number) => {
 /** Glide easing cubic-bezier(.45, 0, .25, 1): a soft start from rest and a soft landing (no jolt either way). */
 export const easeGlide = bezier(0.45, 0, 0.25, 1);
 
-/** Glide duration in proportion to the distance: 350 ms for a short one, up to 800 ms for half a screen and more. */
-export const snapDuration = (distance: number, vh: number): number =>
-  Math.round(Math.min(800, Math.max(350, 330 + (Math.abs(distance) / Math.max(1, vh)) * 940)));
+/** Assisted scene holds ease over 600..1050 ms; ordinary transition snaps keep their 350..800 ms timing. */
+export const snapDuration = (distance: number, vh: number, assisted = false): number => {
+  const screens = Math.abs(distance) / Math.max(1, vh);
+  return assisted
+    ? Math.round(Math.min(1050, Math.max(600, 520 + screens * 1000)))
+    : Math.round(Math.min(800, Math.max(350, 330 + screens * 940)));
+};

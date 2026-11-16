@@ -1,4 +1,4 @@
-import { approach, easeGlide, snapDuration, snapProgress } from './touch-scroll';
+import { approach, assistProgress, easeGlide, snapDuration, snapProgress } from './touch-scroll';
 
 describe('approach (frame-rate independent lerp)', () => {
   it('moves k of the gap in one 60 Hz frame', () => {
@@ -75,5 +75,50 @@ describe('snapDuration — 350..800 ms in proportion to the distance', () => {
     expect(a).toBeGreaterThan(350);
     expect(b).toBeGreaterThan(a);
     expect(b).toBeLessThan(800);
+  });
+});
+
+describe('assistProgress — nearby reading holds in the synagogue scene', () => {
+  it('helps a short forward swipe finish at the centre of the current chapter', () => {
+    expect(assistProgress(0.33, 4, 1)).toBeCloseTo(0.365);
+  });
+  it('helps a reverse swipe return to the same readable hold', () => {
+    expect(assistProgress(0.4, 4, -1)).toBeCloseTo(0.365);
+  });
+  it('finishes transitions without pulling farther than half a chapter', () => {
+    expect(assistProgress(0.48, 4, 1)).toBeCloseTo(0.555);
+    expect(assistProgress(0.48, 4, -1)).toBeCloseTo(0.365);
+  });
+  it('leaves small corrections, taps, entry and exit alone', () => {
+    expect(assistProgress(0.364, 4, 1)).toBeNull();
+    expect(assistProgress(0.33, 4, 0)).toBeNull();
+    expect(assistProgress(0.02, 4, 1)).toBeNull();
+    expect(assistProgress(0.98, 4, -1)).toBeNull();
+    expect(assistProgress(-0.1, 4, 1)).toBeNull();
+    expect(assistProgress(1.1, 4, -1)).toBeNull();
+  });
+  it('never reverses a swipe, overshoots the scene or travels more than half a chapter', () => {
+    for (const n of [2, 4, 6])
+      for (let p = 0; p <= 1; p += 0.003)
+        for (const dir of [1, -1] as const) {
+          const to = assistProgress(p, n, dir);
+          if (to === null) continue;
+          expect((to - p) * dir).toBeGreaterThan(0);
+          expect(Math.abs(to - p)).toBeLessThanOrEqual(0.5 / n);
+          expect(to).toBeGreaterThan(0);
+          expect(to).toBeLessThan(1);
+        }
+  });
+  it('rejects invalid progress and chapter counts', () => {
+    expect(assistProgress(NaN, 4, 1)).toBeNull();
+    expect(assistProgress(0.3, 1, 1)).toBeNull();
+  });
+});
+
+describe('assisted snap duration', () => {
+  it('eases short and long reading assists more gently than transition snaps', () => {
+    expect(snapDuration(5, 844, true)).toBe(600);
+    expect(snapDuration(844, 844, true)).toBe(1050);
+    expect(snapDuration(200, 844, true)).toBeGreaterThan(snapDuration(200, 844));
   });
 });

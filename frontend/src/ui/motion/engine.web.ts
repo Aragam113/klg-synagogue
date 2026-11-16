@@ -2,7 +2,14 @@ import Lenis from 'lenis';
 
 import type { MotionEl, ProgressMode, RegisterOptions } from './engine';
 import { progressOf } from './progress';
-import { approach, easeGlide, snapDuration, snapProgress, TOUCH_LERP } from './touch-scroll';
+import {
+  approach,
+  assistProgress,
+  easeGlide,
+  snapDuration,
+  snapProgress,
+  TOUCH_LERP,
+} from './touch-scroll';
 
 /**
  * Web scroll engine. ONE rAF writes `--p` (0..1, toFixed(4), change threshold 4e-4, touch 2e-4) into registered elements;
@@ -13,7 +20,8 @@ import { approach, easeGlide, snapDuration, snapProgress, TOUCH_LERP } from './t
  * up and the page has stood still SNAP_IDLE ms — once per rest, and only when it rests BETWEEN two chapters (both
  * texts half-faded): along the last movement into the next chapter, or back into the previous one when moving up;
  * never against the movement, at most half a chapter; a readable chapter, the entry and the exit are left alone
- * (snapProgress). An animated scroll with a soft start and landing (easeGlide), 350..800 ms; any touch, wheel, key
+ * (snapProgress). The synagogue scene opts into nearby reading holds after intentional swipes (assistProgress),
+ * eased over 600..1050 ms, once per gesture. Ordinary snaps take 350..800 ms. Any touch, wheel, key
  * or foreign scroll cancels it at once; an address-bar resize does not (touch-scroll.ts).
  * On touch the viewport height is fixed in px at start (`--vh-fix` on <html>, used by the sticky runways and by
  * the progress maths) and re-read only when the width changes (orientation) — not when the address bar moves.
@@ -33,6 +41,8 @@ interface Entry {
   cur: number;
   /** touch: chapters of a pinned scene that pulls the page to its stops */
   snap?: number;
+  /** Opt-in reading holds after an intentional touch swipe (the synagogue scene). */
+  assist?: boolean;
   /** false: no `--p` write (the CSS runs on a scroll timeline) */
   css: boolean;
   onChange?: (p: number) => void;
@@ -64,6 +74,7 @@ const tp = {
   movedAt: 0,
   dir: 0 as -1 | 0 | 1,
   finger: false,
+  intent: false,
   settled: false,
   resizedAt: -1e9,
 };
@@ -185,6 +196,7 @@ const touchStep = (t: number) => {
     else if (Math.abs(y - tp.anchor) >= DIR_PX) {
       tp.dir = y > tp.anchor ? 1 : -1;
       tp.anchor = y;
+      if (tp.finger) tp.intent = true;
     }
     tp.y = y;
     tp.movedAt = t;
@@ -193,17 +205,21 @@ const touchStep = (t: number) => {
   }
   if (tp.finger || tp.settled || t - tp.movedAt < SNAP_IDLE) return;
   tp.settled = true;
+  const intentional = tp.intent;
+  tp.intent = false; // one assist per gesture; later links/layout changes do not re-arm it
   for (const e of entries.values()) {
     if (!e.snap || !e.active) continue;
     const r = e.el.getBoundingClientRect();
     const top = r.top + y;
     const runway = r.height - vhFix;
     if (runway <= 0) continue;
-    const goal = snapProgress((y - top) / runway, e.snap, tp.dir);
+    if (e.assist && !intentional) continue;
+    const p = (y - top) / runway;
+    const goal = e.assist ? assistProgress(p, e.snap, tp.dir) : snapProgress(p, e.snap, tp.dir);
     if (goal === null) continue;
     const to = Math.round(top + goal * runway);
     if (Math.abs(to - y) <= 2) continue;
-    glide = { from: y, to, start: t, dur: snapDuration(to - y, vhFix), set: y };
+    glide = { from: y, to, start: t, dur: snapDuration(to - y, vhFix, e.assist), set: y };
     return;
   }
 };
@@ -248,6 +264,8 @@ const onFingerDown = () => {
   idle = 0;
   schedule();
   tp.finger = true;
+  tp.intent = false;
+  tp.dir = 0;
   tp.settled = false;
   tp.anchor = window.scrollY;
   cancelGlide();
@@ -260,6 +278,7 @@ const onFingerUp = (ev: Event) => {
   schedule();
 };
 const onInterrupt = () => {
+  tp.intent = false;
   // a wheel / key / mouse: stop a glide and keep the page where the visitor leaves it until they scroll again
   tp.settled = !!glide || tp.settled;
   tp.movedAt = performance.now();
@@ -394,6 +413,7 @@ export const registerProgress = (el: MotionEl, opts: RegisterOptions = {}): (() 
     last: -1,
     cur: -1,
     snap: opts.snap,
+    assist: opts.assist,
     css: opts.css !== false && !(opts.timeline && scrollTimelines()),
     onChange: opts.onChange,
   };
@@ -426,6 +446,7 @@ export const registerReveal = (el: MotionEl): (() => void) => {
 };
 
 export const scrollToTop = (): void => {
+  tp.intent = false;
   cancelGlide();
   if (lenis) lenis.scrollTo(0, { immediate: true });
   else window.scrollTo(0, 0);

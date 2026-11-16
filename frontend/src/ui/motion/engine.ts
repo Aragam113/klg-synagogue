@@ -8,6 +8,8 @@ export interface RegisterOptions {
   onChange?: (p: number) => void;
   /** Touch, 'pin' mode: number of chapters — once the scroll rests inside, the page glides to the nearest stop. */
   snap?: number;
+  /** Touch: after an intentional swipe, gently finish at a nearby readable chapter hold. */
+  assist?: boolean;
   /** false: compute `p` and call onChange only, never write `--p` (the CSS of the element runs on a scroll timeline). */
   css?: boolean;
   /** The registration exists only to write `--p` for CSS: skipped where scroll timelines drive that CSS. */

@@ -22,19 +22,20 @@ export const useScrollProgress = (
   useEffect(() => {
     cb.current = opts.onChange;
   });
-  const { mode, snap, css, cssOnly, timeline } = opts;
+  const { mode, snap, assist, css, cssOnly, timeline } = opts;
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     return registerProgress(el, {
       mode,
       snap,
+      assist,
       css,
       cssOnly,
       timeline,
       onChange: (p) => cb.current?.(p),
     });
-  }, [ref, mode, snap, css, cssOnly, timeline]);
+  }, [ref, mode, snap, assist, css, cssOnly, timeline]);
 };
 
 /** `data-onscreen` while the element is on screen (idle CSS loops pause off screen). */

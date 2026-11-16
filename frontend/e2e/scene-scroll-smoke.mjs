@@ -31,6 +31,7 @@ try {
     });
     await page.waitForFunction(() => document.querySelector('.scrub')?.dataset.loaded === 'all');
     await page.waitForFunction(() => !document.querySelector('[data-preloader]'));
+    await page.evaluate(() => document.fonts.ready);
     const geometry = await page.evaluate(() => {
       const scene = document.querySelector('.scrub');
       return {
@@ -106,6 +107,92 @@ try {
       'frames',
       'Touch defaults to decoded frames'
     );
+    // A short swipe inside a readable chapter receives a gentle assist, along the swipe.
+    const at = (p) => Math.round(geometry.top + geometry.runway * p);
+    const go = async (p) => {
+      await page.evaluate((y) => scrollTo(0, y), at(p));
+      await sleep(500);
+    };
+    const drag = async (dy) => {
+      await touch('touchStart', 600);
+      for (let i = 1; i <= 8; i++) {
+        await touch('touchMove', 600 - (dy * i) / 8);
+        await sleep(25);
+      }
+      await sleep(180); // lift without browser inertia
+      await touch('touchEnd');
+      return page.evaluate(() => scrollY);
+    };
+    const settle = async (target) => {
+      await page
+        .waitForFunction((y) => Math.abs(scrollY - y) <= 2, { timeout: 2200 }, target)
+        .catch(async () => {
+          const actual = await page.evaluate(() => {
+            const s = document.querySelector('.scrub');
+            return { y: scrollY, top: s.getBoundingClientRect().top + scrollY, h: s.offsetHeight };
+          });
+          throw new Error(
+            'Reading assist did not settle: ' + JSON.stringify({ target, actual, geometry })
+          );
+        });
+      await sleep(250);
+      const y = await page.evaluate(() => scrollY);
+      assert.ok(Math.abs(y - target) <= 2, 'Assistance stops once at the reading hold');
+      return y;
+    };
+    await go(0.3);
+    const downFrom = await drag(90);
+    const downTo = await settle(at(0.365));
+    assert.ok(
+      downTo > downFrom && downTo - downFrom <= geometry.runway / 8,
+      'Forward assist follows the swipe within half a chapter: ' +
+        JSON.stringify({ downFrom, downTo })
+    );
+    await go(0.42);
+    const upFrom = await drag(-90);
+    const upTo = await settle(at(0.365));
+    assert.ok(
+      upTo < upFrom && upFrom - upTo <= geometry.runway / 8,
+      'Reverse assist follows the swipe within half a chapter: ' + JSON.stringify({ upFrom, upTo })
+    );
+    if (width === 390) {
+      await go(0.3);
+      const released = await drag(90);
+      await page.waitForFunction((y) => scrollY > y + 4, { timeout: 1000 }, released);
+      await touch('touchStart', 500);
+      const cut = await page.evaluate(() => scrollY);
+      await sleep(700);
+      assert.ok(
+        Math.abs((await page.evaluate(() => scrollY)) - cut) <= 1,
+        'A new touch cancels assistance immediately'
+      );
+      assert.ok(Math.abs(cut - at(0.365)) > 5, 'Touch interrupts before landing');
+      await touch('touchEnd');
+      await go(0.33);
+      await sleep(600);
+      assert.ok(
+        Math.abs((await page.evaluate(() => scrollY)) - at(0.33)) <= 1,
+        'Programmatic navigation does not trigger assistance'
+      );
+      await touch('touchStart', 500);
+      await touch('touchEnd');
+      const tapped = await page.evaluate(() => scrollY);
+      await sleep(1000);
+      assert.ok(
+        Math.abs((await page.evaluate(() => scrollY)) - tapped) <= 1,
+        'A tap without scrolling does not trigger assistance'
+      );
+      for (const p of [-0.08, 1.08]) {
+        await go(p);
+        const outside = await drag(p < 0 ? 90 : -90);
+        await sleep(1100);
+        assert.ok(
+          Math.abs((await page.evaluate(() => scrollY)) - outside) <= 1,
+          'Assistance never pulls the user back from outside the scene'
+        );
+      }
+    }
+    console.log('PASS ' + width + 'px: reading assists follow swipes and remain interruptible');
     // Hold a readable chapter while the address bar changes height; neither the frame nor sticky height jumps.
     await touch('touchStart', 500);
     await page.evaluate(({ top, runway }) => scrollTo(0, top + runway * 0.69), geometry);
