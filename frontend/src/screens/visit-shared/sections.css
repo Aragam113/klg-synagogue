@@ -544,3 +544,11 @@ html[data-motion='on'] .sx-timeline::before {
    (the Yandex / Google / OSM buttons under it open a real map) */
 .sx-figure__cap .sx-credit { display: block; margin-top: 0.2rem; }
 @media (pointer: coarse) { .sx-map__frame { pointer-events: none; } }
+
+.sx-person__identity { display: flex; gap: 1rem; align-items: flex-start; min-height: 8rem; margin-bottom: 1rem; }
+.sx-person__identity > div:last-child { flex: 1; min-width: 0; }
+.sx-person__identity .sx-h { margin-top: 0; }
+.sx-person__portrait { margin: 0; flex: 0 0 5rem; width: 5rem; min-width: 0; }
+.sx-person__portrait img { display: block; width: 100%; height: auto; aspect-ratio: 4/5; object-fit: cover; border-radius: 7rem 7rem .5rem .5rem; }
+.sx-person__portrait figcaption { margin-top: .4rem; font-size: .75rem; opacity: .75; }
+.sx-person__symbol { flex: 0 0 5rem; height: 6.25rem; display: grid; place-items: center; color: var(--fg-mute); }

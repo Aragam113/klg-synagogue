@@ -35,7 +35,11 @@ export const FundraiserView = ({
   const { t, lang } = useLang('payments');
   const progress = f ? fundraiserProgress(f) : null;
   return (
-    <Page title={`${f?.title ?? t('fundraiser.eyebrow')}`}>
+    <Page
+      title={f?.title ?? t('fundraiser.eyebrow')}
+      description={f?.body?.split('\n')[0]}
+      image={f?.cover ?? undefined}
+    >
       <Section tone="cream" className="don-hero">
         <div className="don-hero__rosette">
           <Rosette size="40rem" spin={120} />

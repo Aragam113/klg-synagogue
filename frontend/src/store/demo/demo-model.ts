@@ -72,6 +72,25 @@ const DAYS_DEFAULT = 14;
 
 type Row = Record<string, unknown>;
 
+/** Snapshot prices are recalculated against today's Kaliningrad date, like the API. */
+function eventAt(row: Row, now: Date): Row {
+  const tiers = (row.priceTiers ?? []) as { until: string | null; priceRub: number }[];
+  if (!row.isPaid || tiers.length === 0) return { ...row, priceNow: null, priceTierIndex: null };
+  const found = tiers.findIndex(
+    (tier) => tier.until === null || tier.until >= kaliningradDate(now)
+  );
+  const index = found < 0 ? tiers.length - 1 : found;
+  return { ...row, priceNow: tiers[index].priceRub, priceTierIndex: index };
+}
+
+const fundraiserAt = (row: Row, now: Date): Row => ({
+  ...row,
+  status:
+    row.status === 'active' && row.endsAt && Date.parse(String(row.endsAt)) < now.getTime()
+      ? 'closed'
+      : row.status,
+});
+
 const str = (v: unknown): string | undefined =>
   v === undefined || v === null || v === '' ? undefined : String(v);
 const int = (v: unknown, def: number): number => {
@@ -175,11 +194,34 @@ export async function demoResponse(
         const kind = str(params.kind);
         return { data: paged(kind ? all.filter((n) => n.kind === kind) : all, params, 9) };
       }
-      case '/events':
+      case '/events': {
+        const rows = [
+          ...((await file('events')) as Row[]),
+          ...((await file('events-past').catch(() => [])) as Row[]),
+        ];
+        const unique = [...new Map(rows.map((row) => [row.slug, row])).values()];
+        const past = params.past === true || params.past === 'true' || params.past === '1';
+        const selected = unique.filter(
+          (row) => Date.parse(String(row.endsAt ?? row.startsAt)) < now.getTime() === past
+        );
+        selected.sort(
+          (a, b) =>
+            (Date.parse(String(a.startsAt)) - Date.parse(String(b.startsAt))) * (past ? -1 : 1)
+        );
         return {
-          data: paged((await file(params.past ? 'events-past' : 'events')) as Row[], params, 12),
+          data: paged(
+            selected.map((row) => eventAt(row, now)),
+            params,
+            12
+          ),
         };
+      }
       case '/fundraisers':
+        return {
+          data: ((await file('fundraisers')) as Row[])
+            .map((row) => fundraiserAt(row, now))
+            .filter((row) => row.status === 'active'),
+        };
       case '/programs':
       case '/departments':
       case '/albums':
@@ -202,8 +244,17 @@ export async function demoResponse(
       }
     }
     const detail = DETAIL.exec(url);
-    if (detail)
-      return { data: await file(`${detail[1]}/${slugFile(decodeURIComponent(detail[2]))}`) };
+    if (detail) {
+      const row = (await file(`${detail[1]}/${slugFile(decodeURIComponent(detail[2]))}`)) as Row;
+      return {
+        data:
+          detail[1] === 'events'
+            ? eventAt(row, now)
+            : detail[1] === 'fundraisers'
+              ? fundraiserAt(row, now)
+              : row,
+      };
+    }
     const holiday = HOLIDAY.exec(url);
     if (holiday) {
       const key = slugFile(decodeURIComponent(holiday[1]));

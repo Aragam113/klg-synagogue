@@ -1,6 +1,10 @@
+import { usePathname } from 'expo-router';
 import Head from 'expo-router/head';
 import { type ReactNode, useRef } from 'react';
 
+import { IS_DEMO } from '@/config/demo';
+import { publicUrl } from '@/config/metadata';
+import pageMetadata from '@/config/page-metadata.json';
 import { useLang } from '@/i18n/use-lang';
 import { HexPattern } from '@/ui/judaica/hex-pattern';
 import { useOnscreen, useScrollProgress } from '@/ui/motion/hooks';
@@ -12,18 +16,47 @@ export type Tone = 'cream' | 'canvas' | 'deep' | 'deeper' | 'ink';
 /** Page wrapper: sets <title> as "<title> — <full site name>" (common:site.full); no title → just the site name. */
 export const Page = ({
   title,
+  description,
+  image,
+  article,
   children,
   className = '',
 }: {
   title?: string;
+  description?: string;
+  image?: string;
+  article?: boolean;
   children: ReactNode;
   className?: string;
 }) => {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const pathname = usePathname();
+  const page = pageMetadata.find((p) => p.path === pathname.replace(/\/$/, ''));
+  const fullTitle = pageTitle(title, t('common:site.full'));
+  const summary = (description || page?.description[lang] || t('common:demo.description'))
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 240);
+  const canonical = publicUrl(pathname) + (lang === 'ru' ? '' : `?lang=${lang}`);
+  const preview = publicUrl(image || '/media/share-preview.jpg');
   return (
     <div className={`page ${className}`}>
       <Head>
-        <title>{pageTitle(title, t('common:site.full'))}</title>
+        <title>{fullTitle}</title>
+        <meta name="description" content={summary} />
+        {IS_DEMO ? <meta name="robots" content="noindex,follow" /> : null}
+        <link rel="canonical" href={canonical} />
+        <meta property="og:title" content={fullTitle} />
+        <meta property="og:description" content={summary} />
+        <meta property="og:type" content={article ? 'article' : 'website'} />
+        <meta property="og:url" content={canonical} />
+        <meta property="og:image" content={preview} />
+        <meta property="og:image:alt" content={title || t('common:site.full')} />
+        <meta property="og:locale" content={{ ru: 'ru_RU', en: 'en_US', he: 'he_IL' }[lang]} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={fullTitle} />
+        <meta name="twitter:description" content={summary} />
+        <meta name="twitter:image" content={preview} />
       </Head>
       {children}
     </div>

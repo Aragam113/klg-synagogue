@@ -37,7 +37,11 @@ export const EventView = ({ event: e, notFound, error, onRetry, onRegister }: Ev
     onRegister();
   };
   return (
-    <Page title={`${e?.title ?? t('events.eyebrow')}`}>
+    <Page
+      title={e?.title ?? t('events.eyebrow')}
+      description={e?.description?.split('\n')[0]}
+      image={e?.cover ?? undefined}
+    >
       <Section tone="ink" grain className="cnt-afisha">
         <Container>
           <Link href="/events" className="cnt-back">

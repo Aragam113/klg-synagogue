@@ -92,3 +92,7 @@ html[data-anim='on'] [data-revealed] .cnt-progress span { transform: scaleX(1); 
   .cnt-photos { columns: 2; column-gap: 0.571rem; }
   .cnt-photo { margin-block-end: 0.571rem; }
 }
+
+.nws-original { margin-top: 1.5rem; padding: 1rem 0; border-block: 1px solid var(--line); }
+.nws-original summary { cursor: pointer; text-decoration: underline; text-underline-offset: .25em; }
+.nws-summary { color: var(--fg-mute); font-size: .85rem; }

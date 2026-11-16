@@ -1,1 +1,9 @@
-{"createdAt":"2026-10-13T16:27:54.556Z","api":"http://localhost:3000/api/v1","from":"2026-10-13","to":"2027-11-14"}
+{
+  "createdAt": "2026-10-13T16:27:54.556Z",
+  "api": "http://localhost:3000/api/v1",
+  "from": "2026-10-13",
+  "to": "2027-11-14",
+  "contentUpdatedAt": "2026-11-16",
+  "latestNewsAt": "2026-11-13T11:50:25.000Z",
+  "newsSource": "https://t.me/B_C_Kaliningrad"
+}

@@ -15,11 +15,15 @@ const api = emptyApi.injectEndpoints({
     bad: b.query<unknown, void>({ query: () => '/requests/prayer' }),
   }),
 });
-const makeStore = () =>
-  configureStore({
+const stores: ReturnType<typeof configureStore>[] = [];
+const makeStore = () => {
+  const store = configureStore({
     reducer: { [emptyApi.reducerPath]: emptyApi.reducer },
     middleware: (g) => g({ serializableCheck: false }).concat(emptyApi.middleware),
   });
+  stores.push(store);
+  return store;
+};
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
@@ -27,9 +31,16 @@ let fetchMock: jest.Mock;
 const sent = () => fetchMock.mock.calls[0][0] as Request;
 
 beforeEach(async () => {
+  jest.useFakeTimers();
   fetchMock = jest.fn();
   globalThis.fetch = fetchMock as unknown as typeof fetch;
   await AsyncStorage.setItem(ADMIN_TOKEN_KEY, 'tok');
+});
+
+afterEach(() => {
+  for (const store of stores.splice(0)) store.dispatch(emptyApi.util.resetApiState());
+  jest.runOnlyPendingTimers();
+  jest.useRealTimers();
 });
 
 it('public endpoint: no Bearer, ?lang added, envelope unwrapped', async () => {

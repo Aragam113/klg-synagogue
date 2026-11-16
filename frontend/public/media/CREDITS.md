@@ -47,3 +47,13 @@ https://disk.yandex.ru/d/IO_DPE3W5m10FA). Автор — «Архив общин
 
 Альбомы галереи из этого же архива (Молельный зал, Молитва, Праздники, Концерты, Музей, Миквы, Кладбище)
 загружает `npm run seed` из `backend/seed-assets/photos/community_*` (список — `_sources.txt`).
+
+## Портрет раввина
+
+- `people/david-shvedik.webp` — Давид Шведик. Источник: [Федерация еврейских общин России](https://feor.ru/administrative-units/kaliningrad/), [оригинал фотографии](https://feor.ru/wp-content/uploads/2019/08/shvedik_d_m10.jpg). Проверено 16.11.2026. На странице портрета сохранена ссылка на ФЕОР.
+
+- `share-preview.jpg` — кадрирование `sections/evening-2024.jpg`, Александр Сигачёв, CC BY-SA 4.0; [исходный снимок](https://commons.wikimedia.org/wiki/File:IMG_Kaliningrad_-_New_Synagogue_in_K%C3%B6nigsberg_-_2024-06-11_-_p2.jpg).
+
+## Обновление новостей демо 16.11.2026
+
+- `demo-data/media/tg-2409-*.webp`, `tg-2419-*.webp`, `tg-2420-*.webp`, `tg-2425-*.webp`, `tg-2426-*.webp`, `tg-2428-*.webp` — фотографии из [официального канала общины](https://t.me/B_C_Kaliningrad). У каждой фотографии в новости сохранён прямой адрес публикации. Новые тексты — краткие пересказы с указанием источника.

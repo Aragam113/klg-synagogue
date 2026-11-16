@@ -14,14 +14,25 @@ const api = emptyApi.injectEndpoints({
 });
 
 let seen: string | undefined;
+let renderer: ReturnType<typeof create> | undefined;
 const Probe = () => {
   seen = api.useTodayQuery().data;
   return null;
 };
 
 const flush = async () => {
-  for (let i = 0; i < 10; i++) await act(async () => new Promise((r) => setTimeout(r, 0)));
+  for (let i = 0; i < 10; i++) await act(async () => jest.advanceTimersByTimeAsync(0));
 };
+
+beforeEach(() => jest.useFakeTimers());
+afterEach(async () => {
+  await act(async () => {
+    renderer?.unmount();
+    store.dispatch(emptyApi.util.resetApiState());
+    await jest.runOnlyPendingTimersAsync();
+  });
+  jest.useRealTimers();
+});
 
 it('a hook without {lang} refetches with the new ?lang= after a language switch', async () => {
   await i18next.init({ lng: 'ru', resources: {} });
@@ -34,7 +45,7 @@ it('a hook without {lang} refetches with the new ?lang= after a language switch'
   });
   globalThis.fetch = fetchMock as unknown as typeof fetch;
   await act(async () => {
-    create(
+    renderer = create(
       <Provider store={store}>
         <Probe />
       </Provider>

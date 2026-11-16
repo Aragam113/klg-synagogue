@@ -1,7 +1,8 @@
+import { assetUrl } from '@/config/demo';
 import { useLang } from '@/i18n/use-lang';
 import { GHOST_WORDS as GW } from '@/ui/judaica';
 import { MagenDavid } from '@/ui/judaica/magen-david';
-import { Placeholder, Text } from '@/ui/kit';
+import { Link, Text } from '@/ui/kit';
 import { Reveal } from '@/ui/motion';
 
 import { Band, Figure, PageHero, Paras, SectionPage, SourceLink } from '../visit-shared/ui';
@@ -25,12 +26,32 @@ export const AboutView = ({ content: a, introSrc }: AboutViewProps) => {
         <div className="sx-people">
           {a.people.map((p, i) => (
             <Reveal key={p.name} delay={(i % 3) * 0.08} className="sx-person">
-              <div className="sx-person__ph" aria-hidden>
-                <MagenDavid size="2.4rem" strokeWidth={1} />
-                <Placeholder>{t('ph.portrait')}</Placeholder>
+              <div className="sx-person__identity">
+                {p.portrait ? (
+                  <figure className="sx-person__portrait">
+                    <img
+                      src={assetUrl(p.portrait.url)}
+                      alt={p.name}
+                      loading="lazy"
+                      width={640}
+                      height={800}
+                    />
+                    <figcaption>
+                      <Link href={p.portrait.source}>
+                        {t('photo')}: {t('common:demo.feor')}
+                      </Link>
+                    </figcaption>
+                  </figure>
+                ) : (
+                  <div className="sx-person__symbol" aria-hidden>
+                    <MagenDavid size="2.4rem" strokeWidth={1} />
+                  </div>
+                )}
+                <div>
+                  <h2 className="sx-h">{p.name}</h2>
+                  <p className="eyebrow">{p.role}</p>
+                </div>
               </div>
-              <h2 className="sx-h">{p.name}</h2>
-              <p className="eyebrow">{p.role}</p>
               <Text>{p.note}</Text>
               <SourceLink href={p.href} />
             </Reveal>

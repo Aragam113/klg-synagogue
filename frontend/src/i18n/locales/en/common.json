@@ -16,7 +16,8 @@
     "search": "Search",
     "menu": "Menu",
     "close": "Close",
-    "home": "Home"
+    "home": "Home",
+    "skip": "Skip to content"
   },
   "lang": {
     "label": "Language",
@@ -81,7 +82,16 @@
     "calendarStale": "The calendar data in the demo version is out of date",
     "adminTitle": "The admin panel is not available in the demo version",
     "adminText": "The demo version of the site runs without a server: content editing, requests and payments are disabled here.",
-    "home": "To the home page"
+    "home": "To the home page",
+    "unknown": "Please check with the community",
+    "formNotice": "This is a demonstration form. You can explore the fields; requests, subscriptions and payments are not sent. Please contact the community directly.",
+    "contact": "Community contacts",
+    "summary": "A short summary of the publication. Read the full text at the source.",
+    "translatedSummary": "A translated summary. Read the full Russian text at the source.",
+    "description": "Demo website of the Jewish community of Kaliningrad: the synagogue, history, news, prayer times and visitor information.",
+    "archiveSummary": "A translated summary. Expand the full Russian text below.",
+    "original": "Original Russian text",
+    "feor": "FEOR"
   },
   "errors": {
     "network": "The server is unreachable. Check your connection and try again.",

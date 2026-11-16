@@ -791,3 +791,9 @@ a.social:hover { background: var(--light); color: var(--deep); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
 }
+
+/* Demo forms remain explorable, with submission disabled before data entry. */
+.demo-notice { grid-column: 1 / -1; padding: 1rem 1.25rem; border: 1px solid var(--line); border-radius: .75rem; font-size: .9rem; line-height: 1.5; }
+.demo-notice p { margin: .4rem 0; }
+.demo-notice a { text-decoration: underline; text-underline-offset: .2em; }
+.ph.ph--demo { background: none; outline: none; color: inherit; border: 1px solid var(--line); font-size: .85em; font-style: italic; }

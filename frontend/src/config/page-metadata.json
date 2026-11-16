@@ -1,0 +1,329 @@
+[
+  {
+    "path": "/news",
+    "title": {
+      "ru": "Новости и анонсы",
+      "en": "News and announcements",
+      "he": "חדשות והודעות"
+    },
+    "description": {
+      "ru": "Новости, фотографии и объявления еврейской общины Калининграда.",
+      "en": "News, photographs and announcements from Kaliningrad’s Jewish community.",
+      "he": "חדשות, תמונות והודעות מהקהילה היהודית בקלינינגרד."
+    }
+  },
+  {
+    "path": "/events",
+    "title": {
+      "ru": "Афиша событий",
+      "en": "Events",
+      "he": "אירועים"
+    },
+    "description": {
+      "ru": "Афиша демо: примеры бесплатных и платных событий, регистрация и архив.",
+      "en": "Demo events: examples of free and ticketed gatherings, registration and an archive.",
+      "he": "אירועי הדגמה: דוגמאות למפגשים בחינם ובתשלום, הרשמה וארכיון."
+    }
+  },
+  {
+    "path": "/gallery",
+    "title": {
+      "ru": "Галерея",
+      "en": "Gallery",
+      "he": "גלריה"
+    },
+    "keywords": {
+      "ru": "фото альбомы",
+      "en": "photos albums",
+      "he": "תמונות"
+    },
+    "description": {
+      "ru": "Фотографии синагоги и жизни общины, альбомы и подписи к снимкам.",
+      "en": "Photographs of the synagogue and community life, albums and image credits.",
+      "he": "תמונות בית הכנסת וחיי הקהילה, אלבומים ופרטי הצילומים."
+    }
+  },
+  {
+    "path": "/programs",
+    "title": {
+      "ru": "Программы общины",
+      "en": "Community programs",
+      "he": "תוכניות הקהילה"
+    },
+    "keywords": {
+      "ru": "уроки занятия",
+      "en": "classes lessons",
+      "he": "שיעורים"
+    },
+    "description": {
+      "ru": "Занятия, встречи и образовательные программы для детей и взрослых.",
+      "en": "Classes, gatherings and educational programmes for children and adults.",
+      "he": "שיעורים, מפגשים ותוכניות חינוך לילדים ולמבוגרים."
+    }
+  },
+  {
+    "path": "/departments",
+    "title": {
+      "ru": "Подразделения и услуги",
+      "en": "Departments and services",
+      "he": "מחלקות ושירותים"
+    },
+    "keywords": {
+      "ru": "кошерная столовая музей миква",
+      "en": "kosher museum mikvah",
+      "he": "כשר מוזיאון מקווה"
+    },
+    "description": {
+      "ru": "Как связаться с приёмной, музеем, столовой и экскурсионным отделом.",
+      "en": "Contact the rabbi’s office, museum, kosher canteen and tour office.",
+      "he": "יצירת קשר עם לשכת הרב, המוזיאון, חדר האוכל הכשר ומחלקת הסיורים."
+    }
+  },
+  {
+    "path": "/schedule",
+    "title": {
+      "ru": "Расписание молитв",
+      "en": "Prayer schedule",
+      "he": "זמני תפילה"
+    },
+    "keywords": {
+      "ru": "шаббат свечи зманим",
+      "en": "shabbat candles zmanim",
+      "he": "שבת נרות זמנים"
+    },
+    "description": {
+      "ru": "Молитвы, Шаббат, праздники и время зажигания свечей в Калининграде.",
+      "en": "Prayers, Shabbat, festivals and candle-lighting times in Kaliningrad.",
+      "he": "תפילות, שבת, חגים וזמני הדלקת נרות בקלינינגרד."
+    }
+  },
+  {
+    "path": "/community",
+    "title": {
+      "ru": "Общине",
+      "en": "Community",
+      "he": "לקהילה"
+    },
+    "keywords": {
+      "ru": "жизнь общины колель уроки помощь",
+      "en": "community life kollel help",
+      "he": "חיי קהילה כולל עזרה"
+    },
+    "description": {
+      "ru": "Жизнь еврейской общины: учёба, традиции, встречи и взаимопомощь.",
+      "en": "Jewish community life: learning, traditions, gatherings and mutual support.",
+      "he": "חיי הקהילה היהודית: לימוד, מסורת, מפגשים ועזרה הדדית."
+    }
+  },
+  {
+    "path": "/visit",
+    "title": {
+      "ru": "Туристам",
+      "en": "Visitors",
+      "he": "למבקרים"
+    },
+    "keywords": {
+      "ru": "посещение туристы",
+      "en": "visit tourists",
+      "he": "ביקור תיירים"
+    },
+    "description": {
+      "ru": "Что посмотреть в синагоге и как подготовиться к посещению.",
+      "en": "What to see at the synagogue and how to prepare for your visit.",
+      "he": "מה לראות בבית הכנסת וכיצד להתכונן לביקור."
+    }
+  },
+  {
+    "path": "/visit/hours",
+    "title": {
+      "ru": "Часы работы",
+      "en": "Opening hours",
+      "he": "שעות פתיחה"
+    },
+    "keywords": {
+      "ru": "режим время открыто",
+      "en": "open time schedule",
+      "he": "פתוח"
+    },
+    "description": {
+      "ru": "Опубликованные часы работы синагоги, музея и столовой. Перед визитом уточните расписание.",
+      "en": "Published opening hours for the synagogue, museum and canteen. Confirm arrangements before visiting.",
+      "he": "שעות הפתיחה שפורסמו לבית הכנסת, למוזיאון ולחדר האוכל. יש לברר לפני הביקור."
+    }
+  },
+  {
+    "path": "/visit/how-to-get",
+    "title": {
+      "ru": "Как добраться",
+      "en": "Getting here",
+      "he": "איך מגיעים"
+    },
+    "keywords": {
+      "ru": "адрес карта автобус трамвай рыбная деревня",
+      "en": "address map bus tram directions",
+      "he": "כתובת מפה אוטובוס"
+    },
+    "description": {
+      "ru": "Адрес на Октябрьской, карта и варианты проезда к синагоге.",
+      "en": "The Oktyabrskaya Street address, map and directions to the synagogue.",
+      "he": "הכתובת ברחוב אוקטיאברסקאיה, מפה ודרכי הגעה לבית הכנסת."
+    }
+  },
+  {
+    "path": "/visit/rules",
+    "title": {
+      "ru": "Правила посещения",
+      "en": "Visitor rules",
+      "he": "כללי ביקור"
+    },
+    "keywords": {
+      "ru": "одежда фото кипа",
+      "en": "dress code photo kippah",
+      "he": "לבוש צילום כיפה"
+    },
+    "description": {
+      "ru": "Одежда, съёмка и уважительное поведение при посещении синагоги.",
+      "en": "Dress, photography and respectful conduct when visiting the synagogue.",
+      "he": "לבוש, צילום והתנהגות מכבדת בביקור בבית הכנסת."
+    }
+  },
+  {
+    "path": "/visit/excursions",
+    "title": {
+      "ru": "Экскурсии в синагогу",
+      "en": "Synagogue tours",
+      "he": "סיורים בבית הכנסת"
+    },
+    "keywords": {
+      "ru": "экскурсия билеты цены",
+      "en": "tour excursion tickets prices",
+      "he": "סיור כרטיסים מחירים"
+    },
+    "description": {
+      "ru": "Экскурсии по синагоге: условия, билеты и контакты для записи.",
+      "en": "Synagogue tours: arrangements, tickets and booking contacts.",
+      "he": "סיורים בבית הכנסת: סידורים, כרטיסים ופרטי קשר לתיאום."
+    }
+  },
+  {
+    "path": "/visit/museum",
+    "title": {
+      "ru": "Музей «Новая синагога»",
+      "en": "New Synagogue Museum",
+      "he": "מוזיאון בית הכנסת החדש"
+    },
+    "keywords": {
+      "ru": "музей выставка",
+      "en": "museum exhibition",
+      "he": "מוזיאון תערוכה"
+    },
+    "description": {
+      "ru": "Музей еврейского Кёнигсберга: экспозиция, история и информация для гостей.",
+      "en": "The museum of Jewish Königsberg: exhibitions, history and visitor information.",
+      "he": "מוזיאון יהדות קניגסברג: תצוגות, היסטוריה ומידע למבקרים."
+    }
+  },
+  {
+    "path": "/visit/kosher",
+    "title": {
+      "ru": "Кошерное питание",
+      "en": "Kosher food",
+      "he": "אוכל כשר"
+    },
+    "keywords": {
+      "ru": "кошерная столовая кашрут",
+      "en": "kosher canteen kashrut",
+      "he": "מזנון כשר כשרות"
+    },
+    "description": {
+      "ru": "Кошерная столовая и организация питания для туристических групп.",
+      "en": "The kosher canteen and meal arrangements for visiting groups.",
+      "he": "חדר האוכל הכשר ותיאום ארוחות לקבוצות מבקרים."
+    }
+  },
+  {
+    "path": "/history",
+    "title": {
+      "ru": "История синагоги",
+      "en": "History of the synagogue",
+      "he": "היסטוריה של בית הכנסת"
+    },
+    "keywords": {
+      "ru": "кёнигсберг хрустальная ночь 1896 2018",
+      "en": "konigsberg kristallnacht 1896 2018",
+      "he": "קניגסברג ליל הבדולח"
+    },
+    "description": {
+      "ru": "От Новой синагоги Кёнигсберга 1896 года к восстановлению и открытию в 2018 году.",
+      "en": "From Königsberg’s New Synagogue of 1896 to its reconstruction and reopening in 2018.",
+      "he": "מבית הכנסת החדש של קניגסברג משנת 1896 ועד לשיקומו ולפתיחתו מחדש ב־2018."
+    }
+  },
+  {
+    "path": "/about",
+    "title": {
+      "ru": "Об общине",
+      "en": "About the community",
+      "he": "על הקהילה"
+    },
+    "keywords": {
+      "ru": "раввин руководство шведик",
+      "en": "rabbi leadership shvedik",
+      "he": "רב הנהלה שבדיק"
+    },
+    "description": {
+      "ru": "Люди, руководство и история еврейской общины Калининграда.",
+      "en": "The people, leadership and history of Kaliningrad’s Jewish community.",
+      "he": "האנשים, ההנהגה וההיסטוריה של הקהילה היהודית בקלינינגרד."
+    }
+  },
+  {
+    "path": "/contacts",
+    "title": {
+      "ru": "Контакты",
+      "en": "Contacts",
+      "he": "צור קשר"
+    },
+    "keywords": {
+      "ru": "телефон адрес email",
+      "en": "phone address email",
+      "he": "טלפון כתובת"
+    },
+    "description": {
+      "ru": "Телефоны, электронная почта и адрес синагоги и подразделений общины.",
+      "en": "Telephone numbers, email and addresses for the synagogue and community services.",
+      "he": "טלפונים, דואר אלקטרוני וכתובות של בית הכנסת ושירותי הקהילה."
+    }
+  },
+  {
+    "path": "/privacy",
+    "title": {
+      "ru": "Политика конфиденциальности",
+      "en": "Privacy policy",
+      "he": "מדיניות פרטיות"
+    },
+    "keywords": {
+      "ru": "персональные данные",
+      "en": "personal data",
+      "he": "נתונים אישיים"
+    },
+    "description": {
+      "ru": "Какие данные используются в демонстрационной версии сайта.",
+      "en": "How information is handled in the demonstration website.",
+      "he": "כיצד מטופל מידע בגרסת ההדגמה של האתר."
+    }
+  },
+  {
+    "path": "/consent",
+    "title": {
+      "ru": "Согласие на обработку персональных данных",
+      "en": "Consent to data processing",
+      "he": "הסכמה לעיבוד נתונים"
+    },
+    "description": {
+      "ru": "Почему в демо не запрашивается согласие и не отправляются данные форм.",
+      "en": "Why the demo does not request consent or submit form data.",
+      "he": "מדוע בגרסת ההדגמה לא מתבקשת הסכמה ולא נשלחים נתוני טפסים."
+    }
+  }
+]

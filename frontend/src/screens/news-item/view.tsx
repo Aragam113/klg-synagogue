@@ -144,7 +144,12 @@ export const NewsItemView = ({
   // русский фолбэк на he: направление по самому тексту, иначе пунктуация уезжает («!Бар-мицва»)
   const textDir = item?.fallback ? 'auto' : undefined;
   return (
-    <Page title={title}>
+    <Page
+      title={title}
+      description={item?.lead ?? undefined}
+      image={item?.cover ?? undefined}
+      article
+    >
       <Section tone="cream" pattern className="nws-top">
         <Container size="narrow">
           <nav className="nws-crumbs" aria-label={t('news.crumbs')} data-testid="news-crumbs">
@@ -194,6 +199,17 @@ export const NewsItemView = ({
                     <Title as="h1" size="lg" text={title} />
                   </div>
                   <FallbackBadge show={item.fallback} />
+                  {item.summary || item.translatedSummary ? (
+                    <p className="text nws-summary" data-summary>
+                      {t(
+                        item.originalBody
+                          ? 'common:demo.archiveSummary'
+                          : lang === 'ru'
+                            ? 'common:demo.summary'
+                            : 'common:demo.translatedSummary'
+                      )}
+                    </p>
+                  ) : null}
                   {item.lead && !leadRepeatsBody(item.lead, body) ? (
                     <p className="nws-lead" dir={textDir}>
                       {item.lead}
@@ -250,6 +266,14 @@ export const NewsItemView = ({
               <Reveal delay={0.1}>
                 <div dir={textDir}>
                   <RichText text={body} className="nws-body" />
+                  {item.originalBody ? (
+                    <details className="nws-original">
+                      <summary>{t('common:demo.original')}</summary>
+                      <div lang="ru" dir="ltr">
+                        <RichText text={item.originalBody} className="nws-body" />
+                      </div>
+                    </details>
+                  ) : null}
                 </div>
               </Reveal>
               {gallery.length ? (

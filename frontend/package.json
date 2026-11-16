@@ -31,7 +31,8 @@
     "demo:snapshot": "node scripts/demo-snapshot.mjs",
     "build:demo": "node scripts/build-demo.mjs",
     "serve:demo": "node scripts/serve-demo.mjs",
-    "crawl:links": "node e2e/link-crawl.mjs"
+    "crawl:links": "node e2e/link-crawl.mjs",
+    "smoke:demo": "node e2e/demo-smoke.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/frank-ruhl-libre": "^0.4.1",

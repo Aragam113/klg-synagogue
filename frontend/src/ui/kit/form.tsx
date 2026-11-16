@@ -1,6 +1,10 @@
 import { type FormEvent, type HTMLInputTypeAttribute, type ReactNode, useId, useRef } from 'react';
 
+import { IS_DEMO } from '@/config/demo';
 import { useLang } from '@/i18n/use-lang';
+
+import { DemoNotice } from './demo-notice';
+import { SubmissionDisabledContext } from './form-context';
 
 /** Hook: machine field-error key from the API (`required`, `email`, `date_closed`...) -> text in the current language (common:fieldErrors). */
 export const useFieldErrorText = () => {
@@ -163,27 +167,32 @@ export const Form = ({
   className = '',
 }: FormProps) => {
   const hp = useRef<HTMLInputElement>(null);
+  const noticeId = useId();
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!busy) onSubmit(hp.current?.value ?? '');
+    if (!busy && !IS_DEMO) onSubmit(hp.current?.value ?? '');
   };
   return (
-    <form
-      className={`form ${className}`}
-      noValidate
-      onSubmit={submit}
-      aria-busy={busy || undefined}
-    >
-      <input
-        ref={hp}
-        className="hp"
-        name={honeypotName}
-        tabIndex={-1}
-        autoComplete="off"
-        aria-hidden
-        defaultValue=""
-      />
-      {children}
-    </form>
+    <SubmissionDisabledContext.Provider value={IS_DEMO}>
+      <form
+        className={`form ${className}`}
+        noValidate
+        onSubmit={submit}
+        aria-busy={busy || undefined}
+        aria-describedby={IS_DEMO ? noticeId : undefined}
+      >
+        <input
+          ref={hp}
+          className="hp"
+          name={honeypotName}
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden
+          defaultValue=""
+        />
+        <DemoNotice id={noticeId} />
+        {children}
+      </form>
+    </SubmissionDisabledContext.Provider>
   );
 };

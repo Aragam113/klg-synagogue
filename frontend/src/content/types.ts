@@ -42,6 +42,7 @@ export interface Chapter {
 }
 
 export interface Person {
+  portrait?: { url: string; source: string };
   name: string;
   role: string;
   note: string;

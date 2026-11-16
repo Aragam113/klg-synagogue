@@ -1,5 +1,6 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, useContext } from 'react';
 
+import { SubmissionDisabledContext } from './form-context';
 import { Link } from './link';
 
 export interface ButtonProps {
@@ -48,7 +49,8 @@ export const Button = ({
   className = '',
   ariaLabel,
 }: ButtonProps) => {
-  const disabled = disabledProp || busy;
+  const submissionDisabled = useContext(SubmissionDisabledContext);
+  const disabled = disabledProp || busy || (submissionDisabled && type === 'submit');
   const cls = `btn btn--${variant} btn--${size} ${className}`;
   const body = (
     <>

@@ -13,6 +13,10 @@ export interface Paged<T> {
 }
 
 export interface NewsItem {
+  /** Editorial demo summaries retain the full Russian text for reference. */
+  summary?: boolean;
+  translatedSummary?: boolean;
+  originalBody?: string;
   id: string;
   slug: string;
   title: string;

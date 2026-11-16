@@ -148,4 +148,55 @@ describe('demoResponse (baseQuery of the demo build: snapshot instead of the net
   it('limits dedications', async () => {
     expect(await get('/dedications', { limit: 2 })).toEqual({ data: [{ id: 'a' }, { id: 'b' }] });
   });
+
+  it('moves ended events into the archive and recalculates the same ticket price in lists and details', async () => {
+    const paid = {
+      slug: 'demo-concert',
+      startsAt: '2026-10-08T18:00:00Z',
+      endsAt: '2026-10-08T20:00:00Z',
+      isPaid: true,
+      priceTiers: [
+        { until: '2026-10-05', priceRub: 500 },
+        { until: null, priceRub: 700 },
+      ],
+      priceNow: 500,
+    };
+    const ended = {
+      slug: 'past',
+      startsAt: '2026-10-01T18:00:00Z',
+      endsAt: '2026-10-01T20:00:00Z',
+      isPaid: false,
+    };
+    const snapshot: Record<string, unknown> = {
+      'ru/events.json': [ended, paid],
+      'ru/events-past.json': [ended],
+      'ru/events/demo-concert.json': paid,
+    };
+    const fetch = (url: string, params: Record<string, unknown> = {}) =>
+      demoResponse({ url, params }, async (file) => snapshot[file], now);
+    const future = (await fetch('/events')) as { data: { items: (typeof paid)[] } };
+    expect(future.data.items).toHaveLength(1);
+    expect(future.data.items[0]).toMatchObject({
+      slug: 'demo-concert',
+      priceNow: 700,
+      priceTierIndex: 1,
+    });
+    expect(await fetch('/events/demo-concert')).toEqual({ data: future.data.items[0] });
+    const archive = (await fetch('/events', { past: 'true' })) as {
+      data: { items: { slug: string }[] };
+    };
+    expect(archive.data.items.map((row) => row.slug)).toEqual(['past']);
+    const explicitFalse = (await fetch('/events', { past: 'false' })) as {
+      data: { total: number };
+    };
+    expect(explicitFalse.data.total).toBe(1);
+  });
+
+  it('closes an expired fundraiser consistently in the list and detail', async () => {
+    const row = { slug: 'demo-fund', status: 'active', endsAt: '2026-10-05T21:00:00Z' };
+    const result = (url: string) =>
+      demoResponse({ url }, async (file) => (file === 'ru/fundraisers.json' ? [row] : row), now);
+    expect(await result('/fundraisers')).toEqual({ data: [] });
+    expect(await result('/fundraisers/demo-fund')).toEqual({ data: { ...row, status: 'closed' } });
+  });
 });

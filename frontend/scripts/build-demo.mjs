@@ -10,6 +10,8 @@ import { copyFile, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { writeDemoMetadata } from './demo-metadata.mjs';
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // DEMO_OUT=<dir> — build elsewhere (a parallel build/serve of dist/ is not disturbed).
 const dist = path.resolve(root, process.env.DEMO_OUT || 'dist');
@@ -30,6 +32,7 @@ const html = (await readFile(indexPath, 'utf8')).replace(
   `$1${base}/`,
 );
 await writeFile(indexPath, html);
+await writeDemoMetadata(root, dist, base);
 await copyFile(indexPath, path.join(dist, '404.html'));
 await writeFile(path.join(dist, '.nojekyll'), '');
 console.log('demo build: dist/ + 404.html + .nojekyll');

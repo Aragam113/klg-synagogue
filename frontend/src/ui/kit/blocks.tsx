@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 
+import { IS_DEMO } from '@/config/demo';
 import { useLang } from '@/i18n/use-lang';
 import type { ApiError } from '@/store/api/http';
 import { MagenDavid } from '@/ui/judaica/magen-david';
@@ -105,11 +106,18 @@ export const Empty = ({
  * Visible marker for a fact we do not have yet: renders "[ВПИШИ: ...]" on a striped plate (readable on all tones).
  * Never invent facts - use this instead.
  */
-export const Placeholder = ({ children }: { children: ReactNode }) => (
-  <mark className="ph" data-placeholder>
-    [ВПИШИ: {children}]
-  </mark>
-);
+export const Placeholder = ({ children }: { children: ReactNode }) => {
+  const { t } = useLang();
+  return IS_DEMO ? (
+    <span className="ph ph--demo" data-unconfirmed>
+      {t('demo.unknown')}
+    </span>
+  ) : (
+    <mark className="ph" data-placeholder>
+      [ВПИШИ: {children}]
+    </mark>
+  );
+};
 
 /** Demo records (seed `npm run seed:demo`) carry the slug prefix `demo-`: they are examples, not community facts. */
 export const isDemoSlug = (slug?: string | null): boolean => !!slug && slug.startsWith('demo-');

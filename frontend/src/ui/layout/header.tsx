@@ -1,5 +1,5 @@
 import { usePathname } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { telHref } from '@/config/site';
 import { useLang } from '@/i18n/use-lang';
@@ -62,14 +62,49 @@ export const SiteHeader = () => {
   const { t } = useLang();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const burgerRef = useRef<HTMLButtonElement>(null);
   const { phone } = useSiteContacts();
   useEffect(() => setOpen(false), [pathname]);
   useEffect(() => {
     lockScroll(open);
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    // During the opening transition Chrome can still report visibility:hidden on its first frame.
+    let focusFrame = 0;
+    const focusClose = () => {
+      const close = menuRef.current?.querySelector<HTMLButtonElement>('.mnav__close');
+      if (!close) return;
+      if (getComputedStyle(close).visibility === 'hidden') {
+        focusFrame = requestAnimationFrame(focusClose);
+        return;
+      }
+      close.focus({ preventScroll: true });
+    };
+    focusFrame = requestAnimationFrame(focusClose);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+      if (e.key !== 'Tab') return;
+      const focusable = [
+        ...(menuRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled])') ??
+          []),
+      ];
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
+      }
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      cancelAnimationFrame(focusFrame);
+      window.removeEventListener('keydown', onKey);
+      lockScroll(false);
+      burgerRef.current?.focus();
+    };
   }, [open]);
 
   return (
@@ -104,6 +139,7 @@ export const SiteHeader = () => {
         <button
           type="button"
           className="hdr__burger"
+          ref={burgerRef}
           aria-expanded={open}
           aria-controls="mnav"
           onClick={() => setOpen(true)}
@@ -119,6 +155,9 @@ export const SiteHeader = () => {
 
       <div
         id="mnav"
+        ref={menuRef}
+        inert={!open}
+        aria-modal={open || undefined}
         className="mnav tone-deeper"
         data-open={open}
         aria-hidden={!open}
