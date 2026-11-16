@@ -36,6 +36,15 @@ jobs:
       - run: npm test -- --runInBand --silent
       # = EXPO_PUBLIC_DEMO=1 npx expo export -p web, then dist/404.html (SPA fallback) and dist/.nojekyll
       - run: npm run build:demo
+      - name: Check mobile scene scrolling
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: |
+          node scripts/serve-demo.mjs 8231 > /tmp/klg-scene-server.log 2>&1 &
+          scene_server=$!
+          trap 'kill "$scene_server"' EXIT
+          npm run smoke:scene
+          SCENE_WIDTHS=390 SCENE_QUERY='&sda=0' SCENE_CPU=4 npm run smoke:scene
       - uses: actions/upload-pages-artifact@v3
         with:
           path: frontend/dist

@@ -12,6 +12,9 @@
  */
 html[data-sda='on'][data-motion='on'] .sec { view-timeline: --sec block; }
 html[data-sda='on'][data-motion='on'] :is(.pinned, .scrub--live) { view-timeline: --pin block; }
+/* Match the scene's fixed sticky height when the mobile address bar changes the scrollport. */
+html[data-sda='on'][data-motion='on'][data-touch] .scrub--live {
+  view-timeline-inset: 0 calc(100% - var(--vh-fix)); }
 html[data-sda='on'][data-motion='on'] .sx-timeline { view-timeline: --sxt block; }
 
 /* ---- sections ('through') ---- */

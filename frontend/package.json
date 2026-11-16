@@ -25,6 +25,7 @@
     "smoke:home": "node e2e/home-smoke.mjs",
     "smoke:admin": "node e2e/admin-smoke.mjs",
     "smoke:mobile": "node e2e/mobile-smoke.mjs",
+    "smoke:scene": "node e2e/scene-scroll-smoke.mjs",
     "smoke:interact": "node e2e/interact-smoke.mjs",
     "bench:mobile": "node e2e/mscroll-bench.mjs",
     "bench:preloader": "node e2e/preloader-bench.mjs",

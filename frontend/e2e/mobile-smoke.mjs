@@ -17,7 +17,7 @@
  * background parallaxes — at 390×844 and 360×740; shots e2e/shots/g12_*.
  * Touch path (390×844): no Lenis, sticky in fixed px (the address bar does not move it). Scene as frames (?s=1): 120
  * frames of the portrait set decoded into bitmaps, crossfaded neighbours while moving, one whole frame at rest; a 1 GB
- * phone — 54 frames, landscape → the light 16:9 set. Scene as the film (default): downloaded whole and decoded, the
+ * phone — 54 frames, landscape → the light 16:9 set. Scene as the film (?s=2): downloaded whole and decoded, the
  * camera follows the scroll by playing it (the first pixels move it), back up — the reversed file, at rest where the
  * scroll points, the text follows the camera; films not in yet → frames on the same camera; landscape → the landscape file;
  * auto-settle — only a rest between two chapters glides, along the movement, into the next/previous chapter
@@ -680,11 +680,11 @@ try {
   }
 
 
-  // ---- 4c-film. the default touch scene (390×844): the film — downloaded whole, decoded at the spot, then the camera
+  // ---- 4c-film. the optional touch scene (?s=2, 390×844): the film — downloaded whole, decoded at the spot, then the camera
   // follows the scroll by playing it (the first pixels already move it), back up — the reversed file; it comes to rest
   // where the scroll points; the chapter text follows the camera. Until the films are in, frames stand in (same camera).
   {
-    const page = await open('/?lang=ru', 390, { height: 844 });
+    const page = await open('/?lang=ru&s=2', 390, { height: 844 });
     const tag = '390 touch film';
     const main = await (await fetch(`${WEB}/media/scrub/manifest.json`)).json();
     await page.waitForFunction(() => document.querySelector('.scrub')?.dataset.loaded === 'all', { timeout: 40000 }).catch(() => undefined);
@@ -726,7 +726,7 @@ try {
     await sleep(800);
     const r0 = await read();
     check(r0.mode === 'film' && r0.media === 'film' && r0.loaded === 'all' && !r0.frames && r0.on[0] && !r0.on[1] && r0.srcs.every((x) => x === 'blob:' || x === 'http'),
-      `${tag}: the default touch scene is the film, both files downloaded and decoded, the frames gone`, JSON.stringify(r0));
+      `${tag}: explicit film mode: both files downloaded and decoded, the frames gone`, JSON.stringify(r0));
     check(r0.top === 'VIDEO on', `${tag}: the film is what is seen — no poster or canvas above the playing video`, r0.top);
     // the first pixels of a gesture move the camera (finger held: no glide)
     await page.evaluate(() => window.dispatchEvent(new Event('touchstart')));
@@ -762,7 +762,7 @@ try {
     await page.evaluateOnNewDocument(() => localStorage.setItem('synagogue.cookieConsent', '1'));
     await page.setRequestInterception(true);
     page.on('request', (r) => (/\/scrub\/v\/.*\.mp4/.test(r.url()) ? undefined : r.continue().catch(() => undefined)));
-    await page.goto(`${WEB}/?lang=ru`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+    await page.goto(`${WEB}/?lang=ru&s=2`, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await page.waitForFunction(() => document.querySelector('.scrub')?.dataset.pass === 'coarse', { timeout: 40000 }).catch(() => undefined);
     const at = async (f) => {
       await page.evaluate((v) => {
@@ -788,7 +788,7 @@ try {
     const variants = [
       ['390 weak', { width: 390, height: 844 }, '/?lang=ru&s=1', () => Object.defineProperty(Navigator.prototype, 'deviceMemory', { get: () => 1 })],
       ['844 landscape', { width: 844, height: 390 }, '/?lang=ru&s=1', null],
-      ['844 landscape film', { width: 844, height: 390 }, '/?lang=ru', null],
+      ['844 landscape film', { width: 844, height: 390 }, '/?lang=ru&s=2', null],
     ];
     const light = await (await fetch(`${WEB}/media/scrub/m/manifest.json`)).json();
     for (const [tag, vp, path, init] of variants) {

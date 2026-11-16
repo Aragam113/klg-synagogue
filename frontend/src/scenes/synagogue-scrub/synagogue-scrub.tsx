@@ -47,8 +47,8 @@ export interface SynagogueScrubProps {
 
 /** Touch: `frames` — the scroll scrubs decoded frames on a canvas (?s=1); `film` — chapters play a film (?s=2). */
 export type TouchSceneMode = 'frames' | 'film';
-/** Touch default: the film — measured smoother than the scrub (2026-10-15: video frame pacing CV 0.37 vs picture-step CV 0.5–2.0, no lag after a chapter change). */
-export const DEFAULT_TOUCH_MODE: TouchSceneMode = 'film';
+/** Touch default: decoded frames follow rapid swipes and reversals without video playback catching up. */
+export const DEFAULT_TOUCH_MODE: TouchSceneMode = 'frames';
 /** `?s=1` → frames, `?s=2` → film, else the default. */
 export const touchSceneMode = (search: string): TouchSceneMode => {
   const s = /[?&]s=([12])(?:&|$)/.exec(search)?.[1];
