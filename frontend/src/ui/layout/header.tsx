@@ -20,7 +20,7 @@ export const Logo = ({ light, full }: { light?: boolean; full?: boolean }) => {
       className={`logo${light ? ' logo--light' : ''}${full ? ' logo--full' : ''}`}
       ariaLabel={t('site.full')}
     >
-      <BrandMark light={light} className="logo__mark" />
+      <BrandMark light={light} full={full} className="logo__mark" />
       {!full && (
         <span className="logo__text">
           <span className="logo__name">{t('site.name')}</span>
