@@ -3,24 +3,30 @@ import { useEffect, useRef, useState } from 'react';
 
 import { telHref } from '@/config/site';
 import { useLang } from '@/i18n/use-lang';
-import { MagenDavid } from '@/ui/judaica/magen-david';
 import { Link } from '@/ui/kit/link';
 import { lockScroll } from '@/ui/motion/engine';
 
+import { BrandMark } from './brand-mark';
 import { LangSwitch } from './lang-switch';
 import { isActivePath, MAIN_NAV } from './nav';
 import { TodayWidget } from './slots/today-widget';
 import { useSiteContacts } from './slots/use-site-contacts';
 
-export const Logo = ({ light }: { light?: boolean }) => {
+export const Logo = ({ light, full }: { light?: boolean; full?: boolean }) => {
   const { t } = useLang();
   return (
-    <Link href="/" className={`logo${light ? ' logo--light' : ''}`} ariaLabel={t('site.full')}>
-      <MagenDavid size="1.9em" strokeWidth={1.3} className="logo__mark" />
-      <span className="logo__text">
-        <span className="logo__name">{t('site.name')}</span>
-        <span className="logo__city">{t('site.city')}</span>
-      </span>
+    <Link
+      href="/"
+      className={`logo${light ? ' logo--light' : ''}${full ? ' logo--full' : ''}`}
+      ariaLabel={t('site.full')}
+    >
+      <BrandMark light={light} className="logo__mark" />
+      {!full && (
+        <span className="logo__text">
+          <span className="logo__name">{t('site.name')}</span>
+          <span className="logo__city">{t('site.city')}</span>
+        </span>
+      )}
     </Link>
   );
 };

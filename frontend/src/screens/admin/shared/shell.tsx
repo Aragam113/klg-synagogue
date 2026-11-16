@@ -2,7 +2,7 @@ import { usePathname } from 'expo-router';
 import { type ReactNode, useEffect, useState } from 'react';
 
 import { useAdminRequestsQuery } from '@/store/api/admin-requests';
-import { MagenDavid } from '@/ui/judaica/magen-david';
+import { BrandMark } from '@/ui/layout/brand-mark';
 
 import { AdmLink, useAdminGate, useAdminT } from './gate';
 
@@ -35,7 +35,7 @@ export const AdminShell = ({ children }: { children: ReactNode }) => {
       <aside className="adm__side">
         <div className="adm__top">
           <AdmLink href="/admin/requests" className="adm__brand">
-            <MagenDavid size="1.4rem" strokeWidth={1.4} />
+            <BrandMark className="adm__logo" />
             {t('brand')}
           </AdmLink>
           <button
