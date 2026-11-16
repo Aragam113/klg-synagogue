@@ -38,7 +38,7 @@ export const SiteFooter = () => {
       <div className="container ftr__inner">
         <div className="ftr__top">
           <div className="ftr__brand">
-            <Logo light full />
+            <Logo light />
             <p className="ftr__motto">{t('site.tagline')}</p>
             <DemoBadge />
             <address className="ftr__contacts">

@@ -12,21 +12,11 @@ import { isActivePath, MAIN_NAV } from './nav';
 import { TodayWidget } from './slots/today-widget';
 import { useSiteContacts } from './slots/use-site-contacts';
 
-export const Logo = ({ light, full }: { light?: boolean; full?: boolean }) => {
+export const Logo = ({ light }: { light?: boolean }) => {
   const { t } = useLang();
   return (
-    <Link
-      href="/"
-      className={`logo${light ? ' logo--light' : ''}${full ? ' logo--full' : ''}`}
-      ariaLabel={t('site.full')}
-    >
-      <BrandMark light={light} full={full} className="logo__mark" />
-      {!full && (
-        <span className="logo__text">
-          <span className="logo__name">{t('site.name')}</span>
-          <span className="logo__city">{t('site.city')}</span>
-        </span>
-      )}
+    <Link href="/" className={`logo${light ? ' logo--light' : ''}`} ariaLabel={t('site.full')}>
+      <BrandMark light={light} className="logo__mark" />
     </Link>
   );
 };
