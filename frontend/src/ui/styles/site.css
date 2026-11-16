@@ -572,14 +572,15 @@ html:not([data-anim='on']) .marquee { overflow-x: auto; scrollbar-width: none; }
   align-items: center;
   justify-content: space-between;
   gap: 1.429rem;
-  padding: 14px var(--gutter);
+  padding: 10px var(--gutter);
   width: 100%;
 }
 .hdr:has(.mnav[data-open='true']) { z-index: 70; }
 .logo { display: inline-flex; align-items: center; color: var(--ink); text-decoration: none; flex-shrink: 0; }
 .logo__mark { display: block; width: 160px; height: auto; }
 .logo--light { color: var(--light); }
-@media (max-width: 767px) { .hdr .logo__mark, .mnav .logo__mark { width: 96px; } }
+.hdr .logo__mark, .mnav .logo__mark { width: 80px; }
+@media (max-width: 767px) { .hdr .logo__mark, .mnav .logo__mark { width: 64px; } }
 .hdr__nav { display: none; }
 @media (min-width: 1200px) { .hdr__nav { display: flex; gap: clamp(12px, 1.5vw, 24px); align-items: center; } }
 .hdr__link {
